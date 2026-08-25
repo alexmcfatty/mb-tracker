@@ -1,0 +1,1711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MB Tracker</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;font-size:14px}
+.nav{background:#1e293b;border-bottom:1px solid #334155;padding:0 16px;display:flex;align-items:center;position:sticky;top:0;z-index:100}
+.nav-brand{font-weight:700;font-size:14px;color:#3b82f6;padding:14px 0;margin-right:14px;white-space:nowrap}
+.nav-tabs{display:flex;gap:0;overflow-x:auto}
+.nav-tab{padding:14px 13px;cursor:pointer;color:#64748b;font-size:12px;font-weight:600;border-bottom:2px solid transparent;white-space:nowrap;transition:color .15s,border-color .15s;text-transform:uppercase;letter-spacing:.04em}
+.nav-tab:hover{color:#e2e8f0}.nav-tab.active{color:#3b82f6;border-bottom-color:#3b82f6}
+.content{max-width:1300px;margin:0 auto;padding:18px 14px}
+.tab-pane{display:none}.tab-pane.active{display:block}
+.card{background:#1e293b;border:1px solid #334155;border-radius:10px;padding:16px}
+.section{margin-bottom:18px}
+h2{font-size:15px;font-weight:600;color:#e2e8f0;margin-bottom:12px}
+.slabel{font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px}
+.stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}
+.stat{background:#1e293b;border:1px solid #334155;border-radius:10px;padding:13px}
+.stat-lbl{font-size:10px;color:#475569;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.stat-val{font-size:21px;font-weight:700;color:#e2e8f0;line-height:1}
+.stat-sub{font-size:10px;color:#475569;margin-top:4px}
+.g{color:#22c55e}.r{color:#ef4444}.am{color:#f59e0b}.bl{color:#60a5fa}.mu{color:#64748b}
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+@media(max-width:680px){.charts-grid{grid-template-columns:1fr}}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{text-align:left;padding:7px 9px;color:#475569;font-size:9px;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #334155;white-space:nowrap;background:#1e293b}
+td{padding:7px 9px;border-bottom:1px solid #0f172a;color:#cbd5e1;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tfoot td{border-top:1px solid #334155;font-weight:700;color:#e2e8f0;border-bottom:none}
+.badge{display:inline-block;padding:2px 6px;border-radius:4px;font-size:9px;font-weight:700}
+.bw{background:#16a34a22;color:#22c55e}.bl2{background:#dc262622;color:#ef4444}
+.bb{background:#2563eb22;color:#60a5fa}.bv{background:#47556922;color:#94a3b8}.bp{background:#d9770622;color:#f59e0b}
+.bd{background:#7c3aed22;color:#a78bfa}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:11px;margin-bottom:12px}
+.fg{display:flex;flex-direction:column;gap:4px}
+label.lbl{font-size:10px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+input,select,textarea{background:#0f172a;border:1px solid #334155;border-radius:6px;padding:7px 10px;color:#e2e8f0;font-size:13px;width:100%;transition:border-color .15s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#3b82f6}
+input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}input[type=number]{-moz-appearance:textfield}
+select option{background:#1e293b}
+.rbtns{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}
+.rbtn{padding:10px 4px;border:2px solid #334155;border-radius:8px;cursor:pointer;font-weight:700;font-size:12px;text-align:center;color:#64748b;background:transparent;transition:all .15s;user-select:none}
+.rbtn:hover{border-color:#475569;color:#e2e8f0}
+.rbtn.sW{border-color:#22c55e;color:#22c55e;background:#16a34a15}
+.rbtn.sL{border-color:#ef4444;color:#ef4444;background:#dc262615}
+.rbtn.sB{border-color:#60a5fa;color:#60a5fa;background:#2563eb15}
+.rbtn.sV{border-color:#94a3b8;color:#94a3b8;background:#47556915}
+.rbtn.sP{border-color:#f59e0b;color:#f59e0b;background:#d9770615}
+.profit-col{border-left:2px solid #334155;font-size:14px;font-weight:700;padding-left:14px}
+.btn{padding:7px 14px;border-radius:7px;border:none;cursor:pointer;font-weight:600;font-size:12px;transition:all .15s}
+.btn-p{background:#3b82f6;color:#fff}.btn-p:hover{background:#2563eb}
+.btn-s{background:#334155;color:#e2e8f0}.btn-s:hover{background:#475569}
+.btn-d{background:transparent;color:#ef4444;border:1px solid #ef444433}.btn-d:hover{background:#ef444415}
+.btn-purple{background:#7c3aed22;color:#a78bfa;border:1px solid #7c3aed33}.btn-purple:hover{background:#7c3aed33}
+.btn-sm{padding:5px 10px;font-size:11px}.btn-xs{padding:3px 7px;font-size:10px;border-radius:5px}
+.pcard{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:11px 13px;display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:7px}
+.pinfo{min-width:130px}
+.pname{font-weight:700;font-size:13px;color:#e2e8f0}
+.pamount{font-size:12px;color:#f59e0b;margin-top:1px}
+.pdate{font-size:10px;color:#475569;margin-top:1px}
+.ptype{font-size:9px;color:#7c3aed;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-top:1px}
+.pinputs{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-left:auto}
+.pinputs input{width:85px}
+.srow{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid #334155}
+.srow:last-child{border-bottom:none}
+.spacer{flex:1}
+.toggle{position:relative;width:32px;height:17px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.ts{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#334155;border-radius:17px;transition:.2s}
+.ts:before{position:absolute;content:'';height:11px;width:11px;left:3px;bottom:3px;background:#64748b;border-radius:50%;transition:.2s}
+.toggle input:checked+.ts{background:#3b82f6}
+.toggle input:checked+.ts:before{transform:translateX(15px);background:#fff}
+.toast{position:fixed;bottom:18px;right:18px;background:#1e293b;border:1px solid #334155;border-radius:8px;padding:9px 14px;font-size:12px;color:#e2e8f0;z-index:9999;transform:translateY(70px);opacity:0;transition:all .22s;max-width:260px}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.ok{border-left:3px solid #22c55e}.toast.info{border-left:3px solid #3b82f6}.toast.warn{border-left:3px solid #f59e0b}
+.empty{text-align:center;padding:28px;color:#475569;font-size:12px}
+#auth-nav{margin-left:auto;display:flex;align-items:center;padding:0 4px;flex-shrink:0}
+.auth-user{font-size:11px;color:#64748b;margin-right:8px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acc-card{background:#1e293b;border:1px solid #334155;border-radius:10px;margin-bottom:8px;overflow:hidden}
+.acc-hdr{display:flex;justify-content:space-between;align-items:center;padding:13px 16px;cursor:pointer;font-weight:600;font-size:14px;color:#e2e8f0;user-select:none;transition:background .15s}
+.acc-hdr:hover{background:#263348}
+.acc-body{padding:14px 16px;border-top:1px solid #334155}
+.acc-chev{font-size:10px;color:#475569;transition:transform .2s}
+.acc-card.open .acc-chev{transform:rotate(180deg)}
+.totrow{display:flex;justify-content:space-between;font-size:11px;color:#64748b;padding:3px 0}
+.totals{background:#0f172a;border-radius:6px;padding:9px 11px;margin-top:8px}
+.modal{display:none;position:fixed;inset:0;background:#0f172a99;z-index:200;align-items:center;justify-content:center}
+.modal.open{display:flex}
+.modal-box{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:20px;width:340px;max-width:95vw}
+.modal-box h3{font-size:14px;font-weight:600;margin-bottom:14px;color:#e2e8f0}
+.flex{display:flex}.gap-2{gap:8px}.gap-3{gap:10px}.items-center{align-items:center}.fw{flex-wrap:wrap}.mb-3{margin-bottom:10px}.mb-4{margin-bottom:14px}.ml-auto{margin-left:auto}
+.inp-sm{width:75px;padding:4px 7px;font-size:11px}
+.dm-form{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:14px;margin-bottom:12px}
+.data-section{margin-bottom:24px}
+.data-section h3{font-size:13px;font-weight:600;color:#94a3b8;margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em}
+.pill{display:inline-block;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;background:#33415566;color:#94a3b8;margin-left:4px}
+.filter-bar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:#1e293b;border:1px solid #334155;border-radius:8px;padding:10px 12px;margin-bottom:16px}
+.filter-bar .lbl{font-size:10px;color:#475569;white-space:nowrap}
+.preset-btn{padding:4px 9px;border-radius:5px;border:1px solid #334155;background:transparent;color:#64748b;font-size:10px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .15s}
+.preset-btn:hover{border-color:#475569;color:#e2e8f0}
+.preset-btn.active{background:#3b82f622;border-color:#3b82f6;color:#60a5fa}
+.custom-range{display:none;align-items:center;gap:6px;flex-wrap:wrap}
+.custom-range.show{display:flex}
+.custom-range input{width:120px;padding:4px 8px;font-size:11px}
+.csv-modal-box{width:600px;max-width:95vw;max-height:90vh;overflow-y:auto}
+.mapping-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.import-preview table{font-size:10px}
+.import-preview th,.import-preview td{padding:4px 7px}
+@media(max-width:580px){.form-grid{grid-template-columns:1fr 1fr}.rbtns{grid-template-columns:1fr 1fr}.stats-grid{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-brand">⚡ MB</div>
+  <div class="nav-tabs">
+    <div class="nav-tab active" data-tab="dashboard">Dashboard</div>
+    <div class="nav-tab" data-tab="logbet">Log Bet</div>
+    <div class="nav-tab" data-tab="bonuses">Bonuses</div>
+    <div class="nav-tab" data-tab="data">Data</div>
+    <div class="nav-tab" data-tab="settings">Settings</div>
+  </div>
+  <div id="auth-nav"></div>
+</nav>
+
+<div id="share-banner" style="display:none;background:#1e40af;color:#bfdbfe;text-align:center;padding:8px 16px;font-size:12px;font-weight:600">👁️ Viewing <span id="share-email"></span>'s results — read only</div>
+
+<div class="content">
+
+<!-- DASHBOARD -->
+<div class="tab-pane active" id="tab-dashboard">
+  <!-- Onboarding — shown only when no data -->
+  <div id="onboarding" style="display:none">
+    <div class="card" style="max-width:560px;margin:0 auto 16px;text-align:center;padding:36px 28px">
+      <div style="font-size:32px;margin-bottom:12px">🎯</div>
+      <div style="font-size:20px;font-weight:700;color:#e2e8f0;margin-bottom:8px">Matched Betting Tracker</div>
+      <div style="font-size:13px;color:#94a3b8;margin-bottom:28px;line-height:1.6">Track your promo bets, bonus bets, and non-promo bets in one place. See your real P&amp;L, extraction rate, and EV over time.</div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:28px;text-align:left">
+        <div style="background:#1e293b;border-radius:8px;padding:14px 16px;display:flex;gap:14px;align-items:flex-start">
+          <div style="font-size:18px;min-width:28px">📥</div>
+          <div>
+            <div style="font-weight:600;color:#e2e8f0;margin-bottom:3px">Have existing data?</div>
+            <div style="font-size:12px;color:#94a3b8;margin-bottom:10px">Import a JSON export from this app or ask whoever shared this with you for a data file.</div>
+            <label class="btn btn-p btn-sm" style="cursor:pointer;display:inline-block">Import JSON<input type="file" accept=".json" onchange="importData(event)" style="display:none"></label>
+          </div>
+        </div>
+        <div style="background:#1e293b;border-radius:8px;padding:14px 16px;display:flex;gap:14px;align-items:flex-start">
+          <div style="font-size:18px;min-width:28px">⚙️</div>
+          <div>
+            <div style="font-weight:600;color:#e2e8f0;margin-bottom:3px">Starting fresh?</div>
+            <div style="font-size:12px;color:#94a3b8;margin-bottom:10px">Set up your bookies and promo types in Settings, then start logging bets.</div>
+            <button class="btn btn-s btn-sm" onclick="showTab('settings')">Go to Settings</button>
+          </div>
+        </div>
+        <div style="background:#1e293b;border-radius:8px;padding:14px 16px;display:flex;gap:14px;align-items:flex-start">
+          <div style="font-size:18px;min-width:28px">📝</div>
+          <div>
+            <div style="font-weight:600;color:#e2e8f0;margin-bottom:3px">Log your first bet</div>
+            <div style="font-size:12px;color:#94a3b8;margin-bottom:10px">Head to the Log Bet tab to record a promo or non-promo bet.</div>
+            <button class="btn btn-s btn-sm" onclick="showTab('logbet')">Log a Bet</button>
+          </div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:#475569">Sign in to sync your data to the cloud and access it from any device.</div>
+    </div>
+  </div>
+  <!-- Main dashboard — shown when data exists -->
+  <div id="dashboard-main">
+    <div class="stats-grid" id="stats-grid"></div>
+    <div class="charts-grid">
+      <div class="card"><div class="slabel">Monthly Profit vs EV</div><canvas id="chart-monthly" height="175"></canvas></div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span class="slabel" style="margin:0" id="chart2-lbl">Cumulative Profit vs EV</span>
+          <div style="display:flex;gap:4px">
+            <button id="btn-roll" class="btn btn-s btn-xs" onclick="setChart2('roll')">30-Day</button>
+            <button id="btn-cum" class="btn btn-p btn-xs" onclick="setChart2('cum')">Cumulative</button>
+          </div>
+        </div>
+        <canvas id="chart-trigger" height="165"></canvas>
+      </div>
+    </div>
+    <div class="card"><div class="slabel">Recent Bets</div><div class="tw" id="recent-bets"></div></div>
+  </div>
+</div>
+
+<!-- LOG BET -->
+<div class="tab-pane" id="tab-logbet">
+  <div class="card section">
+    <h2>Log Bet</h2>
+    <div style="display:flex;gap:6px;margin-bottom:12px">
+      <button class="btn btn-p btn-sm" id="cat-promo-btn" onclick="setBetCat('promo')">Promo</button>
+      <button class="btn btn-s btn-sm" id="cat-nonpromo-btn" onclick="setBetCat('non-promo')">Non-Promo</button>
+    </div>
+    <div class="form-grid">
+      <div class="fg"><label class="lbl">Date</label><input type="date" id="f-date"></div>
+      <div class="fg"><label class="lbl">Bookie</label>
+        <input type="text" id="f-bookie" list="bookie-datalist" placeholder="Type to search…" autocomplete="off">
+        <datalist id="bookie-datalist"></datalist>
+      </div>
+      <div class="fg" id="fg-promo"><label class="lbl">Promo Type</label>
+        <input type="text" id="f-promo" list="promo-datalist" placeholder="Type to search…" autocomplete="off">
+        <datalist id="promo-datalist"></datalist>
+      </div>
+      <div class="fg" id="fg-nonpromo" style="display:none"><label class="lbl">Non-Promo Type</label><input type="text" id="f-nonpromo-type" list="nonpromo-list" placeholder="Type to search…"><datalist id="nonpromo-list"></datalist></div>
+      <div class="fg"><label class="lbl">Stake ($)</label><input type="number" id="f-stake" placeholder="50" step="0.01" min="0"></div>
+      <div class="fg"><label class="lbl">Fixed Odds</label><input type="number" id="f-odds" placeholder="3.40" step="0.01" min="1.01"></div>
+      <div class="fg"><label class="lbl">BSP <span class="mu">(optional)</span></label><input type="number" id="f-bsp" placeholder="Post-race" step="0.01"></div>
+    </div>
+    <div class="fg mb-4">
+      <label class="lbl">Result</label>
+      <div class="rbtns" id="rbtns-div">
+        <div class="rbtn" id="rb-Win" onclick="selR('Win')">Win</div>
+        <div class="rbtn" id="rb-Loss" onclick="selR('Loss')">Loss</div>
+        <div class="rbtn" id="rb-Bonus" onclick="selR('Bonus')">Bonus</div>
+        <div class="rbtn" id="rb-Void" onclick="selR('Void')">Void</div>
+        <div class="rbtn" id="rb-Pending" onclick="selR('Pending')">Pending</div>
+      </div>
+    </div>
+    <div id="notes-wrap" style="display:none" class="fg mb-4">
+      <label class="lbl">Notes</label><textarea id="f-notes" rows="2" style="resize:vertical"></textarea>
+    </div>
+    <div class="flex gap-2">
+      <button class="btn btn-s btn-sm" onclick="toggleNotes()">+ Notes</button>
+    </div>
+  </div>
+  <div id="batch-form-section" style="display:none"></div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div class="slabel" style="margin:0">Today's Bets</div>
+      <button id="clone-btn" class="btn btn-s btn-xs" onclick="cloneSelected()" style="display:none">Clone Selected (0)</button>
+    </div>
+    <div class="tw" id="today-bets"></div>
+  </div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div class="slabel" style="margin:0">Pending Bets</div>
+    </div>
+    <div class="tw" id="pending-bets-list"></div>
+  </div>
+</div>
+
+<!-- BONUSES -->
+<div class="tab-pane" id="tab-bonuses">
+  <div class="section">
+    <div class="flex items-center mb-3">
+      <h2 style="margin:0">Pending Bonuses</h2>
+      <div class="ml-auto flex gap-2">
+        <button class="btn btn-purple btn-sm" onclick="showDMForm()">+ Deposit Match</button>
+        <button class="btn btn-d btn-sm" onclick="clearAllPending()">Clear All Pending</button>
+      </div>
+    </div>
+    <div id="dm-form" class="dm-form" style="display:none">
+      <h2 style="font-size:13px;margin-bottom:10px">Add Deposit Match Bonus</h2>
+      <div class="form-grid" style="grid-template-columns:repeat(auto-fill,minmax(145px,1fr))">
+        <div class="fg"><label class="lbl">Bookie</label><select id="dm-bookie"></select></div>
+        <div class="fg"><label class="lbl">Bonus Amount ($)</label><input type="number" id="dm-amount" placeholder="200" step="0.01" min="0.01"></div>
+        <div class="fg"><label class="lbl">Notes</label><input type="text" id="dm-notes" placeholder="Deposit match, welcome bonus..."></div>
+      </div>
+      <div class="flex gap-2">
+        <button class="btn btn-p btn-sm" onclick="addDepositMatch()">Add Bonus</button>
+        <button class="btn btn-s btn-sm" onclick="hideDMForm()">Cancel</button>
+      </div>
+    </div>
+    <div id="pending-list"></div>
+  </div>
+  <div class="section">
+    <h2>Bonus History</h2>
+    <div class="card">
+      <div class="tw" id="bonus-history"></div>
+      <div id="bonus-totals"></div>
+    </div>
+  </div>
+  <div class="section">
+    <h2>Adjustments</h2>
+    <div class="card" style="margin-bottom:10px">
+      <p style="font-size:11px;color:#64748b;margin-bottom:12px">Manual P&amp;L entries — use for cleared bonuses, corrections, or any amount not tracked elsewhere.</p>
+      <div class="form-grid" style="grid-template-columns:repeat(auto-fill,minmax(145px,1fr));margin-bottom:10px">
+        <div class="fg"><label class="lbl">Date</label><input type="date" id="adj-date"></div>
+        <div class="fg"><label class="lbl">Amount ($)</label><input type="number" id="adj-amount" placeholder="+50 or -20" step="0.01"></div>
+        <div class="fg"><label class="lbl">Notes</label><input type="text" id="adj-notes" placeholder="Cleared pending bonuses…"></div>
+      </div>
+      <button class="btn btn-p btn-sm" onclick="addAdj()">Add Adjustment</button>
+    </div>
+    <div id="adj-list"></div>
+  </div>
+</div>
+
+<!-- DATA -->
+<div class="tab-pane" id="tab-data">
+  <div class="filter-bar">
+    <span class="lbl">Range:</span>
+    <button class="preset-btn active" onclick="setPreset('all',this)">All Time</button>
+    <button class="preset-btn" onclick="setPreset('week',this)">This Week</button>
+    <button class="preset-btn" onclick="setPreset('lastweek',this)">Last Week</button>
+    <button class="preset-btn" onclick="setPreset('month',this)">This Month</button>
+    <button class="preset-btn" onclick="setPreset('lastmonth',this)">Last Month</button>
+    <button class="preset-btn" onclick="setPreset('3m',this)">3 Months</button>
+    <button class="preset-btn" onclick="setPreset('6m',this)">6 Months</button>
+    <button class="preset-btn" onclick="setPreset('custom',this)">Custom</button>
+    <div class="custom-range" id="custom-range">
+      <input type="date" id="range-from" onchange="applyCustomRange()">
+      <span class="mu" style="font-size:11px">→</span>
+      <input type="date" id="range-to" onchange="applyCustomRange()">
+    </div>
+    <span id="range-label" style="font-size:10px;color:#475569;margin-left:4px"></span>
+  </div>
+  <div class="data-section">
+    <h3>Monthly Breakdown</h3>
+    <div class="card"><div class="tw" id="data-monthly"></div></div>
+  </div>
+  <div class="data-section">
+    <h3>By Promo Type</h3>
+    <div class="card"><div class="tw" id="data-promos"></div></div>
+  </div>
+  <div class="data-section">
+    <h3>By Non-Promo Type</h3>
+    <div class="card"><div class="tw" id="data-nonpromos"></div></div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="tab-pane" id="tab-settings">
+
+  <div class="acc-card open" id="acc-bookies">
+    <div class="acc-hdr" onclick="toggleAcc('bookies')"><span>Bookies</span><span class="acc-chev">▼</span></div>
+    <div class="acc-body">
+      <div id="bookies-list"></div>
+      <div class="flex gap-2 fw" style="margin-top:12px">
+        <input type="text" id="new-bk-name" placeholder="Bookie name (e.g. Tab - AM)" style="flex:1">
+        <button class="btn btn-s btn-sm" onclick="addBookie()">Add</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="acc-card" id="acc-promos">
+    <div class="acc-hdr" onclick="toggleAcc('promos')"><span>Promo Types</span><span class="acc-chev">▼</span></div>
+    <div class="acc-body" style="display:none">
+      <div id="promos-list"></div>
+      <div class="flex gap-2 fw" style="margin-top:12px">
+        <input type="text" id="new-promo-name" placeholder="Promo name" style="width:195px">
+        <button class="btn btn-s btn-sm" onclick="addPromo()">Add</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="acc-card" id="acc-npt">
+    <div class="acc-hdr" onclick="toggleAcc('npt')"><span>Non-Promo Types</span><span class="acc-chev">▼</span></div>
+    <div class="acc-body" style="display:none">
+      <div id="npt-list"></div>
+      <div class="flex gap-2 fw" style="margin-top:12px">
+        <input type="text" id="new-npt-name" placeholder="Type name" style="width:195px">
+        <button class="btn btn-s btn-sm" onclick="addNPT()">Add</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="acc-card" id="acc-data-mgmt">
+    <div class="acc-hdr" onclick="toggleAcc('data-mgmt')"><span>Data</span><span class="acc-chev">▼</span></div>
+    <div class="acc-body" style="display:none">
+      <div class="flex gap-2 fw">
+        <button class="btn btn-p btn-sm" id="share-btn" onclick="shareResults()">Share Results</button>
+        <button class="btn btn-s" onclick="exportData()">Export JSON</button>
+        <label class="btn btn-s" style="cursor:pointer">Import JSON<input type="file" accept=".json" onchange="importData(event)" style="display:none"></label>
+        <button class="btn btn-purple" onclick="openCSVModal()">Import CSV</button>
+        <button class="btn btn-d" onclick="clearAll()">Clear All Data</button>
+      </div>
+      <p style="font-size:10px;color:#475569;margin-top:8px">Import CSV to bring in your existing spreadsheet data.</p>
+      <div style="margin-top:12px;display:flex;align-items:center;gap:10px">
+        <label class="lbl" style="margin:0;white-space:nowrap">Profit Offset ($)</label>
+        <input type="number" id="s-offset" step="0.01" placeholder="0" style="max-width:120px">
+        <button class="btn btn-p btn-sm" onclick="saveSettings()">Save</button>
+        <span style="font-size:10px;color:#475569">Added to Total Profit display only</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</div><!-- /content -->
+
+<!-- CSV IMPORT MODAL -->
+<div class="modal" id="csv-modal">
+  <div class="modal-box csv-modal-box">
+    <h3 style="margin-bottom:14px">Import CSV</h3>
+    <div id="csv-step1">
+      <div class="fg mb-4">
+        <label class="lbl">What are you importing?</label>
+        <select id="csv-type" style="width:220px">
+          <option value="bets">Qualifying / Promo Bets</option>
+          <option value="nonpromo">Non-Promo Bets</option>
+          <option value="bonuses">Bonus Bets</option>
+        </select>
+      </div>
+      <div style="background:#0f172a;border:1px solid #334155;border-radius:8px;padding:13px;margin-bottom:14px">
+        <div class="slabel" style="margin-bottom:8px">Paste from Google Sheets</div>
+        <p style="font-size:11px;color:#64748b;margin-bottom:10px">In your Google Sheet: select all your data (including header row), press Ctrl+C, then paste below.</p>
+        <textarea id="csv-paste" rows="6" placeholder="Paste your Google Sheets data here..." style="font-size:11px;font-family:monospace;resize:vertical"></textarea>
+        <button class="btn btn-p btn-sm" onclick="loadPasted()" style="margin-top:8px">Import Pasted Data</button>
+      </div>
+      <div style="font-size:10px;color:#475569;margin-bottom:8px">— or upload a file —</div>
+      <label class="btn btn-s btn-sm" style="cursor:pointer;display:inline-block">
+        Upload file
+        <input type="file" accept=".csv,.tsv,.txt" onchange="loadCSV(event)" style="display:none">
+      </label>
+      <button class="btn btn-s btn-sm" onclick="closeCSVModal()" style="margin-left:8px">Cancel</button>
+    </div>
+    <div id="csv-step2" style="display:none">
+      <div id="csv-mapping" class="mapping-grid mb-4"></div>
+      <div class="import-preview mb-4">
+        <div class="slabel" style="margin-bottom:6px">Preview (first 3 rows)</div>
+        <div class="tw" id="csv-preview-table"></div>
+      </div>
+      <div id="csv-import-status" style="font-size:11px;color:#64748b;margin-bottom:10px"></div>
+      <div class="flex gap-2">
+        <button class="btn btn-p" onclick="runCSVImport()">Import</button>
+        <button class="btn btn-s" onclick="resetCSVModal()">← Back</button>
+        <button class="btn btn-s" onclick="closeCSVModal()">Cancel</button>
+      </div>
+    </div>
+    <div id="csv-step3" style="display:none;text-align:center;padding:20px 0">
+      <div style="font-size:32px;margin-bottom:10px">✓</div>
+      <div id="csv-done-msg" style="font-size:13px;color:#22c55e;margin-bottom:16px"></div>
+      <button class="btn btn-p" onclick="closeCSVModal()">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- SPLIT MODAL -->
+<div class="modal" id="split-modal">
+  <div class="modal-box">
+    <h3>Split Bonus Bet</h3>
+    <div id="split-info" style="font-size:12px;color:#94a3b8;margin-bottom:12px"></div>
+    <!-- Mode tabs -->
+    <div class="flex gap-2 mb-4" style="border-bottom:1px solid #334155;padding-bottom:10px">
+      <button class="btn btn-p btn-sm" id="tab-custom" onclick="setSplitMode('custom')">Use Amount</button>
+      <button class="btn btn-s btn-sm" id="tab-equal" onclick="setSplitMode('equal')">Equal Split</button>
+    </div>
+    <!-- Custom amount mode -->
+    <div id="split-custom">
+      <div class="fg mb-3">
+        <label class="lbl">Amount to place now ($)</label>
+        <input type="number" id="split-amount" placeholder="e.g. 25.00" step="0.01" min="0.01" style="width:140px" oninput="updateCustomPreview()">
+      </div>
+      <div id="split-custom-preview" style="font-size:12px;color:#64748b;margin-bottom:14px"></div>
+      <div class="flex gap-2">
+        <button class="btn btn-p" onclick="confirmCustomSplit()">Use Amount</button>
+        <button class="btn btn-s" onclick="closeSplitModal()">Cancel</button>
+      </div>
+    </div>
+    <!-- Equal split mode -->
+    <div id="split-equal" style="display:none">
+      <div class="fg mb-3">
+        <label class="lbl">Number of equal parts</label>
+        <input type="number" id="split-n" value="2" min="2" max="20" style="width:100px" oninput="updateEqualPreview()">
+      </div>
+      <div id="split-equal-preview" style="font-size:12px;color:#64748b;margin-bottom:14px"></div>
+      <div class="flex gap-2">
+        <button class="btn btn-p" onclick="confirmEqualSplit()">Split</button>
+        <button class="btn btn-s" onclick="closeSplitModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- AUTH MODAL -->
+<div class="modal" id="auth-modal">
+  <div class="modal-box">
+    <h3>Sign In</h3>
+    <input type="hidden" id="auth-mode" value="signin">
+    <div class="fg mb-3"><label class="lbl">Email</label><input type="email" id="auth-email" placeholder="you@example.com" autocomplete="email"></div>
+    <div class="fg mb-3"><label class="lbl">Password</label><input type="password" id="auth-password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')submitAuth()"></div>
+    <div id="auth-error" style="font-size:11px;margin-bottom:10px;min-height:16px"></div>
+    <div class="flex gap-2">
+      <button class="btn btn-p" id="auth-btn" onclick="submitAuth()">Sign In</button>
+      <button class="btn btn-s" onclick="closeAuthModal()">Cancel</button>
+    </div>
+    <div id="auth-toggle" style="font-size:11px;color:#64748b;margin-top:12px">No account? <a href="#" onclick="setAuthMode('signup');return false" style="color:#3b82f6">Sign up</a></div>
+  </div>
+</div>
+
+<script>
+// ── CONSTANTS ────────────────────────────────────────────────────────────────
+const K={bets:'mb_bets',bonuses:'mb_bonuses',bookies:'mb_bookies',promos:'mb_promos',npt:'mb_npt',adj:'mb_adj',settings:'mb_settings'};
+const DEF_BOOKIES=[{n:'TAB',a:'TAB'},{n:'Sportsbet',a:'SB'},{n:'Bet365',a:'365'},{n:'Neds',a:'Neds'},{n:'Ladbrokes',a:'Lads'},{n:'Unibet',a:'UB'},{n:'BlueBet',a:'BB'},{n:'Pointsbet',a:'PB'}].map(b=>({id:uid(),name:b.n,alias:b.a,active:true}));
+const DEF_PROMOS=['2nd 3rd Back','2nd Back','Double Winnings','25% Bonus Boost','Dogs Boost','Horse Boost','Trots Boost','Sports Boost','3 Leg 1 Fail','Free Hit','2 Leg Free Hit','365 Megaboost'].map(n=>({id:uid(),name:n}));
+const DEF_NPT=['horses','trotters','dogs','rocketboost','HKR','Degen','H2H','Price Comparison','Bet365 multiboost','Pinnacle EV Multi','Pinnacle EV','Top 4 multi','Betfair EV','Tab -1','First team scorer','NZ Gallop','2 Way Dutch'].map(n=>({id:uid(),name:n}));
+const DEF_SETTINGS={extractionRate:83,triggerRate:23,promoEvPct:8,profitOffset:0};
+
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+function uid(){return Math.random().toString(36).slice(2,9)+Date.now().toString(36)}
+function ls(k,fb){try{return JSON.parse(localStorage.getItem(k))||fb}catch{return fb}}
+function ss(k,v){localStorage.setItem(k,JSON.stringify(v));scheduleSync()}
+function today(){return new Date().toISOString().split('T')[0]}
+function fmtD(s){if(!s)return'-';const d=new Date(s+'T00:00:00');return d.toLocaleDateString('en-AU',{day:'2-digit',month:'short'})}
+function fmtDt(s){if(!s)return'-';return new Date(s).toLocaleDateString('en-AU',{day:'2-digit',month:'short'})}
+function fmt$(n){return(n<0?'-':'')+'$'+Math.abs(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',')}
+function fmtP(n){return n.toFixed(1)+'%'}
+function fmtO(n){return n?n.toFixed(2):'-'}
+function clr(n){return n>0?'g':n<0?'r':''}
+function badge(r){const m={Win:'bw',Loss:'bl2',Bonus:'bb',Void:'bv',Pending:'bp','Deposit Match':'bd'};return`<span class="badge ${m[r]||'bv'}">${r}</span>`}
+function bkName(id){const b=ls(K.bookies,[]).find(x=>x.id===id);return b?(b.alias||b.name):'?'}
+function prName(id){const p=ls(K.promos,[]).find(x=>x.id===id);return p?p.name:'?'}
+function toast(msg,type='ok'){const t=document.getElementById('toast');t.textContent=msg;t.className='toast '+type+' show';clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2800)}
+function betPnl(b){if(b.result==='Win')return(b.fixedOdds-1)*b.stake;if(b.result==='Loss')return b.betCategory==='bonus'?0:-b.stake;if(b.result==='Bonus')return-b.stake;return 0}
+function betEV(b,cfg){
+  const c=cfg||ls(K.settings,DEF_SETTINGS);
+  if(b.betCategory==='non-promo'){if(b.fixedOdds&&b.bsp)return(b.fixedOdds/b.bsp-1)*b.stake;return null}
+  const pr=ls(K.promos,[]).find(p=>p.id===b.promoId);return(pr&&pr.ev?pr.ev/100:0)*b.stake;
+}
+function betType(b){if(b.betCategory==='non-promo')return b.nonPromoType||'Non-Promo';return prName(b.promoId)}
+function bonusPnl(b){if(b.result==='Win'&&b.fixedOdds)return(b.fixedOdds-1)*b.bonusAmount;return 0}
+// active bonuses = not split
+function activeBonuses(){return ls(K.bonuses,[]).filter(b=>b.result!=='split')}
+
+// ── SUPABASE ──────────────────────────────────────────────────────────────────
+const SUPA_URL='https://ncqdxovhzjvdoruoookj.supabase.co';
+const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jcWR4b3Zoemp2ZG9ydW9vb2tqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2NzY4ODUsImV4cCI6MjEwMzI1Mjg4NX0.nNL_8zCFoYCZv1lrkFLY4jAF5k1mcx-1ji8_CJ94JWI';
+const supa=supabase.createClient(SUPA_URL,SUPA_KEY);
+let _syncUser=null,_syncTimer=null;
+
+function _allData(){const d={};Object.entries(K).forEach(([k,v])=>{const val=localStorage.getItem(v);if(val)try{d[k]=JSON.parse(val)}catch{}});return d}
+
+async function supaSync(){
+  if(!_syncUser||READONLY)return;
+  await supa.from('user_data').upsert({user_id:_syncUser.id,data:_allData(),updated_at:new Date().toISOString()});
+}
+function scheduleSync(){clearTimeout(_syncTimer);_syncTimer=setTimeout(supaSync,2500)}
+
+async function supaLoad(){
+  if(!_syncUser)return;
+  const{data,error}=await supa.from('user_data').select('data').eq('user_id',_syncUser.id).single();
+  if(error||!data||!data.data||!Object.keys(data.data).length){await supaSync();return}
+  const d=data.data;
+  Object.entries(K).forEach(([k,storageKey])=>{if(d[k]!==undefined)localStorage.setItem(storageKey,JSON.stringify(d[k]))});
+}
+
+function updateAuthUI(user){
+  const el=document.getElementById('auth-nav');
+  if(!el)return;
+  if(user){
+    el.innerHTML=`<span class="auth-user">${user.email}</span><button class="btn btn-s btn-xs" onclick="supaSignOut()">Sign Out</button>`;
+  }else{
+    el.innerHTML=`<button class="btn btn-p btn-xs" onclick="openAuthModal()">Sign In</button>`;
+  }
+}
+function openAuthModal(){document.getElementById('auth-modal').classList.add('open');setTimeout(()=>document.getElementById('auth-email').focus(),50)}
+function closeAuthModal(){document.getElementById('auth-modal').classList.remove('open');document.getElementById('auth-error').textContent=''}
+function setAuthMode(mode){
+  document.getElementById('auth-mode').value=mode;
+  document.getElementById('auth-btn').textContent=mode==='signin'?'Sign In':'Create Account';
+  document.getElementById('auth-toggle').innerHTML=mode==='signin'
+    ?'No account? <a href="#" onclick="setAuthMode(\'signup\');return false" style="color:#3b82f6">Sign up</a>'
+    :'Have an account? <a href="#" onclick="setAuthMode(\'signin\');return false" style="color:#3b82f6">Sign in</a>';
+  document.getElementById('auth-error').textContent='';
+}
+async function submitAuth(){
+  const email=document.getElementById('auth-email').value.trim();
+  const pass=document.getElementById('auth-password').value;
+  const mode=document.getElementById('auth-mode').value;
+  const btn=document.getElementById('auth-btn');
+  const errEl=document.getElementById('auth-error');
+  if(!email||!pass)return;
+  btn.disabled=true;btn.textContent='...';errEl.textContent='';
+  try{
+    if(mode==='signin'){
+      const{error}=await supa.auth.signInWithPassword({email,password:pass});
+      if(error)throw error;
+    }else{
+      const{data,error}=await supa.auth.signUp({email,password:pass});
+      if(error)throw error;
+      if(data.user&&!data.session){errEl.style.color='#22c55e';errEl.textContent='Check your email to confirm your account.';btn.disabled=false;btn.textContent='Create Account';return}
+    }
+    closeAuthModal();
+  }catch(e){errEl.style.color='#ef4444';errEl.textContent=e.message;btn.disabled=false;btn.textContent=mode==='signin'?'Sign In':'Create Account'}
+}
+async function supaSignOut(){await supa.auth.signOut();_syncUser=null;updateAuthUI(null);toast('Signed out','info')}
+
+supa.auth.onAuthStateChange(async(event,session)=>{
+  _syncUser=session?.user||null;
+  updateAuthUI(_syncUser);
+  if(event==='INITIAL_SESSION'&&_syncUser){
+    await supaLoad();init();renderDashboard();
+  }else if(event==='SIGNED_IN'){
+    toast('Syncing your data…','info');
+    await supaLoad();init();renderDashboard();
+    toast('Data loaded','ok');
+  }
+});
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+function init(){
+  if(!localStorage.getItem(K.bookies))ss(K.bookies,DEF_BOOKIES);
+  if(!localStorage.getItem(K.promos))ss(K.promos,DEF_PROMOS);
+  if(!localStorage.getItem(K.npt))ss(K.npt,DEF_NPT);
+  if(!localStorage.getItem(K.settings))ss(K.settings,DEF_SETTINGS);
+}
+
+// ── ACCORDION ────────────────────────────────────────────────────────────────
+function toggleAcc(id){
+  const card=document.getElementById('acc-'+id);
+  const body=card.querySelector('.acc-body');
+  const open=card.classList.toggle('open');
+  body.style.display=open?'block':'none';
+}
+
+// ── DASHBOARD ────────────────────────────────────────────────────────────────
+Chart.defaults.color='#94a3b8';
+let cM=null,cT=null;
+function renderChart2(){
+  if(cT)cT.destroy();
+  const mode=window._chart2Mode||'roll';
+  document.getElementById('chart2-lbl').textContent=mode==='roll'?'Rolling 30-Day':'Cumulative Profit vs EV';
+  document.getElementById('btn-roll').className='btn btn-xs '+(mode==='roll'?'btn-p':'btn-s');
+  document.getElementById('btn-cum').className='btn btn-xs '+(mode==='cum'?'btn-p':'btn-s');
+  if(mode==='roll'){
+    const d=window._roll30||[];
+    cT=new Chart(document.getElementById('chart-trigger'),{
+      type:'bar',
+      data:{labels:d.map(r=>r.lbl),datasets:[
+        {type:'bar',label:'Profit',data:d.map(r=>r.profit),backgroundColor:d.map(r=>r.profit>=0?'#22c55e33':'#ef444433'),borderColor:d.map(r=>r.profit>=0?'#22c55e':'#ef4444'),borderWidth:1,borderRadius:3,order:2},
+        {type:'line',label:'EV',data:d.map(r=>r.ev),borderColor:'#f59e0b',backgroundColor:'transparent',borderWidth:2,pointRadius:0,tension:0.3,order:1}
+      ]},
+      options:{responsive:true,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': $'+ctx.parsed.y.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',')}}},scales:{x:{grid:{color:'#33415533'},ticks:{color:'#64748b',font:{size:9},maxRotation:45}},y:{grid:{color:'#33415533'},ticks:{color:'#64748b',font:{size:10},callback:v=>'$'+v.toFixed(0)}}}}
+    });
+  } else {
+    const d=window._cum||[];
+    cT=new Chart(document.getElementById('chart-trigger'),{
+      type:'line',
+      data:{labels:d.map(r=>r.lbl),datasets:[
+        {label:'Profit',data:d.map(r=>r.profit),borderColor:'#22c55e',backgroundColor:'#22c55e15',borderWidth:2,pointRadius:2,tension:0.3,fill:true,order:2},
+        {label:'EV',data:d.map(r=>r.ev),borderColor:'#f59e0b',backgroundColor:'transparent',borderWidth:2,pointRadius:2,pointStyle:'line',tension:0.3,order:1}
+      ]},
+      options:{responsive:true,interaction:{mode:'index',intersect:false},plugins:{legend:{labels:{color:'#94a3b8',font:{size:13},usePointStyle:true,generateLabels:()=>[
+        {text:'Profit',fillStyle:'#22c55e15',strokeStyle:'#22c55e',lineWidth:2,pointStyle:'rect',fontColor:'#94a3b8',hidden:false,datasetIndex:0},
+        {text:'EV',fillStyle:'transparent',strokeStyle:'#f59e0b',lineWidth:2,pointStyle:'line',fontColor:'#94a3b8',hidden:false,datasetIndex:1}
+      ]}},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': $'+ctx.parsed.y.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',')}}},scales:{x:{grid:{color:'#33415533'},ticks:{color:'#94a3b8',font:{size:10}}},y:{grid:{color:'#33415533'},ticks:{color:'#94a3b8',font:{size:10},callback:v=>'$'+v.toFixed(0)}}}}
+    });
+  }
+}
+function setChart2(mode){window._chart2Mode=mode;renderChart2();}
+function renderDashboard(){
+  const bets=ls(K.bets,[]),bonuses=activeBonuses(),cfg=ls(K.settings,DEF_SETTINGS);
+  const hasData=bets.length>0||bonuses.length>0;
+  document.getElementById('onboarding').style.display=hasData?'none':'block';
+  document.getElementById('dashboard-main').style.display=hasData?'block':'none';
+  if(!hasData)return;
+  const nonVoid=bets.filter(b=>b.result!=='Void');
+  const totalBets=nonVoid.length;
+  const betP=bets.reduce((s,b)=>s+betPnl(b),0);
+  const completed=bonuses.filter(b=>b.result!=='Pending');
+  const bonusP=completed.reduce((s,b)=>s+bonusPnl(b),0);
+  const adjTotal=ls(K.adj,[]).reduce((s,a)=>s+a.amount,0);
+  const total=betP+bonusP+adjTotal+(cfg.profitOffset||0);
+  const triggers=nonVoid.filter(b=>b.result==='Bonus').length;
+  const trigR=totalBets?triggers/totalBets*100:0;
+  const wonB=completed.filter(b=>b.result==='Win'&&b.fixedOdds);
+  const totalBonFace=completed.reduce((s,b)=>s+b.bonusAmount,0);
+  const totalBonP=completed.reduce((s,b)=>s+bonusPnl(b),0);
+  const extR=totalBonFace>0?totalBonP/totalBonFace*100:cfg.extractionRate;
+  const avgStake=totalBets?nonVoid.reduce((s,b)=>s+b.stake,0)/totalBets:0;
+  const expP=avgStake*triggers*(cfg.extractionRate/100);
+  const pending=bets.filter(b=>b.result==='Pending').length;
+  const bonusCash=bonuses.filter(b=>b.result==='Pending').reduce((s,b)=>s+b.bonusAmount,0);
+
+  const promos=ls(K.promos,[]);
+  const totalEV=nonVoid.filter(b=>b.betCategory==='promo').reduce((s,b)=>{const pr=promos.find(p=>p.id===b.promoId);return s+(pr&&pr.ev?pr.ev/100:0)*b.stake},0)
+    +nonVoid.filter(b=>b.betCategory==='non-promo'&&b.fixedOdds&&b.bsp).reduce((s,b)=>s+(b.fixedOdds/b.bsp-1)*b.stake,0);
+  document.getElementById('stats-grid').innerHTML=`
+    <div class="stat"><div class="stat-lbl">Total Profit</div><div class="stat-val ${clr(total)}">${fmt$(total)}</div></div>
+    <div class="stat"><div class="stat-lbl">Total EV</div><div class="stat-val am">${fmt$(totalEV)}</div></div>
+    <div class="stat"><div class="stat-lbl">BTO%</div><div class="stat-val bl">${fmtP(extR)}</div><div class="stat-sub">On completed bonuses</div></div>
+    <div class="stat"><div class="stat-lbl">Bonus Cash</div><div class="stat-val ${bonusCash>0?'g':''}">${fmt$(bonusCash)}</div><div class="stat-sub">Pending bonus bets</div></div>
+    <div class="stat"><div class="stat-lbl">Pending</div><div class="stat-val ${pending>0?'am':''}">${pending}</div><div class="stat-sub">Good Luck!</div></div>
+  `;
+
+  // Monthly chart — all months with data
+  const allDates=bets.map(b=>b.date).filter(Boolean);
+  let mon=[];
+  if(allDates.length){
+    const minD=new Date(Math.min(...allDates.map(d=>new Date(d))));
+    const now=new Date();
+    let cur=new Date(minD.getFullYear(),minD.getMonth(),1);
+    while(cur<=now){
+      const y=cur.getFullYear(),m=cur.getMonth();
+      const mb=bets.filter(b=>{if(!b.date)return false;const dd=new Date(b.date);return dd.getFullYear()===y&&dd.getMonth()===m});
+      const mn=bonuses.filter(b=>{const dd=new Date(b.createdAt);return dd.getFullYear()===y&&dd.getMonth()===m&&b.result!=='Pending'});
+      const cashP=mb.reduce((s,b)=>s+betPnl(b),0);
+      const bonP=mn.reduce((s,b)=>s+bonusPnl(b),0);
+      const adjP=ls(K.adj,[]).filter(a=>{const dd=new Date(a.date+'T00:00:00');return dd.getFullYear()===y&&dd.getMonth()===m}).reduce((s,a)=>s+a.amount,0);
+      const promos=ls(K.promos,[]);
+      const evPromo=mb.filter(b=>b.betCategory==='promo'&&b.result!=='Void').reduce((s,b)=>{const pr=promos.find(p=>p.id===b.promoId);return s+(pr&&pr.ev?pr.ev/100:0)*b.stake},0);
+      const evNP=mb.filter(b=>b.betCategory==='non-promo'&&b.fixedOdds&&b.bsp).reduce((s,b)=>s+(b.fixedOdds/b.bsp-1)*b.stake,0);
+      const ev=evPromo+evNP;
+      const lbl=cur.toLocaleDateString('en-AU',{month:'short',year:'2-digit'});
+      mon.push({lbl,total:cashP+bonP+adjP,ev});
+      cur=new Date(y,m+1,1);
+    }
+  }
+  if(cM)cM.destroy();
+  cM=new Chart(document.getElementById('chart-monthly'),{
+    type:'bar',
+    data:{labels:mon.map(m=>m.lbl),datasets:[
+      {type:'bar',label:'Profit',data:mon.map(m=>m.total),
+        backgroundColor:ctx=>ctx.parsed==null?'#22c55e33':(ctx.parsed.y>=0?'#22c55e33':'#ef444433'),
+        borderColor:ctx=>ctx.parsed==null?'#22c55e':(ctx.parsed.y>=0?'#22c55e':'#ef4444'),
+        borderWidth:1,borderRadius:4,order:2},
+      {type:'line',label:'EV',data:mon.map(m=>m.ev),borderColor:'#f59e0b',backgroundColor:'transparent',borderWidth:2,pointRadius:3,pointBackgroundColor:'#f59e0b',pointStyle:'line',tension:0.3,order:1}
+    ]},
+    options:{responsive:true,interaction:{mode:'index',intersect:false},plugins:{legend:{display:true,labels:{color:'#94a3b8',font:{size:13},usePointStyle:true,generateLabels:()=>[
+      {text:'Profit',fillStyle:'#22c55e33',strokeStyle:'#22c55e',lineWidth:1,pointStyle:'rect',fontColor:'#94a3b8',hidden:false,datasetIndex:0},
+      {text:'EV',fillStyle:'transparent',strokeStyle:'#f59e0b',lineWidth:2,pointStyle:'line',fontColor:'#94a3b8',hidden:false,datasetIndex:1}
+    ]}}},scales:{x:{grid:{color:'#33415533'},ticks:{color:'#94a3b8',font:{size:10},maxRotation:45}},y:{grid:{color:'#33415533'},ticks:{color:'#94a3b8',font:{size:10},callback:v=>'$'+v.toFixed(0)}}}}
+  });
+
+  // Build chart2 data and store on window for toggle
+  const promos2=ls(K.promos,[]);
+  function dayEV(db){return db.filter(b=>b.betCategory==='promo'&&b.result!=='Void').reduce((s,b)=>{const pr=promos2.find(p=>p.id===b.promoId);return s+(pr&&pr.ev?pr.ev/100:0)*b.stake},0)+db.filter(b=>b.betCategory==='non-promo'&&b.fixedOdds&&b.bsp).reduce((s,b)=>s+(b.fixedOdds/b.bsp-1)*b.stake,0)}
+  // Rolling 30-day
+  const today30=new Date();today30.setHours(0,0,0,0);
+  const days30=Array.from({length:30},(_,i)=>{const d=new Date(today30);d.setDate(d.getDate()-(29-i));return d});
+  window._roll30=days30.map(d=>{
+    const ds=d.toISOString().split('T')[0];
+    const db=bets.filter(b=>b.date===ds);
+    const db2=bonuses.filter(b=>b.createdAt&&b.createdAt.startsWith(ds)&&b.result!=='Pending');
+    const profit=db.reduce((s,b)=>s+betPnl(b),0)+db2.reduce((s,b)=>s+bonusPnl(b),0);
+    return{lbl:d.toLocaleDateString('en-AU',{day:'2-digit',month:'short'}),profit,ev:dayEV(db)};
+  });
+  // Cumulative (all-time by month) — seed with profitOffset so final value matches total profit
+  let cumP=cfg.profitOffset||0,cumEV=0;
+  window._cum=mon.map(m=>{cumP+=m.total;cumEV+=m.ev;return{lbl:m.lbl,profit:cumP,ev:cumEV}});
+  window._chart2Mode=window._chart2Mode||'cum';
+  renderChart2();
+
+  // Recent bets
+  const recent=[...bets].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).slice(0,20);
+  const el=document.getElementById('recent-bets');
+  if(!recent.length){el.innerHTML='<div class="empty">No bets logged yet</div>';return}
+  el.innerHTML=`<table><thead><tr><th>Date</th><th>Bookie</th><th>Type</th><th>Stake</th><th>Odds</th><th>BSP</th><th>P&L</th><th>Result</th></tr></thead><tbody>${recent.map(b=>{const p=betPnl(b);return`<tr><td>${fmtD(b.date)}</td><td>${bkName(b.bookieId)}</td><td>${betType(b)}</td><td>${fmt$(b.stake)}</td><td>${b.fixedOdds}</td><td>${b.bsp||'-'}</td><td class="${clr(p)}">${fmt$(p)}</td><td>${badge(b.result)}</td></tr>`}).join('')}</tbody></table>`;
+}
+
+function getMonthlyRows(bets,bonuses,n){
+  const now=new Date();
+  return Array.from({length:n},(_, i)=>{
+    const d=new Date(now.getFullYear(),now.getMonth()-(n-1-i),1);
+    const y=d.getFullYear(),m=d.getMonth();
+    const mb=bets.filter(b=>{const dd=new Date(b.date);return dd.getFullYear()===y&&dd.getMonth()===m});
+    const mn=bonuses.filter(b=>{const dd=new Date(b.createdAt);return dd.getFullYear()===y&&dd.getMonth()===m&&b.result!=='Pending'});
+    const nonVoid=mb.filter(b=>b.result!=='Void');
+    const triggers=nonVoid.filter(b=>b.result==='Bonus').length;
+    const turnover=nonVoid.reduce((s,b)=>s+b.stake,0);
+    const cashP=mb.reduce((s,b)=>s+betPnl(b),0);
+    const bonP=mn.reduce((s,b)=>s+bonusPnl(b),0);
+    const adjP=ls(K.adj,[]).filter(a=>{const dd=new Date(a.date+'T00:00:00');return dd.getFullYear()===y&&dd.getMonth()===m}).reduce((s,a)=>s+a.amount,0);
+    const avgOdds=nonVoid.length?nonVoid.reduce((s,b)=>s+b.fixedOdds,0)/nonVoid.length:0;
+    const trigR=nonVoid.length?triggers/nonVoid.length*100:0;
+    const bonFace=mn.reduce((s,b)=>s+b.bonusAmount,0);
+    const cfg=ls(K.settings,DEF_SETTINGS);
+    const extR=bonFace>0?bonP/bonFace*100:0;
+    const expP=turnover*(trigR||cfg.triggerRate)/100*(extR||cfg.extractionRate)/100;
+    return{lbl:d.toLocaleDateString('en-AU',{month:'short',year:'2-digit'}),y,m,bets:nonVoid.length,turnover,avgOdds,triggers,trigR,cashP,bonP,adjP,total:cashP+bonP+adjP,bonFace,extR,expP,netPct:turnover?(cashP+bonP+adjP)/turnover*100:0};
+  });
+}
+
+// ── LOG BET ───────────────────────────────────────────────────────────────────
+let selResult=null,betCat='promo';
+function setBetCat(c){
+  betCat=c;
+  document.getElementById('cat-promo-btn').className='btn btn-sm '+(c==='promo'?'btn-p':'btn-s');
+  document.getElementById('cat-nonpromo-btn').className='btn btn-sm '+(c==='non-promo'?'btn-p':'btn-s');
+  document.getElementById('fg-promo').style.display=c==='promo'?'':'none';
+  document.getElementById('fg-nonpromo').style.display=c==='non-promo'?'':'none';
+  const bb=document.getElementById('rb-Bonus');
+  bb.style.display=c==='non-promo'?'none':'';
+  document.getElementById('rbtns-div').style.gridTemplateColumns=c==='non-promo'?'repeat(4,1fr)':'repeat(5,1fr)';
+  if(selResult==='Bonus'&&c==='non-promo'){selResult=null;bb.className='rbtn'}
+}
+function renderLogBet(){
+  const bookies=ls(K.bookies,[]).filter(b=>b.active);
+  const promos=ls(K.promos,[]);
+  document.getElementById('bookie-datalist').innerHTML=bookies.map(b=>`<option value="${b.alias||b.name}"></option>`).join('');
+  document.getElementById('promo-datalist').innerHTML=promos.map(p=>`<option value="${p.name}"></option>`).join('');
+  document.getElementById('f-date').value=today();
+  updateNPTDatalist();
+  renderTodayBets();renderPendingBets();
+}
+
+function selR(r){
+  selResult=r;
+  ['Win','Loss','Bonus','Void','Pending'].forEach(x=>{const el=document.getElementById('rb-'+x);if(el)el.className='rbtn'+(x===r?' s'+r[0]:'')});
+  saveBet();
+}
+
+function toggleNotes(){const w=document.getElementById('notes-wrap');w.style.display=w.style.display==='none'?'block':'none'}
+
+function saveBet(){
+  const date=document.getElementById('f-date').value;
+  const bookieName=document.getElementById('f-bookie').value.trim();
+  const allBk=ls(K.bookies,[]);
+  const foundBk=allBk.find(b=>(b.alias||b.name).toLowerCase()===bookieName.toLowerCase());
+  const bookieId=foundBk?foundBk.id:null;
+  const stake=parseFloat(document.getElementById('f-stake').value);
+  const fixedOdds=parseFloat(document.getElementById('f-odds').value);
+  const bspV=document.getElementById('f-bsp').value;
+  const bsp=bspV?parseFloat(bspV):null;
+  const notes=document.getElementById('f-notes').value.trim();
+  let promoId=null,nonPromoType=null;
+  if(betCat==='promo'){const pName=document.getElementById('f-promo').value.trim();const allP=ls(K.promos,[]);const fp=allP.find(p=>p.name.toLowerCase()===pName.toLowerCase());promoId=fp?fp.id:null;if(!promoId){toast('Promo type not found — check spelling','warn');return}}
+  else{nonPromoType=document.getElementById('f-nonpromo-type').value.trim()||'Other'}
+  if(!date||!bookieId||!stake||!fixedOdds){toast(bookieId?'Fill date, stake and odds':'Bookie not found — check spelling','warn');return}
+  const result=selResult||'Pending';
+  const bet={id:uid(),date,bookieId,promoId,nonPromoType,betCategory:betCat,stake,fixedOdds,bsp,result,notes,createdAt:new Date().toISOString()};
+  const bets=ls(K.bets,[]);bets.push(bet);ss(K.bets,bets);
+  if(result==='Bonus'&&betCat==='promo'){
+    const bonus={id:uid(),parentBetId:bet.id,bookieId,bonusAmount:stake,fixedOdds:null,bsp:null,result:'Pending',sourceType:'promo',createdAt:new Date().toISOString()};
+    const bonuses=ls(K.bonuses,[]);bonuses.push(bonus);ss(K.bonuses,bonuses);
+    toast('Bonus triggered — turn it over!','info');
+  }else toast('Bet saved');
+  document.getElementById('f-stake').value='';
+  document.getElementById('f-odds').value='';document.getElementById('f-bsp').value='';document.getElementById('f-notes').value='';
+  selResult=null;['Win','Loss','Bonus','Void','Pending'].forEach(x=>{const el=document.getElementById('rb-'+x);if(el)el.className='rbtn'});
+  renderTodayBets();renderPendingBets();
+}
+
+window._sel=new Set();window._editR={};
+function editBet(id){
+  const bets=ls(K.bets,[]);const b=bets.find(x=>x.id===id);if(!b)return;
+  const bookies=ls(K.bookies,[]).filter(x=>x.active);const promos=ls(K.promos,[]);
+  const bk=bookies.find(x=>x.id===b.bookieId);
+  const bkVal=bk?(bk.alias||bk.name):'';
+  const typeVal=b.betCategory==='promo'?(promos.find(p=>p.id===b.promoId)?.name||''):(b.nonPromoType||'');
+  window._editR[id]=b.result;
+  const rColors={Win:'#22c55e',Loss:'#ef4444',Bonus:'#60a5fa',Void:'#94a3b8',Pending:'#f59e0b'};
+  const rbtn=(r)=>`<button class="btn btn-xs" id="edr-${id}-${r}" onclick="selEditR('${id}','${r}')" style="border:2px solid ${r===b.result?rColors[r]:'#334155'};color:${r===b.result?rColors[r]:'#64748b'};background:${r===b.result?rColors[r]+'22':'transparent'}">${r[0]}</button>`;
+  const tr=document.getElementById('bet-row-'+id);if(!tr)return;
+  tr.innerHTML=`
+    <td></td>
+    <td><input class="inp-sm" type="date" id="ed-date-${id}" value="${b.date}" style="width:108px"></td>
+    <td><input class="inp-sm" type="text" id="ed-bookie-${id}" value="${bkVal}" list="bookie-datalist" autocomplete="off" style="width:110px"></td>
+    <td><input class="inp-sm" type="text" id="ed-type-${id}" value="${typeVal}" list="${b.betCategory==='promo'?'promo-datalist':'nonpromo-list'}" autocomplete="off" style="width:120px"></td>
+    <td><input class="inp-sm" type="number" id="ed-stake-${id}" value="${b.stake||''}" style="width:65px"></td>
+    <td><input class="inp-sm" type="number" id="ed-odds-${id}" value="${b.fixedOdds||''}" style="width:60px"></td>
+    <td><input class="inp-sm" type="number" id="ed-bsp-${id}" value="${b.bsp||''}" style="width:60px"></td>
+    <td colspan="3"><div class="flex gap-1 items-center flex-wrap">${['Win','Loss','Bonus','Void','Pending'].map(rbtn).join('')}</div></td>
+    <td><div class="flex gap-1"><button class="btn btn-p btn-xs" onclick="saveEditedBet('${id}')">✓</button><button class="btn btn-d btn-xs" onclick="renderTodayBets()">✗</button></div></td>`;
+}
+function selEditR(id,r){
+  window._editR[id]=r;
+  const rColors={Win:'#22c55e',Loss:'#ef4444',Bonus:'#60a5fa',Void:'#94a3b8',Pending:'#f59e0b'};
+  ['Win','Loss','Bonus','Void','Pending'].forEach(x=>{
+    const el=document.getElementById(`edr-${id}-${x}`);if(!el)return;
+    const active=x===r;
+    el.style.borderColor=active?rColors[x]:'#334155';
+    el.style.color=active?rColors[x]:'#64748b';
+    el.style.background=active?rColors[x]+'22':'transparent';
+  });
+}
+function saveEditedBet(id){
+  const bets=ls(K.bets,[]);const b=bets.find(x=>x.id===id);if(!b)return;
+  const bookies=ls(K.bookies,[]).filter(x=>x.active);const promos=ls(K.promos,[]);
+  const date=document.getElementById(`ed-date-${id}`)?.value;
+  const bkVal=(document.getElementById(`ed-bookie-${id}`)?.value||'').trim();
+  const typeVal=(document.getElementById(`ed-type-${id}`)?.value||'').trim();
+  const stake=parseFloat(document.getElementById(`ed-stake-${id}`)?.value);
+  const odds=parseFloat(document.getElementById(`ed-odds-${id}`)?.value)||null;
+  const bsp=parseFloat(document.getElementById(`ed-bsp-${id}`)?.value)||null;
+  const result=window._editR[id]||b.result;
+  if(date)b.date=date;
+  if(bkVal){const bk=bookies.find(x=>(x.alias||x.name).toLowerCase()===bkVal.toLowerCase())||bookies.find(x=>(x.alias||x.name).toLowerCase().includes(bkVal.toLowerCase()));if(bk)b.bookieId=bk.id;}
+  if(typeVal){if(b.betCategory==='promo'){const pr=promos.find(p=>p.name.toLowerCase()===typeVal.toLowerCase());if(pr)b.promoId=pr.id;}else b.nonPromoType=typeVal;}
+  if(stake)b.stake=stake;b.fixedOdds=odds;b.bsp=bsp;b.result=result;
+  ss(K.bets,bets);toast('Bet updated');
+  renderTodayBets();renderPendingBets();
+}
+function _updCloneBtn(){const b=document.getElementById('clone-btn');if(b){b.style.display=window._sel.size?'inline-block':'none';b.textContent=`Clone Selected (${window._sel.size})`;}}
+function toggleBetCheck(id){if(window._sel.has(id))window._sel.delete(id);else window._sel.add(id);_updCloneBtn();}
+function renderTodayBets(){
+  const bets=ls(K.bets,[]).filter(b=>b.date===today());
+  const cfg=ls(K.settings,DEF_SETTINGS);
+  const el=document.getElementById('today-bets');
+  if(!bets.length){el.innerHTML='<div class="empty">No bets today</div>';return}
+  el.innerHTML=`<table><thead><tr><th></th><th>Bookie</th><th>Type</th><th>Stake</th><th>Odds</th><th>BSP</th><th>P&L</th><th>EV</th><th>Result</th><th>Quick BSP</th><th></th></tr></thead><tbody>${bets.map(b=>{const p=betPnl(b);const ev=betEV(b,cfg);return`<tr id="bet-row-${b.id}"><td><input type="checkbox" onchange="toggleBetCheck('${b.id}')" ${window._sel.has(b.id)?'checked':''} style="cursor:pointer;accent-color:#6366f1;width:15px;height:15px"></td><td>${bkName(b.bookieId)}</td><td>${betType(b)}</td><td>${fmt$(b.stake)}</td><td>${b.fixedOdds}</td><td>${b.bsp||'-'}</td><td class="${clr(p)}">${fmt$(p)}</td><td class="am">${ev!=null?fmt$(ev):'-'}</td><td>${badge(b.result)}</td><td><div class="flex gap-2 items-center"><input class="inp-sm" type="number" id="bsp-${b.id}" value="${b.bsp||''}" placeholder="BSP" step="0.01"><button class="btn btn-s btn-xs" onclick="saveBSP('${b.id}')">Set</button></div></td><td><button class="btn btn-s btn-xs" onclick="editBet('${b.id}')">Edit</button></td></tr>`}).join('')}</tbody></table>`;
+}
+
+function renderPendingBets(){
+  const el=document.getElementById('pending-bets-list');if(!el)return;
+  const bets=ls(K.bets,[]).filter(b=>b.result==='Pending').sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  if(!bets.length){el.innerHTML='<div class="empty">No pending bets</div>';return}
+  el.innerHTML=`<table><thead><tr><th></th><th>Date</th><th>Bookie</th><th>Type</th><th>Stake</th><th>Odds</th><th>Settle</th></tr></thead><tbody>${bets.map(b=>`<tr>
+    <td><input type="checkbox" onchange="toggleBetCheck('${b.id}')" ${window._sel.has(b.id)?'checked':''} style="cursor:pointer;accent-color:#6366f1;width:15px;height:15px"></td>
+    <td>${fmtD(b.date)}</td><td>${bkName(b.bookieId)}</td><td>${betType(b)}</td><td>${fmt$(b.stake)}</td><td>${b.fixedOdds||'-'}</td>
+    <td><div class="flex gap-1 items-center">
+      <button class="btn btn-sm" style="border:2px solid #22c55e;color:#22c55e;background:#22c55e15" onclick="settleBet('${b.id}','Win')">W</button>
+      <button class="btn btn-sm" style="border:2px solid #ef4444;color:#ef4444;background:#ef444415" onclick="settleBet('${b.id}','Loss')">L</button>
+      ${b.betCategory==='promo'?`<button class="btn btn-sm" style="border:2px solid #60a5fa;color:#60a5fa;background:#60a5fa15" onclick="settleBet('${b.id}','Bonus')">B</button>`:''}
+      <button class="btn btn-sm" style="border:2px solid #94a3b8;color:#94a3b8;background:#94a3b815" onclick="settleBet('${b.id}','Void')">V</button>
+      <input class="inp-sm" type="number" id="sbsp-${b.id}" placeholder="BSP" step="0.01" style="width:58px">
+    </div></td>
+  </tr>`).join('')}</tbody></table>`;
+}
+
+window._batchCount=0;
+function cloneSelected(){
+  if(!window._sel.size)return;
+  const allBets=ls(K.bets,[]);
+  const selected=[...window._sel].map(id=>allBets.find(b=>b.id===id)).filter(Boolean);
+  renderBatchForm(selected);
+  window._sel.clear();_updCloneBtn();
+  document.querySelectorAll('input[type=checkbox]').forEach(c=>c.checked=false);
+}
+function renderBatchForm(bets){
+  const bookies=ls(K.bookies,[]).filter(b=>b.active);
+  const promos=ls(K.promos,[]);
+  const section=document.getElementById('batch-form-section');
+  const startI=window._batchCount;
+  const rows=bets.map((b,i)=>{
+    const idx=startI+i;
+    const bk=bookies.find(x=>x.id===b.bookieId);
+    const bkVal=bk?(bk.alias||bk.name):'';
+    const typeVal=b.betCategory==='promo'?(promos.find(p=>p.id===b.promoId)?.name||''):(b.nonPromoType||'');
+    const isPromo=b.betCategory==='promo';
+    return`<tr id="brow-${idx}">
+      <td><button onclick="removeBatchRow(${idx})" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:16px;line-height:1;padding:0 4px">×</button></td>
+      <td><input class="inp-sm" type="date" id="br-date-${idx}" value="${today()}" style="width:108px"></td>
+      <td><input class="inp-sm" type="text" id="br-bookie-${idx}" value="${bkVal}" list="bookie-datalist" autocomplete="off" style="width:120px" placeholder="Bookie"></td>
+      <td><input class="inp-sm" type="text" id="br-type-${idx}" value="${typeVal}" list="${isPromo?'promo-datalist':'nonpromo-list'}" autocomplete="off" style="width:140px" placeholder="Promo/Type">
+          <input type="hidden" id="br-cat-${idx}" value="${b.betCategory}"></td>
+      <td><input class="inp-sm" type="number" id="br-stake-${idx}" value="${b.stake||''}" placeholder="Stake" step="0.01" style="width:72px"></td>
+      <td><input class="inp-sm" type="number" id="br-odds-${idx}" value="${b.fixedOdds||''}" placeholder="Odds" step="0.01" style="width:72px"></td>
+      <td><input class="inp-sm" type="number" id="br-bsp-${idx}" value="${b.bsp||''}" placeholder="BSP" step="0.01" style="width:72px"></td>
+    </tr>`;
+  });
+  window._batchCount=startI+bets.length;
+  const existing=section.querySelector('#batch-table tbody');
+  if(existing){existing.insertAdjacentHTML('beforeend',rows.join(''));return;}
+  section.innerHTML=`<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div class="slabel" style="margin:0">Batch Entry</div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-s btn-xs" onclick="addBatchRow()">+ Row</button>
+        <button class="btn btn-p btn-xs" onclick="saveBatchBets()">Add All as Pending</button>
+        <button class="btn btn-d btn-xs" onclick="clearBatch()">Clear</button>
+      </div>
+    </div>
+    <div class="tw"><table id="batch-table">
+      <thead><tr><th></th><th>Date</th><th>Bookie</th><th>Type</th><th>Stake</th><th>Odds</th><th>BSP</th></tr></thead>
+      <tbody>${rows.join('')}</tbody>
+    </table></div>
+  </div>`;
+  section.style.display='block';
+  setTimeout(()=>section.scrollIntoView({behavior:'smooth',block:'nearest'}),50);
+}
+function addBatchRow(){
+  const idx=window._batchCount++;
+  const tr=document.createElement('tr');tr.id=`brow-${idx}`;
+  tr.innerHTML=`<td><button onclick="removeBatchRow(${idx})" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:16px;line-height:1;padding:0 4px">×</button></td>
+    <td><input class="inp-sm" type="date" id="br-date-${idx}" value="${today()}" style="width:108px"></td>
+    <td><input class="inp-sm" type="text" id="br-bookie-${idx}" value="" list="bookie-datalist" autocomplete="off" style="width:120px" placeholder="Bookie"></td>
+    <td><input class="inp-sm" type="text" id="br-type-${idx}" value="" list="promo-datalist" autocomplete="off" style="width:140px" placeholder="Promo/Type">
+        <input type="hidden" id="br-cat-${idx}" value="promo"></td>
+    <td><input class="inp-sm" type="number" id="br-stake-${idx}" placeholder="Stake" step="0.01" style="width:72px"></td>
+    <td><input class="inp-sm" type="number" id="br-odds-${idx}" placeholder="Odds" step="0.01" style="width:72px"></td>
+    <td><input class="inp-sm" type="number" id="br-bsp-${idx}" placeholder="BSP" step="0.01" style="width:72px"></td>`;
+  document.querySelector('#batch-table tbody').appendChild(tr);
+}
+function removeBatchRow(i){const t=document.getElementById('brow-'+i);if(t)t.remove();}
+function clearBatch(){const s=document.getElementById('batch-form-section');s.innerHTML='';s.style.display='none';}
+function saveBatchBets(){
+  const bookies=ls(K.bookies,[]);const promos=ls(K.promos,[]);
+  const allBets=ls(K.bets,[]);let saved=0;
+  document.querySelectorAll('#batch-table tbody tr').forEach(tr=>{
+    const i=tr.id.replace('brow-','');
+    const date=document.getElementById(`br-date-${i}`)?.value;
+    const bkVal=(document.getElementById(`br-bookie-${i}`)?.value||'').trim();
+    const typeVal=(document.getElementById(`br-type-${i}`)?.value||'').trim();
+    const cat=document.getElementById(`br-cat-${i}`)?.value||'promo';
+    const stake=parseFloat(document.getElementById(`br-stake-${i}`)?.value);
+    const odds=parseFloat(document.getElementById(`br-odds-${i}`)?.value)||null;
+    const bsp=parseFloat(document.getElementById(`br-bsp-${i}`)?.value)||null;
+    if(!date||!bkVal||!stake)return;
+    const bk=bookies.find(b=>(b.alias||b.name).toLowerCase()===bkVal.toLowerCase())||bookies.find(b=>(b.alias||b.name).toLowerCase().includes(bkVal.toLowerCase()));
+    let promoId=null,nonPromoType=null;
+    if(cat==='promo'){const pr=promos.find(p=>p.name.toLowerCase()===typeVal.toLowerCase());promoId=pr?.id||null;}
+    else nonPromoType=typeVal||'horses';
+    allBets.push({id:uid(),date,bookieId:bk?.id||null,promoId,nonPromoType,betCategory:cat,stake,fixedOdds:odds,bsp,result:'Pending',notes:'',createdAt:new Date().toISOString()});
+    saved++;
+  });
+  if(!saved){toast('Nothing to save','warn');return;}
+  ss(K.bets,allBets);toast(`${saved} bet${saved>1?'s':''} added as Pending`);
+  clearBatch();renderTodayBets();renderPendingBets();
+}
+function settleBet(id,result){
+  const bets=ls(K.bets,[]);const b=bets.find(x=>x.id===id);if(!b)return;
+  const bspEl=document.getElementById('sbsp-'+id);
+  const bsp=bspEl&&bspEl.value?parseFloat(bspEl.value):b.bsp;
+  b.result=result;if(bsp)b.bsp=bsp;
+  ss(K.bets,bets);
+  if(result==='Bonus'&&b.betCategory==='promo'){
+    const bonus={id:uid(),parentBetId:b.id,bookieId:b.bookieId,bonusAmount:b.stake,fixedOdds:null,bsp:null,result:'Pending',sourceType:'promo',createdAt:new Date().toISOString()};
+    const bonuses=ls(K.bonuses,[]);bonuses.push(bonus);ss(K.bonuses,bonuses);
+    toast('Bonus triggered!','info');
+  }else toast(`Settled: ${result}`);
+  renderTodayBets();renderPendingBets();
+}
+
+function saveBSP(id){
+  const v=parseFloat(document.getElementById('bsp-'+id).value);
+  if(!v){toast('Enter BSP','warn');return}
+  const bets=ls(K.bets,[]);const b=bets.find(x=>x.id===id);
+  if(b){b.bsp=v;ss(K.bets,bets);toast('BSP saved');renderTodayBets()}
+}
+
+// ── BONUSES ───────────────────────────────────────────────────────────────────
+function showDMForm(){
+  const bookies=ls(K.bookies,[]).filter(b=>b.active);
+  document.getElementById('dm-bookie').innerHTML=bookies.map(b=>`<option value="${b.id}">${b.alias||b.name}</option>`).join('');
+  document.getElementById('dm-form').style.display='block';
+}
+function hideDMForm(){document.getElementById('dm-form').style.display='none'}
+
+function addDepositMatch(){
+  const bookieId=document.getElementById('dm-bookie').value;
+  const amount=parseFloat(document.getElementById('dm-amount').value);
+  const notes=document.getElementById('dm-notes').value.trim();
+  if(!bookieId||!amount){toast('Enter bookie and amount','warn');return}
+  const bonus={id:uid(),parentBetId:null,bookieId,bonusAmount:amount,fixedOdds:null,bsp:null,result:'Pending',sourceType:'deposit_match',notes,createdAt:new Date().toISOString()};
+  const bonuses=ls(K.bonuses,[]);bonuses.push(bonus);ss(K.bonuses,bonuses);
+  document.getElementById('dm-amount').value='';document.getElementById('dm-notes').value='';
+  hideDMForm();toast('Deposit match added','info');renderBonuses();
+}
+
+function renderBonuses(){
+  const bonuses=activeBonuses();
+  const pending=bonuses.filter(b=>b.result==='Pending');
+  const completed=bonuses.filter(b=>b.result!=='Pending').sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  const pel=document.getElementById('pending-list');
+  if(!pending.length){pel.innerHTML='<div class="empty">No pending bonuses — all clear</div>'}
+  else{pel.innerHTML=pending.map(b=>`
+    <div class="pcard">
+      <div class="pinfo">
+        <div class="pname">${bkName(b.bookieId)}</div>
+        <div class="pamount">${fmt$(b.bonusAmount)}</div>
+        <div class="pdate">${fmtDt(b.createdAt)}</div>
+        ${b.sourceType==='deposit_match'?'<div class="ptype">Deposit Match</div>':''}
+        ${b.notes?`<div class="pdate" style="color:#64748b">${b.notes}</div>`:''}
+      </div>
+      <div class="pinputs">
+        <input class="inp-sm" type="number" id="pb-odds-${b.id}" placeholder="Odds" step="0.01" min="1.01">
+        <input class="inp-sm" type="number" id="pb-bsp-${b.id}" placeholder="BSP" step="0.01">
+        <button class="btn btn-s btn-sm" onclick="resolveBonus('${b.id}','Win')">Win</button>
+        <button class="btn btn-d btn-sm" onclick="resolveBonus('${b.id}','Loss')">Loss</button>
+        <button class="btn btn-purple btn-sm" onclick="openSplit('${b.id}')">Split</button>
+      </div>
+    </div>`).join('')}
+
+  const hel=document.getElementById('bonus-history');
+  if(!completed.length){hel.innerHTML='<div class="empty">No completed bonus bets yet</div>';document.getElementById('bonus-totals').innerHTML='';const adjDate=document.getElementById('adj-date');if(adjDate&&!adjDate.value)adjDate.value=today();renderAdjList();return}
+  hel.innerHTML=`<table><thead><tr><th>Date</th><th>Type</th><th>Bookie</th><th>Bonus $</th><th>Odds</th><th>BSP</th><th>Result</th><th>Profit</th></tr></thead><tbody>${completed.map(b=>{const p=bonusPnl(b);return`<tr><td>${fmtDt(b.createdAt)}</td><td>${b.sourceType==='deposit_match'?badge('Deposit Match'):badge('Bonus')}</td><td>${bkName(b.bookieId)}</td><td>${fmt$(b.bonusAmount)}</td><td>${b.fixedOdds||'-'}</td><td>${b.bsp||'-'}</td><td>${badge(b.result)}</td><td class="${clr(p)}">${fmt$(p)}</td></tr>`}).join('')}</tbody></table>`;
+  const face=completed.reduce((s,b)=>s+b.bonusAmount,0);
+  const pnl=completed.reduce((s,b)=>s+bonusPnl(b),0);
+  const wins=completed.filter(b=>b.result==='Win'&&b.fixedOdds);
+  const winR=completed.length?wins.length/completed.length*100:0;
+  const extR=wins.length?wins.reduce((s,b)=>s+bonusPnl(b)/b.bonusAmount,0)/wins.length*100:0;
+  document.getElementById('bonus-totals').innerHTML=`<div class="totals"><div class="totrow"><span>Total face value</span><span>${fmt$(face)}</span></div><div class="totrow"><span>Total profit extracted</span><span class="${clr(pnl)}">${fmt$(pnl)}</span></div><div class="totrow"><span>Win rate</span><span class="bl">${fmtP(winR)}</span></div><div class="totrow"><span>Extraction rate</span><span class="bl">${fmtP(extR)}</span></div></div>`;
+  // Set adj-date default
+  const adjDate=document.getElementById('adj-date');if(adjDate&&!adjDate.value)adjDate.value=today();
+  renderAdjList();
+}
+
+function resolveBonus(id,result){
+  const odds=parseFloat(document.getElementById('pb-odds-'+id).value)||null;
+  const bsp=parseFloat(document.getElementById('pb-bsp-'+id).value)||null;
+  if(result==='Win'&&!odds){toast('Enter odds for win','warn');return}
+  const bonuses=ls(K.bonuses,[]);const b=bonuses.find(x=>x.id===id);
+  if(b){b.result=result;b.fixedOdds=odds;b.bsp=bsp;ss(K.bonuses,bonuses);
+    toast(result==='Win'?`Win! ${fmt$((odds-1)*b.bonusAmount)} profit`:'Loss logged');renderBonuses()}
+}
+
+// ── SPLIT ─────────────────────────────────────────────────────────────────────
+let splitTarget=null,splitMode='custom';
+
+function setSplitMode(mode){
+  splitMode=mode;
+  document.getElementById('split-custom').style.display=mode==='custom'?'block':'none';
+  document.getElementById('split-equal').style.display=mode==='equal'?'block':'none';
+  document.getElementById('tab-custom').className='btn btn-sm '+(mode==='custom'?'btn-p':'btn-s');
+  document.getElementById('tab-equal').className='btn btn-sm '+(mode==='equal'?'btn-p':'btn-s');
+  if(mode==='custom')updateCustomPreview();
+  else updateEqualPreview();
+}
+
+function openSplit(id){
+  splitTarget=id;
+  const bonuses=activeBonuses();const b=bonuses.find(x=>x.id===id);
+  if(!b)return;
+  document.getElementById('split-info').textContent=`${bkName(b.bookieId)} — ${fmt$(b.bonusAmount)} bonus`;
+  document.getElementById('split-amount').value='';
+  document.getElementById('split-n').value=2;
+  document.getElementById('split-custom-preview').textContent='';
+  setSplitMode('custom');
+  document.getElementById('split-modal').classList.add('open');
+}
+
+function updateCustomPreview(){
+  const bonuses=activeBonuses();const b=bonuses.find(x=>x.id===splitTarget);
+  if(!b)return;
+  const amt=parseFloat(document.getElementById('split-amount').value)||0;
+  const rem=parseFloat((b.bonusAmount-amt).toFixed(2));
+  const el=document.getElementById('split-custom-preview');
+  if(amt<=0||amt>=b.bonusAmount){el.textContent=amt>=b.bonusAmount?'Amount must be less than total bonus':'Enter an amount';el.style.color='#ef444499';return}
+  el.style.color='#64748b';
+  el.textContent=`Use ${fmt$(amt)} now → ${fmt$(rem)} stays pending`;
+}
+
+function updateEqualPreview(){
+  const bonuses=activeBonuses();const b=bonuses.find(x=>x.id===splitTarget);
+  if(!b)return;
+  const n=parseInt(document.getElementById('split-n').value)||2;
+  const each=b.bonusAmount/n;
+  document.getElementById('split-equal-preview').textContent=`${n} × ${fmt$(each)} per part`;
+}
+
+function closeSplitModal(){document.getElementById('split-modal').classList.remove('open');splitTarget=null}
+
+function confirmCustomSplit(){
+  if(!splitTarget)return;
+  const bonuses=ls(K.bonuses,[]);
+  const b=bonuses.find(x=>x.id===splitTarget);
+  if(!b)return;
+  const amt=parseFloat(parseFloat(document.getElementById('split-amount').value).toFixed(2));
+  const rem=parseFloat((b.bonusAmount-amt).toFixed(2));
+  if(!amt||amt<=0||amt>=b.bonusAmount){toast('Enter a valid amount less than total','warn');return}
+  b.result='split';
+  // The amount being used now
+  bonuses.push({id:uid(),parentBetId:b.parentBetId,bookieId:b.bookieId,bonusAmount:amt,fixedOdds:null,bsp:null,result:'Pending',sourceType:'split',createdAt:new Date().toISOString()});
+  // The remainder stays pending
+  if(rem>0){
+    bonuses.push({id:uid(),parentBetId:b.parentBetId,bookieId:b.bookieId,bonusAmount:rem,fixedOdds:null,bsp:null,result:'Pending',sourceType:'split',createdAt:new Date().toISOString()});
+  }
+  ss(K.bonuses,bonuses);closeSplitModal();
+  toast(`${fmt$(amt)} ready to place, ${fmt$(rem)} stays pending`,'info');
+  renderBonuses();
+}
+
+function confirmEqualSplit(){
+  if(!splitTarget)return;
+  const n=parseInt(document.getElementById('split-n').value)||2;
+  if(n<2||n>20){toast('Enter 2–20 parts','warn');return}
+  const bonuses=ls(K.bonuses,[]);
+  const b=bonuses.find(x=>x.id===splitTarget);
+  if(!b)return;
+  b.result='split';
+  const each=parseFloat((b.bonusAmount/n).toFixed(2));
+  for(let i=0;i<n;i++){
+    bonuses.push({id:uid(),parentBetId:b.parentBetId,bookieId:b.bookieId,bonusAmount:each,fixedOdds:null,bsp:null,result:'Pending',sourceType:'split',createdAt:new Date().toISOString()});
+  }
+  ss(K.bonuses,bonuses);closeSplitModal();toast(`Split into ${n} × ${fmt$(each)}`,'info');renderBonuses();
+}
+
+document.getElementById('split-modal').addEventListener('click',e=>{if(e.target===document.getElementById('split-modal'))closeSplitModal()});
+
+// ── DATE RANGE FILTER ────────────────────────────────────────────────────────
+let drFrom=null,drTo=null;
+
+function setPreset(preset,btn){
+  document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const cr=document.getElementById('custom-range');
+  cr.classList.remove('show');
+  document.getElementById('range-label').textContent='';
+  const now=new Date();
+  const startOf=d=>{const x=new Date(d);x.setHours(0,0,0,0);return x};
+  const endOf=d=>{const x=new Date(d);x.setHours(23,59,59,999);return x};
+  if(preset==='all'){drFrom=null;drTo=null}
+  else if(preset==='week'){const dow=now.getDay()||7;drFrom=startOf(new Date(now.getFullYear(),now.getMonth(),now.getDate()-dow+1));drTo=endOf(now)}
+  else if(preset==='lastweek'){const dow=now.getDay()||7;const ms=new Date(now.getFullYear(),now.getMonth(),now.getDate()-dow+1);drFrom=startOf(new Date(ms-7*864e5));drTo=endOf(new Date(ms-864e5))}
+  else if(preset==='month'){drFrom=startOf(new Date(now.getFullYear(),now.getMonth(),1));drTo=endOf(now)}
+  else if(preset==='lastmonth'){drFrom=startOf(new Date(now.getFullYear(),now.getMonth()-1,1));drTo=endOf(new Date(now.getFullYear(),now.getMonth(),0))}
+  else if(preset==='3m'){drFrom=startOf(new Date(now.getFullYear(),now.getMonth()-3,now.getDate()));drTo=endOf(now)}
+  else if(preset==='6m'){drFrom=startOf(new Date(now.getFullYear(),now.getMonth()-6,now.getDate()));drTo=endOf(now)}
+  else if(preset==='custom'){cr.classList.add('show');return}
+  renderData();
+}
+
+function applyCustomRange(){
+  const f=document.getElementById('range-from').value;
+  const t=document.getElementById('range-to').value;
+  if(f){drFrom=new Date(f+'T00:00:00');} else drFrom=null;
+  if(t){drTo=new Date(t+'T23:59:59');} else drTo=null;
+  const lbl=f||t?`${f||'start'} → ${t||'today'}`:'';
+  document.getElementById('range-label').textContent=lbl;
+  renderData();
+}
+
+function inRange(dateStr){
+  if(!drFrom&&!drTo)return true;
+  const d=new Date(dateStr);
+  if(drFrom&&d<drFrom)return false;
+  if(drTo&&d>drTo)return false;
+  return true;
+}
+
+// ── DATA TAB ─────────────────────────────────────────────────────────────────
+function renderData(){
+  let bets=ls(K.bets,[]),bonuses=activeBonuses(),cfg=ls(K.settings,DEF_SETTINGS);
+  if(drFrom||drTo){
+    bets=bets.filter(b=>inRange(b.date));
+    bonuses=bonuses.filter(b=>inRange(b.createdAt));
+  }
+  renderMonthlyData(bets,bonuses,cfg);
+  renderPromoData(bets,bonuses,cfg);
+  renderNonPromoData(bets,cfg);
+}
+
+function renderMonthlyData(bets,bonuses,cfg){
+  // Find all months with data
+  const allDates=bets.map(b=>b.date).concat(bonuses.map(b=>b.createdAt.split('T')[0]));
+  if(!allDates.length){document.getElementById('data-monthly').innerHTML='<div class="empty">No data yet</div>';return}
+  const minD=new Date(Math.min(...allDates.map(d=>new Date(d))));
+  const now=new Date();
+  const months=[];
+  let d=new Date(minD.getFullYear(),minD.getMonth(),1);
+  while(d<=now){months.push({y:d.getFullYear(),m:d.getMonth(),lbl:d.toLocaleDateString('en-AU',{month:'short',year:'2-digit'})});d=new Date(d.getFullYear(),d.getMonth()+1,1)}
+  const rows=months.map(mo=>{
+    const mb=bets.filter(b=>{const dd=new Date(b.date);return dd.getFullYear()===mo.y&&dd.getMonth()===mo.m});
+    const mn=bonuses.filter(b=>{const dd=new Date(b.createdAt);return dd.getFullYear()===mo.y&&dd.getMonth()===mo.m&&b.result!=='Pending'});
+    const nv=mb.filter(b=>b.result!=='Void');
+    if(!nv.length&&!mn.length)return null;
+    const turnover=nv.reduce((s,b)=>s+b.stake,0);
+    const avgOdds=nv.length?nv.reduce((s,b)=>s+b.fixedOdds,0)/nv.length:0;
+    const triggers=nv.filter(b=>b.result==='Bonus').length;
+    const trigR=nv.length?triggers/nv.length*100:0;
+    const cashP=mb.reduce((s,b)=>s+betPnl(b),0);
+    const bonFace=mn.reduce((s,b)=>s+b.bonusAmount,0);
+    const bonP=mn.reduce((s,b)=>s+bonusPnl(b),0);
+    const total=cashP+bonP;
+    const expP=turnover*(trigR||cfg.triggerRate)/100*(cfg.extractionRate)/100;
+    const netPct=turnover?total/turnover*100:0;
+    return{lbl:mo.lbl,bets:nv.length,turnover,avgOdds,triggers,trigR,bonFace,cashP,bonP,total,expP,netPct};
+  }).filter(Boolean);
+  if(!rows.length){document.getElementById('data-monthly').innerHTML='<div class="empty">No data</div>';return}
+  const tot={bets:sum(rows,'bets'),turnover:sum(rows,'turnover'),triggers:sum(rows,'triggers'),cashP:sum(rows,'cashP'),bonP:sum(rows,'bonP'),total:sum(rows,'total'),expP:sum(rows,'expP'),bonFace:sum(rows,'bonFace')};
+  const totTrigR=tot.bets?tot.triggers/tot.bets*100:0;
+  const totNetPct=tot.turnover?tot.total/tot.turnover*100:0;
+  document.getElementById('data-monthly').innerHTML=`
+    <table>
+      <thead><tr><th>Month</th><th># Bets</th><th>Turnover</th><th>Avg Odds</th><th>Triggers</th><th>Trig %</th><th>Bonus Face</th><th>Cash P&L</th><th>Bonus P&L</th><th>Net %</th><th>EV</th><th class="profit-col">PROFIT</th></tr></thead>
+      <tbody>${rows.map(r=>`<tr>
+        <td>${r.lbl}</td><td>${r.bets}</td><td class="mu">${fmt$(r.turnover)}</td><td class="mu">${fmtO(r.avgOdds)}</td>
+        <td>${r.triggers}</td><td class="bl">${fmtP(r.trigR)}</td><td class="mu">${fmt$(r.bonFace)}</td>
+        <td class="${clr(r.cashP)}">${fmt$(r.cashP)}</td><td class="${clr(r.bonP)}">${fmt$(r.bonP)}</td>
+        <td class="${clr(r.netPct)}">${fmtP(r.netPct)}</td><td class="mu">${fmt$(r.expP)}</td><td class="profit-col ${clr(r.total)}">${fmt$(r.total)}</td>
+      </tr>`).join('')}</tbody>
+      <tfoot><tr>
+        <td>Total</td><td>${tot.bets}</td><td>${fmt$(tot.turnover)}</td><td>-</td>
+        <td>${tot.triggers}</td><td class="bl">${fmtP(totTrigR)}</td><td>${fmt$(tot.bonFace)}</td>
+        <td class="${clr(tot.cashP)}">${fmt$(tot.cashP)}</td><td class="${clr(tot.bonP)}">${fmt$(tot.bonP)}</td>
+        <td class="${clr(totNetPct)}">${fmtP(totNetPct)}</td><td>${fmt$(tot.expP)}</td><td class="profit-col ${clr(tot.total)}">${fmt$(tot.total)}</td>
+      </tr></tfoot>
+    </table>`;
+}
+
+function renderPromoData(bets,bonuses,cfg){
+  const promos=ls(K.promos,[]);
+  // Non-promo groups
+  const npBets=bets.filter(b=>b.betCategory==='non-promo'&&b.result!=='Void');
+  const npTypes=[...new Set(npBets.map(b=>b.nonPromoType||'Other'))];
+  const npRows=npTypes.map(type=>{
+    const pb=npBets.filter(b=>(b.nonPromoType||'Other')===type);
+    if(!pb.length)return null;
+    const turnover=pb.reduce((s,b)=>s+b.stake,0);
+    const validOdds=pb.filter(b=>b.fixedOdds);
+    const avgOdds=validOdds.length?validOdds.reduce((s,b)=>s+b.fixedOdds,0)/validOdds.length:0;
+    const cashP=pb.reduce((s,b)=>s+betPnl(b),0);
+    // EV only where both fixedOdds and bsp exist
+    const evBets=pb.filter(b=>b.fixedOdds&&b.bsp);
+    const totalEV=evBets.reduce((s,b)=>s+(b.fixedOdds/b.bsp-1)*b.stake,0);
+    const netPct=turnover?cashP/turnover*100:0;
+    return{name:'⚡ '+type,bets:pb.length,turnover,avgOdds,triggers:0,trigR:0,bonFace:0,avgBonOdds:0,extR:0,cashP,bonP:0,total:cashP,expP:totalEV,netPct,bonReturnPct:0,isNonPromo:true};
+  }).filter(Boolean);
+
+  // Global bonus stats (all completed bonuses combined)
+  const allCompleted=bonuses.filter(b=>b.result!=='Pending');
+  const allWonB=allCompleted.filter(b=>b.result==='Win'&&b.fixedOdds);
+  const globalBonFace=allCompleted.reduce((s,b)=>s+b.bonusAmount,0);
+  const globalBonP=allCompleted.reduce((s,b)=>s+bonusPnl(b),0);
+  const globalWinR=allCompleted.length?allWonB.length/allCompleted.length*100:0;
+  // True extraction rate = total P&L / total face value
+  const globalExtR=globalBonFace>0?globalBonP/globalBonFace*100:cfg.extractionRate;
+
+  const rows=promos.map(pr=>{
+    const pb=bets.filter(b=>b.promoId===pr.id&&b.result!=='Void');
+    if(!pb.length)return null;
+    const turnover=pb.reduce((s,b)=>s+b.stake,0);
+    const avgOdds=pb.reduce((s,b)=>s+b.fixedOdds,0)/pb.length;
+    const triggers=pb.filter(b=>b.result==='Bonus');
+    const trigR=pb.length?triggers.length/pb.length*100:0;
+    const cashP=pb.reduce((s,b)=>s+betPnl(b),0);
+    // bonus face = sum of trigger stakes (face value of free bets given out per promo)
+    const bonFace=triggers.reduce((s,b)=>s+b.stake,0);
+    // bonus P&L = face × global extraction rate (individual bonus bets not linked to specific promos)
+    const bonP=bonFace*(globalExtR/100);
+    const total=cashP+bonP;
+    const expP=turnover*(trigR||cfg.triggerRate)/100*(globalExtR||cfg.extractionRate)/100;
+    const netPct=turnover?total/turnover*100:0;
+    return{name:pr.name,bets:pb.length,turnover,avgOdds,triggers:triggers.length,trigR,bonFace,cashP,bonP,total,expP,netPct};
+  }).filter(Boolean).sort((a,b)=>b.bets-a.bets);
+  const allRows=rows;
+  if(!allRows.length){document.getElementById('data-promos').innerHTML='<div class="empty">No data</div>';return}
+  const tot={bets:sum(allRows,'bets'),turnover:sum(allRows,'turnover'),triggers:sum(allRows,'triggers'),cashP:sum(allRows,'cashP'),bonP:sum(allRows,'bonP'),total:sum(allRows,'total'),expP:sum(allRows,'expP'),bonFace:sum(allRows,'bonFace')};
+  const totNetPct=tot.turnover?tot.total/tot.turnover*100:0;
+  const totTrigR=tot.bets?tot.triggers/tot.bets*100:0;
+  document.getElementById('data-promos').innerHTML=`
+    <div class="totals" style="margin-bottom:14px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+      <div class="stat"><div class="stat-lbl">Total Bonus Face</div><div class="stat-val mu">${fmt$(globalBonFace)}</div></div>
+      <div class="stat"><div class="stat-lbl">Bonus P&L</div><div class="stat-val ${clr(globalBonP)}">${fmt$(globalBonP)}</div></div>
+      <div class="stat"><div class="stat-lbl">Overall Extraction</div><div class="stat-val bl">${fmtP(globalExtR)}</div><div class="stat-sub">Across all bonus bets</div></div>
+      <div class="stat"><div class="stat-lbl">Win Rate</div><div class="stat-val bl">${fmtP(globalWinR)}</div></div>
+    </div>
+    <table>
+      <thead><tr><th>Promo Type</th><th># Bets</th><th>Turnover</th><th>Avg Odds</th><th>Triggers</th><th>Trig %</th><th>Bonus Face</th><th>Cash P&L</th><th>Bonus P&L</th><th>Net %</th><th>EV</th><th class="profit-col">PROFIT</th></tr></thead>
+      <tbody>${allRows.map(r=>`<tr ${r.isNonPromo?'style="opacity:0.85"':''}>
+        <td style="font-weight:600;color:#e2e8f0">${r.name}</td><td>${r.bets}</td><td class="mu">${fmt$(r.turnover)}</td><td class="mu">${fmtO(r.avgOdds)}</td>
+        <td>${r.isNonPromo?'-':r.triggers}</td><td class="bl">${r.isNonPromo?'-':fmtP(r.trigR)}</td><td class="mu">${r.bonFace?fmt$(r.bonFace):'-'}</td>
+        <td class="${clr(r.cashP)}">${fmt$(r.cashP)}</td><td class="${clr(r.bonP)}">${r.isNonPromo?'-':fmt$(r.bonP)}</td>
+        <td class="${clr(r.netPct)}">${fmtP(r.netPct)}</td><td class="am">${r.expP?fmt$(r.expP):'-'}</td><td class="profit-col ${clr(r.total)}">${fmt$(r.total)}</td>
+      </tr>`).join('')}</tbody>
+      <tfoot><tr>
+        <td>Total</td><td>${tot.bets}</td><td>${fmt$(tot.turnover)}</td><td>-</td>
+        <td>${tot.triggers}</td><td class="bl">${fmtP(totTrigR)}</td><td>${fmt$(tot.bonFace)}</td>
+        <td class="${clr(tot.cashP)}">${fmt$(tot.cashP)}</td><td class="${clr(tot.bonP)}">${fmt$(tot.bonP)}</td>
+        <td class="${clr(totNetPct)}">${fmtP(totNetPct)}</td><td>${fmt$(tot.expP)}</td><td class="profit-col ${clr(tot.total)}">${fmt$(tot.total)}</td>
+      </tr></tfoot>
+    </table>`;
+}
+
+
+function sum(rows,key){return rows.reduce((s,r)=>s+(r[key]||0),0)}
+
+function renderNonPromoData(bets,cfg){
+  const npBets=bets.filter(b=>b.betCategory==='non-promo'&&b.result!=='Void');
+  const types=[...new Set(npBets.map(b=>b.nonPromoType||'Other'))];
+  const el=document.getElementById('data-nonpromos');
+  if(!types.length){el.innerHTML='<div class="empty">No non-promo bets</div>';return}
+  const rows=types.map(type=>{
+    const pb=npBets.filter(b=>(b.nonPromoType||'Other')===type);
+    const turnover=pb.reduce((s,b)=>s+b.stake,0);
+    const vOdds=pb.filter(b=>b.fixedOdds);
+    const avgOdds=vOdds.length?vOdds.reduce((s,b)=>s+b.fixedOdds,0)/vOdds.length:0;
+    const wins=pb.filter(b=>b.result==='Win').length;
+    const losses=pb.filter(b=>b.result==='Loss').length;
+    const cashP=pb.reduce((s,b)=>s+betPnl(b),0);
+    const evBets=pb.filter(b=>b.fixedOdds&&b.bsp);
+    const totalEV=evBets.reduce((s,b)=>s+(b.fixedOdds/b.bsp-1)*b.stake,0);
+    const avgEVPct=evBets.length?evBets.reduce((s,b)=>s+(b.fixedOdds/b.bsp-1)*100,0)/evBets.length:null;
+    const netPct=turnover?cashP/turnover*100:0;
+    return{type,bets:pb.length,wins,losses,turnover,avgOdds,cashP,totalEV,avgEVPct,netPct,evCoverage:evBets.length};
+  }).sort((a,b)=>b.bets-a.bets);
+  const tot={bets:sum(rows,'bets'),wins:sum(rows,'wins'),losses:sum(rows,'losses'),turnover:sum(rows,'turnover'),cashP:sum(rows,'cashP'),totalEV:sum(rows,'totalEV')};
+  const totNetPct=tot.turnover?tot.cashP/tot.turnover*100:0;
+  el.innerHTML=`<table>
+    <thead><tr><th>Type</th><th># Bets</th><th>W/L</th><th>Turnover</th><th>Avg Odds</th><th>Cash P&L</th><th>Total EV</th><th>Avg EV%</th><th>EV Coverage</th><th>Net %</th></tr></thead>
+    <tbody>${rows.map(r=>`<tr>
+      <td style="font-weight:600;color:#e2e8f0">${r.type}</td><td>${r.bets}</td>
+      <td><span class="g">${r.wins}W</span> / <span class="r">${r.losses}L</span></td>
+      <td class="mu">${fmt$(r.turnover)}</td><td class="mu">${fmtO(r.avgOdds)}</td>
+      <td class="${clr(r.cashP)}">${fmt$(r.cashP)}</td>
+      <td class="am">${r.totalEV?fmt$(r.totalEV):'-'}</td>
+      <td class="am">${r.avgEVPct!=null?fmtP(r.avgEVPct):'-'}</td>
+      <td class="mu">${r.evCoverage}/${r.bets}</td>
+      <td class="${clr(r.netPct)}">${fmtP(r.netPct)}</td>
+    </tr>`).join('')}</tbody>
+    <tfoot><tr>
+      <td>Total</td><td>${tot.bets}</td><td><span class="g">${tot.wins}W</span> / <span class="r">${tot.losses}L</span></td>
+      <td>${fmt$(tot.turnover)}</td><td>-</td>
+      <td class="${clr(tot.cashP)}">${fmt$(tot.cashP)}</td>
+      <td class="am">${fmt$(tot.totalEV)}</td><td>-</td><td>-</td>
+      <td class="${clr(totNetPct)}">${fmtP(totNetPct)}</td>
+    </tr></tfoot>
+  </table>`;
+}
+
+// ── ADJUSTMENTS ───────────────────────────────────────────────────────────────
+function addAdj(){
+  const date=document.getElementById('adj-date').value||today();
+  const amount=parseFloat(document.getElementById('adj-amount').value);
+  const notes=document.getElementById('adj-notes').value.trim();
+  if(!amount){toast('Enter amount','warn');return}
+  const adjs=ls(K.adj,[]);adjs.push({id:uid(),date,amount,notes,createdAt:new Date().toISOString()});
+  ss(K.adj,adjs);
+  document.getElementById('adj-amount').value='';document.getElementById('adj-notes').value='';
+  renderBonuses();toast('Adjustment added');
+}
+function removeAdj(id){if(!confirm('Remove?'))return;ss(K.adj,ls(K.adj,[]).filter(a=>a.id!==id));renderBonuses();toast('Removed')}
+function clearAllPending(){
+  const pending=ls(K.bonuses,[]).filter(b=>b.result==='Pending');
+  if(!pending.length){toast('No pending bonuses','info');return}
+  if(!confirm(`Remove ${pending.length} pending bonus${pending.length>1?'es':''}?`))return;
+  ss(K.bonuses,ls(K.bonuses,[]).filter(b=>b.result!=='Pending'));
+  renderBonuses();toast(`${pending.length} pending cleared`);
+}
+function renderAdjList(){
+  const adjs=ls(K.adj,[]).slice().reverse();
+  const el=document.getElementById('adj-list');
+  if(!adjs.length){el.innerHTML='<div class="empty">No adjustments</div>';return}
+  const total=adjs.reduce((s,a)=>s+a.amount,0);
+  el.innerHTML=`<div class="card"><table>
+    <thead><tr><th>Date</th><th>Amount</th><th>Notes</th><th></th></tr></thead>
+    <tbody>${adjs.map(a=>`<tr><td>${fmtD(a.date)}</td><td class="${clr(a.amount)}">${fmt$(a.amount)}</td><td style="color:#94a3b8">${a.notes||'-'}</td><td><button class="btn btn-d btn-xs" onclick="removeAdj('${a.id}')">×</button></td></tr>`).join('')}</tbody>
+    <tfoot><tr><td>Total</td><td class="${clr(total)}">${fmt$(total)}</td><td colspan="2"></td></tr></tfoot>
+  </table></div>`;
+}
+
+// ── CSV IMPORT ───────────────────────────────────────────────────────────────
+let csvParsed=null;
+
+function openCSVModal(){
+  resetCSVModal();
+  document.getElementById('csv-modal').classList.add('open');
+}
+function closeCSVModal(){document.getElementById('csv-modal').classList.remove('open')}
+function resetCSVModal(){
+  csvParsed=null;
+  document.getElementById('csv-step1').style.display='block';
+  document.getElementById('csv-step2').style.display='none';
+  document.getElementById('csv-step3').style.display='none';
+}
+document.getElementById('csv-modal').addEventListener('click',e=>{if(e.target===document.getElementById('csv-modal'))closeCSVModal()});
+
+function parseDate(s){
+  if(!s)return null;
+  s=s.trim();
+  // ISO
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;
+  // DD/MM/YYYY or D/M/YYYY
+  const m1=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  if(m1){const y=m1[3].length===2?'20'+m1[3]:m1[3];return`${y}-${m1[2].padStart(2,'0')}-${m1[1].padStart(2,'0')}`}
+  // DD-MM-YYYY
+  const m2=s.match(/^(\d{1,2})-(\d{1,2})-(\d{2,4})$/);
+  if(m2){const y=m2[3].length===2?'20'+m2[3]:m2[3];return`${y}-${m2[2].padStart(2,'0')}-${m2[1].padStart(2,'0')}`}
+  // Try native parse as fallback
+  const d=new Date(s);
+  if(!isNaN(d))return d.toISOString().split('T')[0];
+  return null;
+}
+
+function normResult(s){
+  if(!s)return null;
+  const v=s.toLowerCase().trim();
+  if(['win','w','won','winner','1'].includes(v))return'Win';
+  if(['loss','l','lost','lose','0'].includes(v))return'Loss';
+  if(['bonus','b','2nd','3rd','trigger','trig','refund','money back'].includes(v))return'Bonus';
+  if(['void','v','scratch','scratched','na','n/a','-'].includes(v))return'Void';
+  return null;
+}
+
+function parseTextToCSV(text){
+  const lines=text.split(/\r?\n/).filter(l=>l.trim());
+  if(lines.length<2)return null;
+  const delim=lines[0].includes('\t')?'\t':',';
+  const headers=lines[0].split(delim).map(h=>h.replace(/^["']|["']$/g,'').trim());
+  const rows=lines.slice(1).map(line=>{
+    const vals=line.split(delim).map(v=>v.replace(/^["']|["']$/g,'').trim());
+    const obj={};headers.forEach((h,i)=>obj[h]=vals[i]||'');return obj;
+  }).filter(r=>Object.values(r).some(v=>v));
+  return{headers,rows};
+}
+
+function loadPasted(){
+  const text=document.getElementById('csv-paste').value.trim();
+  if(!text){toast('Paste your data first','warn');return}
+  const result=parseTextToCSV(text);
+  if(!result||result.rows.length<1){toast('Could not read data — make sure you copied the header row too','warn');return}
+  csvParsed=result;
+  showCSVStep2();
+}
+
+function loadCSV(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const result=parseTextToCSV(ev.target.result);
+    if(!result||result.rows.length<1){toast('File must have a header row and data rows','warn');return}
+    csvParsed=result;showCSVStep2();
+  };
+  reader.readAsText(file);
+}
+
+function autoDetect(headers,keywords){return headers.find(h=>keywords.some(k=>h.toLowerCase().includes(k)))||''}
+
+function showCSVStep2(){
+  const type=document.getElementById('csv-type').value;
+  const h=csvParsed.headers;
+  const fields=type==='bets'
+    ?[{k:'date',lbl:'Date *',hint:['date']},{k:'bookie',lbl:'Bookie *',hint:['bookie','bookmaker','book']},{k:'promo',lbl:'Promo Type',hint:['promo','type','offer']},{k:'stake',lbl:'Stake ($) *',hint:['stake','amount','bet size']},{k:'odds',lbl:'Fixed Odds *',hint:['odds','price','fixed','back']},{k:'bsp',lbl:'BSP',hint:['bsp','sp','starting']},{k:'result',lbl:'Result *',hint:['result','outcome']},{k:'notes',lbl:'Notes',hint:['note','comment']}]
+    :type==='nonpromo'
+    ?[{k:'date',lbl:'Date *',hint:['date']},{k:'bookie',lbl:'Bookie *',hint:['bookie','bookmaker','book']},{k:'nptype',lbl:'Non-Promo Type',hint:['type','category','np','non']},{k:'stake',lbl:'Stake ($) *',hint:['stake','amount','bet size']},{k:'odds',lbl:'Fixed Odds *',hint:['odds','price','fixed','back']},{k:'bsp',lbl:'BSP',hint:['bsp','sp','starting']},{k:'result',lbl:'Result *',hint:['result','outcome']},{k:'notes',lbl:'Notes',hint:['note','comment']}]
+    :[{k:'date',lbl:'Date *',hint:['date']},{k:'bookie',lbl:'Bookie *',hint:['bookie','bookmaker','book']},{k:'amount',lbl:'Bonus Amount ($) *',hint:['amount','bonus','stake']},{k:'odds',lbl:'Fixed Odds',hint:['odds','price','fixed']},{k:'bsp',lbl:'BSP',hint:['bsp','sp']},{k:'result',lbl:'Result *',hint:['result','outcome']}];
+  document.getElementById('csv-mapping').innerHTML=fields.map(f=>{
+    const auto=autoDetect(h,f.hint);
+    return`<div class="fg"><label class="lbl">${f.lbl}</label><select id="m-${f.k}"><option value="">— skip —</option>${h.map(col=>`<option value="${col}"${col===auto?' selected':''}>${col}</option>`).join('')}</select></div>`;
+  }).join('');
+  const preview=csvParsed.rows.slice(0,3);
+  document.getElementById('csv-preview-table').innerHTML=`<table><thead><tr>${h.map(col=>`<th>${col}</th>`).join('')}</tr></thead><tbody>${preview.map(r=>`<tr>${h.map(col=>`<td>${r[col]||''}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+  document.getElementById('csv-step1').style.display='none';
+  document.getElementById('csv-step2').style.display='block';
+}
+
+function getOrCreateBookie(name){
+  if(!name)return null;
+  // Strip trailing account code suffix e.g. "Sportsbet AM" → "Sportsbet"
+  name=name.trim().replace(/\s+[A-Z]{2,3}$/, '');
+  const bookies=ls(K.bookies,[]);
+  const n=name.toLowerCase();
+  let b=bookies.find(x=>x.name.toLowerCase()===n||(x.alias||'').toLowerCase()===n);
+  if(!b){b={id:uid(),name,alias:name,active:true};bookies.push(b);ss(K.bookies,bookies)}
+  return b.id;
+}
+function getOrCreatePromo(name){
+  if(!name)return ls(K.promos,[{id:'p0',name:'Unspecified'}])[0].id;
+  const promos=ls(K.promos,[]);
+  const n=name.trim().toLowerCase();
+  let p=promos.find(x=>x.name.toLowerCase()===n);
+  if(!p){p={id:uid(),name:name.trim()};promos.push(p);ss(K.promos,promos)}
+  return p.id;
+}
+
+function runCSVImport(){
+  const type=document.getElementById('csv-type').value;
+  const rows=csvParsed.rows;
+  const g=k=>document.getElementById('m-'+k)?.value||'';
+  let imported=0,skipped=0;
+  const errs=[];
+
+  if(type==='bets'){
+    const bets=ls(K.bets,[]);
+    const bonuses=ls(K.bonuses,[]);
+    rows.forEach((row,i)=>{
+      const date=parseDate(row[g('date')]);
+      const bookieId=getOrCreateBookie(row[g('bookie')]);
+      const pn=s=>parseFloat(String(s||'').replace(/[$,]/g,''))||null;
+      const stake=pn(row[g('stake')]);
+      const odds=pn(row[g('odds')]);
+      const result=normResult(row[g('result')]);
+      if(!date||!bookieId||!stake||!result){skipped++;return}
+      const promoId=getOrCreatePromo(row[g('promo')]||'');
+      const bsp=pn(row[g('bsp')]);
+      const notes=row[g('notes')]||'';
+      const bet={id:uid(),date,bookieId,promoId,betCategory:'promo',nonPromoType:null,stake,fixedOdds:odds||null,bsp,result,notes,createdAt:date+'T00:00:00.000Z'};
+      bets.push(bet);
+      if(result==='Bonus'){bonuses.push({id:uid(),parentBetId:bet.id,bookieId,bonusAmount:stake,fixedOdds:null,bsp:null,result:'Pending',sourceType:'promo',createdAt:date+'T00:00:00.000Z'})}
+      imported++;
+    });
+    ss(K.bets,bets);ss(K.bonuses,bonuses);
+  } else if(type==='nonpromo'){
+    const bets=ls(K.bets,[]);
+    rows.forEach((row,i)=>{
+      const date=parseDate(row[g('date')]);
+      const bookieId=getOrCreateBookie(row[g('bookie')]);
+      const pn=s=>parseFloat(String(s||'').replace(/[$,]/g,''))||null;
+      const stake=pn(row[g('stake')]);
+      const odds=pn(row[g('odds')]);
+      const result=normResult(row[g('result')]);
+      if(!date||!bookieId||!stake||!result){skipped++;return}
+      const nonPromoType=row[g('nptype')]||'Other';
+      const bsp=pn(row[g('bsp')]);
+      const notes=row[g('notes')]||'';
+      bets.push({id:uid(),date,bookieId,promoId:null,betCategory:'non-promo',nonPromoType,stake,fixedOdds:odds||null,bsp,result,notes,createdAt:date+'T00:00:00.000Z'});
+      imported++;
+    });
+    ss(K.bets,bets);
+  } else {
+    const bonuses=ls(K.bonuses,[]);
+    rows.forEach((row,i)=>{
+      const date=parseDate(row[g('date')]);
+      const bookieId=getOrCreateBookie(row[g('bookie')]);
+      const pn2=s=>parseFloat(String(s||'').replace(/[$,]/g,''))||null;
+      const amount=pn2(row[g('amount')]);
+      const result=normResult(row[g('result')]);
+      if(!date||!bookieId||!amount){skipped++;return}
+      const odds=pn2(row[g('odds')]);
+      const bsp=pn2(row[g('bsp')]);
+      const res=result||'Pending';
+      bonuses.push({id:uid(),parentBetId:null,bookieId,bonusAmount:amount,fixedOdds:odds,bsp,result:res,sourceType:'promo',createdAt:date+'T00:00:00.000Z'});
+      imported++;
+    });
+    ss(K.bonuses,bonuses);
+  }
+  document.getElementById('csv-step2').style.display='none';
+  document.getElementById('csv-step3').style.display='block';
+  document.getElementById('csv-done-msg').textContent=`Imported ${imported} rows${skipped?` (${skipped} skipped — missing required fields)`:''}.`;
+}
+
+// ── SETTINGS ─────────────────────────────────────────────────────────────────
+function renderSettings(){
+  const bookies=ls(K.bookies,[]);const promos=ls(K.promos,[]);const npts=ls(K.npt,[]);const cfg=ls(K.settings,DEF_SETTINGS);
+  document.getElementById('bookies-list').innerHTML=bookies.map(b=>`<div class="srow">
+    <span style="flex:1;color:#cbd5e1;font-size:12px">${b.alias||b.name}</span>
+    <label class="toggle"><input type="checkbox" ${b.active?'checked':''} onchange="toggleBookie('${b.id}',this.checked)"><span class="ts"></span></label>
+    <span style="font-size:10px;color:#475569;min-width:44px">${b.active?'Active':'Off'}</span>
+    <button class="btn btn-d btn-xs" onclick="removeBookie('${b.id}')">Remove</button>
+  </div>`).join('');
+  document.getElementById('promos-list').innerHTML=promos.map(p=>`<div class="srow">
+    <input type="text" value="${p.name}" onchange="updatePromo('${p.id}',this.value)" style="flex:1;min-width:0">
+    <label class="lbl" style="margin:0 6px;white-space:nowrap;font-size:11px">EV%</label>
+    <input type="number" value="${p.ev??''}" onchange="updatePromoEV('${p.id}',this.value)" step="0.1" min="0" placeholder="0" style="width:62px">
+    <button class="btn btn-d btn-xs" onclick="removePromo('${p.id}')">Remove</button>
+  </div>`).join('');
+  document.getElementById('npt-list').innerHTML=npts.map(t=>`<div class="srow">
+    <input type="text" value="${t.name}" onchange="updateNPT('${t.id}',this.value)" style="width:205px">
+    <span class="spacer"></span>
+    <button class="btn btn-d btn-xs" onclick="removeNPT('${t.id}')">Remove</button>
+  </div>`).join('');
+  document.getElementById('s-offset').value=cfg.profitOffset||0;
+  updateNPTDatalist();
+}
+function updateAlias(id,v){const bk=ls(K.bookies,[]);const b=bk.find(x=>x.id===id);if(b){b.alias=v;ss(K.bookies,bk);toast('Alias updated')}}
+function toggleBookie(id,v){const bk=ls(K.bookies,[]);const b=bk.find(x=>x.id===id);if(b){b.active=v;ss(K.bookies,bk);renderSettings()}}
+function removeBookie(id){if(ls(K.bets,[]).some(b=>b.bookieId===id)){toast('Has bets — deactivate instead','warn');return}if(!confirm('Remove?'))return;ss(K.bookies,ls(K.bookies,[]).filter(b=>b.id!==id));renderSettings();toast('Removed')}
+function addBookie(){const n=document.getElementById('new-bk-name').value.trim();if(!n){toast('Enter name','warn');return}const bk=ls(K.bookies,[]);bk.push({id:uid(),name:n,alias:n,active:true});ss(K.bookies,bk);document.getElementById('new-bk-name').value='';renderSettings();toast('Bookie added')}
+function updatePromo(id,v){const pr=ls(K.promos,[]);const p=pr.find(x=>x.id===id);if(p){p.name=v;ss(K.promos,pr)}}
+function updatePromoEV(id,v){const pr=ls(K.promos,[]);const p=pr.find(x=>x.id===id);if(p){p.ev=parseFloat(v)||0;ss(K.promos,pr);toast('EV saved')}}
+function removePromo(id){if(ls(K.bets,[]).some(b=>b.promoId===id)){toast('Has bets attached','warn');return}if(!confirm('Remove?'))return;ss(K.promos,ls(K.promos,[]).filter(p=>p.id!==id));renderSettings();toast('Removed')}
+function addPromo(){const n=document.getElementById('new-promo-name').value.trim();if(!n){toast('Enter name','warn');return}const pr=ls(K.promos,[]);pr.push({id:uid(),name:n});ss(K.promos,pr);document.getElementById('new-promo-name').value='';renderSettings();toast('Promo added')}
+function addNPT(){const n=document.getElementById('new-npt-name').value.trim();if(!n){toast('Enter name','warn');return}const t=ls(K.npt,[]);t.push({id:uid(),name:n});ss(K.npt,t);document.getElementById('new-npt-name').value='';renderSettings();toast('Type added')}
+function updateNPT(id,v){const t=ls(K.npt,[]);const x=t.find(n=>n.id===id);if(x){x.name=v;ss(K.npt,t);updateNPTDatalist()}}
+function removeNPT(id){if(!confirm('Remove?'))return;ss(K.npt,ls(K.npt,[]).filter(t=>t.id!==id));renderSettings();toast('Removed')}
+function updateNPTDatalist(){const dl=document.getElementById('nonpromo-list');if(dl)dl.innerHTML=ls(K.npt,[]).map(t=>`<option value="${t.name}">`).join('')}
+function saveSettings(){const cfg=ls(K.settings,DEF_SETTINGS);ss(K.settings,{...cfg,profitOffset:parseFloat(document.getElementById('s-offset').value)||0});toast('Settings saved')}
+
+// ── SHARE ─────────────────────────────────────────────────────────────────────
+let READONLY=false;
+async function shareResults(){
+  if(!_syncUser){toast('Sign in first to share results','warn');openAuthModal();return}
+  const btn=document.getElementById('share-btn');
+  btn.disabled=true;btn.textContent='Generating…';
+  try{
+    const{data,error}=await supa.from('shares').insert({
+      user_id:_syncUser.id,
+      email:_syncUser.email,
+      data:_allData()
+    }).select('id').single();
+    if(error)throw error;
+    const url=`${location.origin}${location.pathname}?share=${data.id}`;
+    await navigator.clipboard.writeText(url);
+    toast('Link copied to clipboard!','ok');
+  }catch(e){toast('Error: '+e.message,'warn')}
+  btn.disabled=false;btn.textContent='Share Results';
+}
+async function loadShare(id){
+  const{data,error}=await supa.from('shares').select('data,email').eq('id',id).single();
+  if(error||!data){toast('Share link not found','warn');return}
+  READONLY=true;
+  const d=data.data;
+  Object.entries(K).forEach(([k,storageKey])=>{if(d[k]!==undefined)localStorage.setItem(storageKey,JSON.stringify(d[k]))});
+  const banner=document.getElementById('share-banner');
+  document.getElementById('share-email').textContent=data.email||'someone';
+  banner.style.display='block';
+  // hide write-only tabs
+  document.querySelector('.nav-tab[data-tab="logbet"]').style.display='none';
+  document.querySelector('.nav-tab[data-tab="settings"]').style.display='none';
+  init();renderDashboard();
+}
+
+// ── EXPORT / IMPORT ───────────────────────────────────────────────────────────
+function exportData(){
+  const data={bets:ls(K.bets,[]),bonuses:ls(K.bonuses,[]),bookies:ls(K.bookies,[]),promos:ls(K.promos,[]),settings:ls(K.settings,DEF_SETTINGS),exportedAt:new Date().toISOString()};
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));a.download='mb-tracker-'+today()+'.json';a.click();toast('Exported');
+}
+function importData(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();reader.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(d.bets)ss(K.bets,d.bets);if(d.bonuses)ss(K.bonuses,d.bonuses);if(d.bookies)ss(K.bookies,d.bookies);if(d.promos)ss(K.promos,d.promos);if(d.npt)ss(K.npt,d.npt);if(d.adj)ss(K.adj,d.adj);if(d.settings)ss(K.settings,d.settings);toast('Imported — reload to refresh','info')}catch{toast('Invalid file','warn')}};reader.readAsText(file);
+}
+function clearAll(){if(!confirm('Delete ALL data? Cannot be undone.'))return;Object.values(K).forEach(k=>localStorage.removeItem(k));init();location.reload()}
+
+function showTab(id){const t=document.querySelector(`.nav-tab[data-tab="${id}"]`);if(t)t.click()}
+
+// ── TAB ROUTING ───────────────────────────────────────────────────────────────
+const RENDERS={dashboard:renderDashboard,logbet:renderLogBet,bonuses:renderBonuses,data:renderData,settings:renderSettings};
+document.querySelectorAll('.nav-tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+    tab.classList.add('active');
+    const id=tab.dataset.tab;
+    document.getElementById('tab-'+id).classList.add('active');
+    RENDERS[id]&&RENDERS[id]();
+  });
+});
+
+// ── BOOT ──────────────────────────────────────────────────────────────────────
+init();
+updateAuthUI(null);
+const _shareParam=new URLSearchParams(location.search).get('share');
+if(_shareParam){
+  loadShare(_shareParam);
+}else{
+  renderDashboard();
+}
+</script>
+</body>
+</html>
