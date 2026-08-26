@@ -126,6 +126,7 @@ select option{background:#1e293b}
 .ac-item{padding:12px 10px;color:#e2e8f0;font-size:14px;cursor:pointer;border-bottom:1px solid #334155;user-select:none;-webkit-tap-highlight-color:transparent}
 .ac-item:last-child{border-bottom:none}
 .ac-item:active{background:#334155}
+.ac-item.ac-active{background:#1e40af;color:#fff}
 @media(max-width:680px){.auth-user{display:none}.nav-brand{margin-right:6px}}
 @media(max-width:580px){.form-grid{grid-template-columns:1fr 1fr}.rbtns{grid-template-columns:1fr 1fr}.stats-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:380px){.nav-tab{padding:14px 9px;font-size:11px}}
@@ -232,11 +233,11 @@ select option{background:#1e293b}
     <div class="fg mb-4">
       <label class="lbl">Result</label>
       <div class="rbtns" id="rbtns-div">
-        <div class="rbtn" id="rb-Win" onclick="selR('Win')">Win</div>
-        <div class="rbtn" id="rb-Loss" onclick="selR('Loss')">Loss</div>
-        <div class="rbtn" id="rb-Bonus" onclick="selR('Bonus')">Bonus</div>
-        <div class="rbtn" id="rb-Void" onclick="selR('Void')">Void</div>
-        <div class="rbtn" id="rb-Pending" onclick="selR('Pending')">Pending</div>
+        <div class="rbtn" id="rb-Win" tabindex="0" onclick="selR('Win')" onkeydown="rbKey(event,'Win')">Win</div>
+        <div class="rbtn" id="rb-Loss" tabindex="0" onclick="selR('Loss')" onkeydown="rbKey(event,'Loss')">Loss</div>
+        <div class="rbtn" id="rb-Bonus" tabindex="0" onclick="selR('Bonus')" onkeydown="rbKey(event,'Bonus')">Bonus</div>
+        <div class="rbtn" id="rb-Void" tabindex="0" onclick="selR('Void')" onkeydown="rbKey(event,'Void')">Void</div>
+        <div class="rbtn" id="rb-Pending" tabindex="0" onclick="selR('Pending')" onkeydown="rbKey(event,'Pending')">Pending</div>
       </div>
     </div>
     <div id="notes-wrap" style="display:none" class="fg mb-4">
@@ -891,20 +892,35 @@ function setupAC(inputId,getOpts){
   let drop=wrap.querySelector('.ac-drop');
   if(!drop){drop=document.createElement('div');drop.className='ac-drop';wrap.appendChild(drop)}
   inp._acGetOpts=getOpts;
+  let _idx=-1;
+  function items(){return drop.querySelectorAll('.ac-item')}
+  function setActive(i){
+    items().forEach((el,j)=>el.classList.toggle('ac-active',j===i));
+    _idx=i;
+  }
+  function pick(text){inp.value=text;drop.classList.remove('open');_idx=-1;inp.dispatchEvent(new Event('change'))}
   function renderDrop(q){
+    _idx=-1;
     const nq=_acNorm(q);
     const opts=(inp._acGetOpts()||[]).filter(o=>!q||_acNorm(o).includes(nq)).slice(0,30);
     if(!opts.length){drop.classList.remove('open');return}
     drop.innerHTML=opts.map(o=>`<div class="ac-item">${o}</div>`).join('');
     drop.classList.add('open');
     drop.querySelectorAll('.ac-item').forEach(item=>{
-      item.addEventListener('touchend',e=>{e.preventDefault();inp.value=item.textContent;drop.classList.remove('open');inp.blur()},{once:true});
-      item.addEventListener('mousedown',e=>{e.preventDefault();inp.value=item.textContent;drop.classList.remove('open')},{once:true});
+      item.addEventListener('touchend',e=>{e.preventDefault();pick(item.textContent);inp.blur()},{once:true});
+      item.addEventListener('mousedown',e=>{e.preventDefault();pick(item.textContent)},{once:true});
     });
   }
   inp.onfocus=()=>{inp.select();renderDrop(inp.value)};
   inp.oninput=()=>renderDrop(inp.value);
-  inp.onblur=()=>setTimeout(()=>drop.classList.remove('open'),250);
+  inp.onblur=()=>setTimeout(()=>{drop.classList.remove('open');_idx=-1},250);
+  inp.onkeydown=e=>{
+    const its=items();
+    if(e.key==='ArrowDown'){e.preventDefault();setActive(Math.min(_idx+1,its.length-1));}
+    else if(e.key==='ArrowUp'){e.preventDefault();setActive(Math.max(_idx-1,0));}
+    else if(e.key==='Enter'&&_idx>=0){e.preventDefault();pick(its[_idx].textContent);}
+    else if(e.key==='Escape'){drop.classList.remove('open');_idx=-1;}
+  };
 }
 
 function renderLogBet(){
@@ -922,10 +938,25 @@ function renderLogBet(){
   renderTodayBets();renderPendingBets();
 }
 
+const _rbOrder=['Win','Loss','Bonus','Void','Pending'];
 function selR(r){
   selResult=r;
-  ['Win','Loss','Bonus','Void','Pending'].forEach(x=>{const el=document.getElementById('rb-'+x);if(el)el.className='rbtn'+(x===r?' s'+r[0]:'')});
+  _rbOrder.forEach(x=>{const el=document.getElementById('rb-'+x);if(el){el.className='rbtn'+(x===r?' s'+x[0]:'');el.setAttribute('tabindex','0')}});
   saveBet();
+}
+function rbKey(e,r){
+  if(e.key==='Enter'||e.key===' '){e.preventDefault();selR(r);}
+  else if(e.key==='ArrowRight'||e.key==='ArrowDown'){
+    e.preventDefault();
+    const vis=_rbOrder.filter(x=>document.getElementById('rb-'+x)?.closest('[style*="none"]')===null);
+    const i=vis.indexOf(r);const next=vis[Math.min(i+1,vis.length-1)];
+    document.getElementById('rb-'+next)?.focus();
+  }else if(e.key==='ArrowLeft'||e.key==='ArrowUp'){
+    e.preventDefault();
+    const vis=_rbOrder.filter(x=>document.getElementById('rb-'+x)?.closest('[style*="none"]')===null);
+    const i=vis.indexOf(r);const prev=vis[Math.max(i-1,0)];
+    document.getElementById('rb-'+prev)?.focus();
+  }
 }
 
 function toggleNotes(){const w=document.getElementById('notes-wrap');w.style.display=w.style.display==='none'?'block':'none'}
@@ -1011,8 +1042,16 @@ function saveEditedBet(id){
 }
 function deleteBet(id){
   if(!confirm('Delete this bet?'))return;
+  const bet=ls(K.bets,[]).find(b=>b.id===id);
   ss(K.bets,ls(K.bets,[]).filter(b=>b.id!==id));
-  toast('Bet deleted');renderTodayBets();renderPendingBets();renderDashboard();
+  // remove any bonus triggered by this bet
+  if(bet?.result==='Bonus'){
+    const before=ls(K.bonuses,[]).length;
+    ss(K.bonuses,ls(K.bonuses,[]).filter(b=>b.parentBetId!==id));
+    const removed=before-ls(K.bonuses,[]).length;
+    toast(removed?'Bet + bonus deleted':'Bet deleted');
+  }else toast('Bet deleted');
+  renderTodayBets();renderPendingBets();renderDashboard();
 }
 function _updCloneBtn(){const b=document.getElementById('clone-btn');if(b){b.style.display=window._sel.size?'inline-block':'none';b.textContent=`Clone Selected (${window._sel.size})`;}}
 function toggleBetCheck(id){if(window._sel.has(id))window._sel.delete(id);else window._sel.add(id);_updCloneBtn();}
