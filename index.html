@@ -977,26 +977,21 @@ function _logFieldOrder(){
   const typeId=betCat==='promo'?'f-promo':'f-nonpromo-type';
   return['f-bookie',typeId,'f-stake','f-odds','f-bsp'];
 }
-document.addEventListener('DOMContentLoaded',()=>{
-  const formIds=['f-bookie','f-promo','f-nonpromo-type','f-stake','f-odds','f-bsp'];
-  formIds.forEach(id=>{
-    const el=document.getElementById(id);if(!el)return;
-    el.addEventListener('keydown',e=>{
-      const order=_logFieldOrder();
-      const i=order.indexOf(id);
-      if(e.key==='ArrowRight'){
-        e.preventDefault();
-        if(i<order.length-1){document.getElementById(order[i+1])?.focus();}
-        else{document.getElementById('rb-Win')?.focus();}
-      }else if(e.key==='ArrowLeft'){
-        e.preventDefault();
-        if(i>0){document.getElementById(order[i-1])?.focus();}
-      }else if(e.key==='Tab'&&id==='f-bsp'&&!e.shiftKey){
-        const first=document.getElementById('rb-Win');
-        if(first){e.preventDefault();first.focus();}
-      }
-    });
-  });
+function _logFieldNav(e,id){
+  if(e.key==='ArrowRight'||e.key==='ArrowLeft'){
+    const order=_logFieldOrder();const i=order.indexOf(id);if(i===-1)return;
+    e.preventDefault();
+    if(e.key==='ArrowRight'){
+      const nxt=i<order.length-1?order[i+1]:null;
+      (nxt?document.getElementById(nxt):document.getElementById('rb-Win'))?.focus();
+    }else{if(i>0)document.getElementById(order[i-1])?.focus();}
+  }else if(e.key==='Tab'&&id==='f-bsp'&&!e.shiftKey){
+    e.preventDefault();document.getElementById('rb-Win')?.focus();
+  }
+}
+// attach nav — runs after DOM ready (inline script at bottom of body)
+['f-bookie','f-promo','f-nonpromo-type','f-stake','f-odds','f-bsp'].forEach(id=>{
+  document.getElementById(id)?.addEventListener('keydown',e=>_logFieldNav(e,id),true);
 });
 
 function toggleNotes(){const w=document.getElementById('notes-wrap');w.style.display=w.style.display==='none'?'block':'none'}
