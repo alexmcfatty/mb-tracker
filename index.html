@@ -970,10 +970,6 @@ function rbKey(e,r){
     e.preventDefault();
     if(i>0)document.getElementById('rb-'+vis[i-1])?.focus();
     else document.getElementById('f-bsp')?.focus();
-  }else if(e.key==='ArrowUp'){
-    e.preventDefault();document.getElementById('f-bsp')?.focus();
-  }else if(e.key==='ArrowDown'){
-    e.preventDefault();document.getElementById('f-bookie')?.focus();
   }
 }
 // Tab from BSP → first result button; ArrowRight/ArrowDown in BSP → first result button
@@ -988,15 +984,14 @@ document.addEventListener('DOMContentLoaded',()=>{
     el.addEventListener('keydown',e=>{
       const order=_logFieldOrder();
       const i=order.indexOf(id);
-      if(e.key==='ArrowDown'){
+      if(e.key==='ArrowRight'){
         e.preventDefault();
         if(i<order.length-1){document.getElementById(order[i+1])?.focus();}
-        else{document.getElementById('rb-Win')?.focus();}// bsp → result
-      }else if(e.key==='ArrowUp'){
+        else{document.getElementById('rb-Win')?.focus();}
+      }else if(e.key==='ArrowLeft'){
         e.preventDefault();
         if(i>0){document.getElementById(order[i-1])?.focus();}
-        // already at top — stay
-      }else if((e.key==='Tab'||e.key==='ArrowRight')&&id==='f-bsp'&&!e.shiftKey){
+      }else if(e.key==='Tab'&&id==='f-bsp'&&!e.shiftKey){
         const first=document.getElementById('rb-Win');
         if(first){e.preventDefault();first.focus();}
       }
