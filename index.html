@@ -965,7 +965,7 @@ function selR(r){
   saveBet();
 }
 function rbKey(e,r){
-  const vis=_rbOrder.filter(x=>document.getElementById('rb-'+x));
+  const vis=_rbOrder.filter(x=>{const el=document.getElementById('rb-'+x);return el&&el.style.display!=='none'});
   const i=vis.indexOf(r);
   if(e.key==='Enter'||e.key===' '){e.preventDefault();selR(r);}
   else if(e.key==='ArrowRight'){
@@ -990,9 +990,15 @@ function _logFieldNav(e,id){
       const nxt=i<order.length-1?order[i+1]:null;
       (nxt?document.getElementById(nxt):document.getElementById('rb-Win'))?.focus();
     }else{if(i>0)document.getElementById(order[i-1])?.focus();}
-  }else if(e.key==='ArrowDown'&&id==='f-bsp'){
+  }else if(e.key==='ArrowDown'&&(id==='f-bsp'||id==='f-odds')){
     e.preventDefault();e.stopImmediatePropagation();
     document.getElementById('rb-Pending')?.focus();
+  }else if(e.key==='ArrowUp'&&(id==='f-bsp'||id==='f-odds')){
+    e.preventDefault();e.stopImmediatePropagation();
+  }else if(e.key==='Enter'){
+    // only intercept if AC dropdown has no highlighted item (pick() handles that case)
+    const acActive=document.getElementById(id)?.closest('.ac-wrap')?.querySelector('.ac-drop.open .ac-active');
+    if(!acActive){e.preventDefault();e.stopImmediatePropagation();_focusNext(id);}
   }else if(e.key==='Tab'&&id==='f-bsp'&&!e.shiftKey){
     e.preventDefault();document.getElementById('rb-Win')?.focus();
   }
