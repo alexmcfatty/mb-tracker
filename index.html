@@ -226,8 +226,8 @@ select option{background:#1e293b}
       </div>
       <div class="fg" id="fg-nonpromo" style="display:none"><label class="lbl">Non-Promo Type</label><input type="text" id="f-nonpromo-type" placeholder="Type to search…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"><datalist id="nonpromo-list"></datalist></div>
       <div class="fg"><label class="lbl">Stake ($)</label><input type="number" id="f-stake" placeholder="50" step="0.01" min="0"></div>
-      <div class="fg"><label class="lbl">Fixed Odds</label><input type="number" id="f-odds" placeholder="3.40" step="0.01" min="1.01"></div>
-      <div class="fg"><label class="lbl">BSP <span class="mu">(optional)</span></label><input type="number" id="f-bsp" placeholder="Post-race" step="0.01"></div>
+      <div class="fg"><label class="lbl">Fixed Odds</label><input type="number" id="f-odds" placeholder="3.40" step="0.01" min="1.01" oninput="updateKellyDisplay()"></div>
+      <div class="fg"><label class="lbl">BSP <span class="mu">(optional)</span></label><input type="number" id="f-bsp" placeholder="Post-race" step="0.01" oninput="updateKellyDisplay()"><div id="kelly-display" style="display:none;margin-top:5px;font-size:12px;color:#22c55e;font-weight:700"></div></div>
     </div>
     <div class="fg mb-4">
       <label class="lbl">Result</label>
@@ -394,6 +394,25 @@ select option{background:#1e293b}
         <button class="btn btn-p btn-sm" onclick="saveSettings()">Save</button>
         <span style="font-size:10px;color:#475569">Added to Total Profit display only</span>
       </div>
+      <div style="margin-top:20px;border-top:1px solid #1e293b;padding-top:16px">
+        <div class="lbl" style="margin-bottom:10px">Kelly Stake Settings</div>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end">
+          <div><label class="lbl" style="font-size:11px">Fixed Bankroll ($)</label><input type="number" id="s-kelly-bank" step="1" placeholder="5000" style="max-width:110px"></div>
+          <div><label class="lbl" style="font-size:11px">Kelly Fraction</label>
+            <select id="s-kelly-fraction" class="inp-sm" style="max-width:110px">
+              <option value="1">Full Kelly</option>
+              <option value="2">1/2 Kelly</option>
+              <option value="4">1/4 Kelly</option>
+              <option value="8">1/8 Kelly</option>
+            </select>
+          </div>
+          <button class="btn btn-p btn-sm" onclick="saveSettings()">Save</button>
+        </div>
+        <div style="margin-top:10px;font-size:12px;color:#94a3b8">
+          Adjustable bank: <span id="s-kelly-adj" style="color:#22c55e;font-weight:700">—</span>
+          <span style="font-size:10px;color:#475569;margin-left:6px">(Fixed + non-promo P&L)</span>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -503,13 +522,24 @@ select option{background:#1e293b}
   </div>
 </div>
 
+<div class="modal" id="invite-modal">
+  <div class="modal-box">
+    <h3>Set Your Password</h3>
+    <p style="font-size:13px;color:#94a3b8;margin-bottom:16px">You've been invited. Choose a password to activate your account.</p>
+    <div class="fg mb-3"><label class="lbl">New Password</label><input type="password" id="invite-pw" placeholder="••••••••" autocomplete="new-password"></div>
+    <div class="fg mb-3"><label class="lbl">Confirm Password</label><input type="password" id="invite-pw2" placeholder="••••••••" autocomplete="new-password" onkeydown="if(event.key==='Enter')submitInvite()"></div>
+    <div id="invite-error" style="font-size:11px;color:#ef4444;margin-bottom:10px;min-height:16px"></div>
+    <button class="btn btn-p" onclick="submitInvite()">Activate Account</button>
+  </div>
+</div>
+
 <script>
 // ── CONSTANTS ────────────────────────────────────────────────────────────────
 const K={bets:'mb_bets',bonuses:'mb_bonuses',bookies:'mb_bookies',promos:'mb_promos',npt:'mb_npt',adj:'mb_adj',settings:'mb_settings'};
 const DEF_BOOKIES=[{n:'TAB',a:'TAB'},{n:'Sportsbet',a:'SB'},{n:'Bet365',a:'365'},{n:'Neds',a:'Neds'},{n:'Ladbrokes',a:'Lads'},{n:'Unibet',a:'UB'},{n:'BlueBet',a:'BB'},{n:'Pointsbet',a:'PB'}].map(b=>({id:uid(),name:b.n,alias:b.a,active:true}));
 const DEF_PROMOS=['2nd 3rd Back','2nd Back','Double Winnings','25% Bonus Boost','Dogs Boost','Horse Boost','Trots Boost','Sports Boost','3 Leg 1 Fail','Free Hit','2 Leg Free Hit','365 Megaboost'].map(n=>({id:uid(),name:n}));
 const DEF_NPT=['horses','trotters','dogs','rocketboost','HKR','Degen','H2H','Price Comparison','Bet365 multiboost','Pinnacle EV Multi','Pinnacle EV','Top 4 multi','Betfair EV','Tab -1','First team scorer','NZ Gallop','2 Way Dutch'].map(n=>({id:uid(),name:n}));
-const DEF_SETTINGS={extractionRate:83,triggerRate:23,promoEvPct:8,profitOffset:0};
+const DEF_SETTINGS={extractionRate:83,triggerRate:23,promoEvPct:8,profitOffset:0,kellyBank:0,kellyFraction:4};
 
 // ── UTILS ─────────────────────────────────────────────────────────────────────
 function uid(){return Math.random().toString(36).slice(2,9)+Date.now().toString(36)}
@@ -531,6 +561,32 @@ function betEV(b,cfg){
   const c=cfg||ls(K.settings,DEF_SETTINGS);
   if(b.betCategory==='non-promo'){if(b.fixedOdds&&b.bsp)return(b.fixedOdds/b.bsp-1)*b.stake;return null}
   const pr=ls(K.promos,[]).find(p=>p.id===b.promoId);return(pr&&pr.ev?pr.ev/100:0)*b.stake;
+}
+function kellyAdjBank(){
+  const cfg=ls(K.settings,DEF_SETTINGS);
+  const fixed=cfg.kellyBank||0;
+  const npPnl=ls(K.bets,[]).filter(b=>b.betCategory==='non-promo').reduce((s,b)=>s+betPnl(b),0);
+  return fixed+npPnl;
+}
+function calcKellyStake(backOdds,bsp){
+  if(!backOdds||!bsp||backOdds<=bsp)return null;
+  const cfg=ls(K.settings,DEF_SETTINGS);
+  const fraction=cfg.kellyFraction||4;
+  const p=1/bsp;
+  const b=backOdds-1;
+  const f=(b*p-(1-p))/b;
+  if(f<=0)return null;
+  return(f/fraction)*kellyAdjBank();
+}
+function updateKellyDisplay(){
+  const el=document.getElementById('kelly-display');if(!el)return;
+  const odds=parseFloat(document.getElementById('f-odds')?.value);
+  const bsp=parseFloat(document.getElementById('f-bsp')?.value);
+  const cat=betCat;
+  if(cat!=='non-promo'||!odds||!bsp){el.style.display='none';return}
+  const k=calcKellyStake(odds,bsp);
+  if(k===null){el.style.display='none';return}
+  el.textContent='Kelly stake: '+fmt$(k);el.style.display='block';
 }
 function betType(b){if(b.betCategory==='non-promo')return b.nonPromoType||'Non-Promo';return prName(b.promoId)}
 function bonusPnl(b){if(b.result==='Win'&&b.fixedOdds)return(b.fixedOdds-1)*b.bonusAmount;return 0}
@@ -603,7 +659,11 @@ async function supaSignOut(){await supa.auth.signOut();_syncUser=null;updateAuth
 supa.auth.onAuthStateChange(async(event,session)=>{
   _syncUser=session?.user||null;
   updateAuthUI(_syncUser);
-  if(event==='INITIAL_SESSION'&&_syncUser){
+  if(event==='USER_UPDATED'){
+    document.getElementById('invite-modal').classList.remove('open');
+    toast('Account activated — welcome!','ok');
+    await supaLoad();init();renderDashboard();
+  }else if(event==='INITIAL_SESSION'&&_syncUser){
     await supaLoad();init();renderDashboard();
   }else if(event==='SIGNED_IN'){
     toast('Syncing your data…','info');
@@ -611,6 +671,24 @@ supa.auth.onAuthStateChange(async(event,session)=>{
     toast('Data loaded','ok');
   }
 });
+// detect invite link on page load
+(function(){
+  const hash=Object.fromEntries(location.hash.slice(1).split('&').map(p=>p.split('=')));
+  if(hash.type==='invite'||hash.type==='recovery'){
+    document.getElementById('invite-modal').classList.add('open');
+    history.replaceState(null,'',location.pathname+location.search);
+  }
+})();
+async function submitInvite(){
+  const pw=document.getElementById('invite-pw').value;
+  const pw2=document.getElementById('invite-pw2').value;
+  const err=document.getElementById('invite-error');
+  if(pw.length<6){err.textContent='Password must be at least 6 characters';return}
+  if(pw!==pw2){err.textContent='Passwords do not match';return}
+  err.textContent='';
+  const{error}=await supa.auth.updateUser({password:pw});
+  if(error){err.textContent=error.message;}
+}
 
 // ── INIT ─────────────────────────────────────────────────────────────────────
 function init(){
@@ -1673,6 +1751,9 @@ function renderSettings(){
     <button class="btn btn-d btn-xs" onclick="removeNPT('${t.id}')">Remove</button>
   </div>`).join('');
   document.getElementById('s-offset').value=cfg.profitOffset||0;
+  document.getElementById('s-kelly-bank').value=cfg.kellyBank||0;
+  document.getElementById('s-kelly-fraction').value=cfg.kellyFraction||4;
+  document.getElementById('s-kelly-adj').textContent=fmt$(kellyAdjBank());
   updateNPTDatalist();
 }
 function updateAlias(id,v){const bk=ls(K.bookies,[]);const b=bk.find(x=>x.id===id);if(b){b.alias=v;ss(K.bookies,bk);toast('Alias updated')}}
@@ -1687,7 +1768,16 @@ function addNPT(){const n=document.getElementById('new-npt-name').value.trim();i
 function updateNPT(id,v){const t=ls(K.npt,[]);const x=t.find(n=>n.id===id);if(x){x.name=v;ss(K.npt,t);updateNPTDatalist()}}
 function removeNPT(id){if(!confirm('Remove?'))return;ss(K.npt,ls(K.npt,[]).filter(t=>t.id!==id));renderSettings();toast('Removed')}
 function updateNPTDatalist(){const dl=document.getElementById('nonpromo-list');if(dl)dl.innerHTML=ls(K.npt,[]).map(t=>`<option value="${t.name}">`).join('')}
-function saveSettings(){const cfg=ls(K.settings,DEF_SETTINGS);ss(K.settings,{...cfg,profitOffset:parseFloat(document.getElementById('s-offset').value)||0});toast('Settings saved')}
+function saveSettings(){
+  const cfg=ls(K.settings,DEF_SETTINGS);
+  ss(K.settings,{...cfg,
+    profitOffset:parseFloat(document.getElementById('s-offset').value)||0,
+    kellyBank:parseFloat(document.getElementById('s-kelly-bank').value)||0,
+    kellyFraction:parseInt(document.getElementById('s-kelly-fraction').value)||4
+  });
+  document.getElementById('s-kelly-adj').textContent=fmt$(kellyAdjBank());
+  toast('Settings saved');
+}
 
 // ── SHARE ─────────────────────────────────────────────────────────────────────
 let READONLY=false;
