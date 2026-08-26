@@ -816,7 +816,7 @@ function setupAC(inputId,getOpts){
       item.addEventListener('mousedown',e=>{e.preventDefault();inp.value=item.textContent;drop.classList.remove('open')},{once:true});
     });
   }
-  inp.onfocus=()=>renderDrop(inp.value);
+  inp.onfocus=()=>{inp.select();renderDrop(inp.value)};
   inp.oninput=()=>renderDrop(inp.value);
   inp.onblur=()=>setTimeout(()=>drop.classList.remove('open'),250);
 }
