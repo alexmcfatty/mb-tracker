@@ -252,16 +252,16 @@ select option{background:var(--sel-opt)}
   <div id="batch-form-section" style="display:none"></div>
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div class="slabel" style="margin:0">Pending Bets</div>
+    </div>
+    <div class="tw" id="pending-bets-list"></div>
+  </div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
       <div class="slabel" style="margin:0">Today's Bets</div>
       <button id="clone-btn" class="btn btn-s btn-xs" onclick="cloneSelected()" style="display:none">Clone Selected (0)</button>
     </div>
     <div class="tw" id="today-bets"></div>
-  </div>
-  <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <div class="slabel" style="margin:0">Pending Bets</div>
-    </div>
-    <div class="tw" id="pending-bets-list"></div>
   </div>
 </div>
 
@@ -890,7 +890,7 @@ function setBetCat(c){
   document.getElementById('fg-promo').style.display=c==='promo'?'':'none';
   document.getElementById('fg-nonpromo').style.display=c==='non-promo'?'':'none';
   const bspLbl=document.getElementById('bsp-opt-label');
-  if(bspLbl)bspLbl.textContent=c==='non-promo'?'(required)':'(optional)';
+  if(bspLbl)bspLbl.textContent=c==='non-promo'?'(required for results)':'(optional)';
   const bb=document.getElementById('rb-Bonus');
   bb.style.display=c==='non-promo'?'none':'';
   document.getElementById('rbtns-div').style.gridTemplateColumns=c==='non-promo'?'repeat(4,1fr)':'repeat(5,1fr)';
@@ -960,40 +960,48 @@ function selR(r){
   saveBet();
 }
 function rbKey(e,r){
+  const vis=_rbOrder.filter(x=>document.getElementById('rb-'+x));
+  const i=vis.indexOf(r);
   if(e.key==='Enter'||e.key===' '){e.preventDefault();selR(r);}
-  else if(e.key==='ArrowRight'||e.key==='ArrowDown'){
+  else if(e.key==='ArrowRight'){
     e.preventDefault();
-    const vis=_rbOrder.filter(x=>document.getElementById('rb-'+x));
-    const i=vis.indexOf(r);
-    if(i<vis.length-1){document.getElementById('rb-'+vis[i+1])?.focus();}
-  }else if(e.key==='ArrowLeft'||e.key==='ArrowUp'){
+    if(i<vis.length-1)document.getElementById('rb-'+vis[i+1])?.focus();
+  }else if(e.key==='ArrowLeft'){
     e.preventDefault();
-    const vis=_rbOrder.filter(x=>document.getElementById('rb-'+x));
-    const i=vis.indexOf(r);
-    if(i>0){document.getElementById('rb-'+vis[i-1])?.focus();}
-    else{document.getElementById('f-bsp')?.focus();}
+    if(i>0)document.getElementById('rb-'+vis[i-1])?.focus();
+    else document.getElementById('f-bsp')?.focus();
+  }else if(e.key==='ArrowUp'){
+    e.preventDefault();document.getElementById('f-bsp')?.focus();
+  }else if(e.key==='ArrowDown'){
+    e.preventDefault();document.getElementById('f-bookie')?.focus();
   }
 }
 // Tab from BSP → first result button; ArrowRight/ArrowDown in BSP → first result button
+function _logFieldOrder(){
+  const typeId=betCat==='promo'?'f-promo':'f-nonpromo-type';
+  return['f-bookie',typeId,'f-stake','f-odds','f-bsp'];
+}
 document.addEventListener('DOMContentLoaded',()=>{
-  const bsp=document.getElementById('f-bsp');
-  if(bsp){
-    bsp.addEventListener('keydown',e=>{
-      if(e.key==='Tab'&&!e.shiftKey){
+  const formIds=['f-bookie','f-promo','f-nonpromo-type','f-stake','f-odds','f-bsp'];
+  formIds.forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    el.addEventListener('keydown',e=>{
+      const order=_logFieldOrder();
+      const i=order.indexOf(id);
+      if(e.key==='ArrowDown'){
+        e.preventDefault();
+        if(i<order.length-1){document.getElementById(order[i+1])?.focus();}
+        else{document.getElementById('rb-Win')?.focus();}// bsp → result
+      }else if(e.key==='ArrowUp'){
+        e.preventDefault();
+        if(i>0){document.getElementById(order[i-1])?.focus();}
+        // already at top — stay
+      }else if((e.key==='Tab'||e.key==='ArrowRight')&&id==='f-bsp'&&!e.shiftKey){
         const first=document.getElementById('rb-Win');
         if(first){e.preventDefault();first.focus();}
-      }else if(e.key==='ArrowRight'||e.key==='ArrowDown'){
-        e.preventDefault();document.getElementById('rb-Win')?.focus();
-      }else if(e.key==='ArrowLeft'||e.key==='ArrowUp'){
-        e.preventDefault();document.getElementById('f-odds')?.focus();
       }
     });
-    const odds=document.getElementById('f-odds');
-    if(odds)odds.addEventListener('keydown',e=>{
-      if(e.key==='ArrowRight'||e.key==='ArrowDown'){e.preventDefault();bsp.focus();}
-      else if(e.key==='ArrowLeft'||e.key==='ArrowUp'){e.preventDefault();document.getElementById('f-stake')?.focus();}
-    });
-  }
+  });
 });
 
 function toggleNotes(){const w=document.getElementById('notes-wrap');w.style.display=w.style.display==='none'?'block':'none'}
@@ -1012,7 +1020,7 @@ function saveBet(){
   let promoId=null,nonPromoType=null;
   if(betCat==='promo'){const pName=document.getElementById('f-promo').value.trim();const allP=ls(K.promos,[]);const fp=allP.find(p=>p.name.toLowerCase()===pName.toLowerCase());promoId=fp?fp.id:null;if(!promoId){toast('Promo type not found — check spelling','warn');return}}
   else{nonPromoType=document.getElementById('f-nonpromo-type').value.trim()||'Other'}
-  if(betCat==='non-promo'&&!bsp){toast('BSP is required for non-promo bets','warn');document.getElementById('f-bsp')?.focus();return}
+  if(betCat==='non-promo'&&!bsp&&(selResult||'Pending')!=='Pending'){toast('BSP is required for non-promo bets','warn');document.getElementById('f-bsp')?.focus();return}
   if(!date||!bookieId||!stake||!fixedOdds){toast(bookieId?'Fill date, stake and odds':'Bookie not found — check spelling','warn');return}
   const result=selResult||'Pending';
   const bet={id:uid(),date,bookieId,promoId,nonPromoType,betCategory:betCat,stake,fixedOdds,bsp,result,notes,createdAt:new Date().toISOString()};
