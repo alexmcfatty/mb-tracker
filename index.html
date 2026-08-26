@@ -835,15 +835,15 @@ function renderDashboard(){
   // Build chart2 data and store on window for toggle
   const promos2=ls(K.promos,[]);
   function dayEV(db){return db.filter(b=>b.betCategory==='promo'&&b.result!=='Void').reduce((s,b)=>{const pr=promos2.find(p=>p.id===b.promoId);return s+(pr&&pr.ev?pr.ev/100:0)*b.stake},0)+db.filter(b=>b.betCategory==='non-promo'&&b.fixedOdds&&b.bsp).reduce((s,b)=>s+(b.fixedOdds/b.bsp-1)*b.stake,0)}
-  // Rolling 30-day
-  const today30=new Date();today30.setHours(0,0,0,0);
-  const days30=Array.from({length:30},(_,i)=>{const d=new Date(today30);d.setDate(d.getDate()-(29-i));return d});
-  window._roll30=days30.map(d=>{
-    const ds=d.toISOString().split('T')[0];
+  // Rolling 30-day — use UTC dates to match how today() and bet dates are stored
+  const todayUTC=today();
+  const days30=Array.from({length:30},(_,i)=>{const d=new Date(todayUTC+'T00:00:00Z');d.setUTCDate(d.getUTCDate()-(29-i));return d.toISOString().split('T')[0]});
+  window._roll30=days30.map(ds=>{
     const db=bets.filter(b=>b.date===ds);
     const db2=bonuses.filter(b=>b.createdAt&&b.createdAt.startsWith(ds)&&b.result!=='Pending');
     const profit=db.reduce((s,b)=>s+betPnl(b),0)+db2.reduce((s,b)=>s+bonusPnl(b),0);
-    return{lbl:d.toLocaleDateString('en-AU',{day:'2-digit',month:'short'}),profit,ev:dayEV(db)};
+    const lbl=new Date(ds+'T00:00:00Z').toLocaleDateString('en-AU',{day:'2-digit',month:'short'});
+    return{lbl,profit,ev:dayEV(db)};
   });
   // Cumulative (all-time by month) — seed with profitOffset so final value matches total profit
   let cumP=cfg.profitOffset||0,cumEV=0;
