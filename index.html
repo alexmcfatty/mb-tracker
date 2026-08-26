@@ -895,11 +895,9 @@ function setBetCat(c){
   bb.style.display=c==='non-promo'?'none':'';
   document.getElementById('rbtns-div').style.gridTemplateColumns=c==='non-promo'?'repeat(4,1fr)':'repeat(5,1fr)';
   if(selResult==='Bonus'&&c==='non-promo'){selResult=null;bb.className='rbtn'}
-  // clear type/stake/odds/BSP/result when switching category
+  // clear only type field and result when switching category; keep BSP/odds/stake
   document.getElementById(c==='promo'?'f-promo':'f-nonpromo-type').value='';
-  ['f-stake','f-odds','f-bsp'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
   selResult=null;['Win','Loss','Bonus','Void','Pending'].forEach(x=>{const el=document.getElementById('rb-'+x);if(el)el.className='rbtn'});
-  document.getElementById('kelly-display').style.display='none';
   renderTodayBets();renderPendingBets();
 }
 function _acNorm(s){return s.toLowerCase().replace(/[^a-z0-9]/g,'')}
@@ -953,6 +951,7 @@ function renderLogBet(){
   setupAC('f-bookie',()=>ls(K.bookies,[]).filter(b=>b.active).map(b=>b.alias||b.name));
   setupAC('f-promo',()=>ls(K.promos,[]).map(p=>p.name));
   setupAC('f-nonpromo-type',()=>ls(K.npt,[]).map(t=>t.name));
+  _attachLogFieldNav();
   if(!window._fpDate){
     window._fpDate=flatpickr('#f-date',{dateFormat:'Y-m-d',altInput:true,altFormat:'d M Y',defaultDate:today(),maxDate:'today',disableMobile:true});
   }else{window._fpDate.setDate(today(),false)}
@@ -991,14 +990,22 @@ function _logFieldNav(e,id){
       const nxt=i<order.length-1?order[i+1]:null;
       (nxt?document.getElementById(nxt):document.getElementById('rb-Win'))?.focus();
     }else{if(i>0)document.getElementById(order[i-1])?.focus();}
+  }else if(e.key==='ArrowDown'&&id==='f-bsp'){
+    e.preventDefault();document.getElementById('rb-Pending')?.focus();
   }else if(e.key==='Tab'&&id==='f-bsp'&&!e.shiftKey){
     e.preventDefault();document.getElementById('rb-Win')?.focus();
   }
 }
-// attach nav — runs after DOM ready (inline script at bottom of body)
-['f-bookie','f-promo','f-nonpromo-type','f-stake','f-odds','f-bsp'].forEach(id=>{
-  document.getElementById(id)?.addEventListener('keydown',e=>_logFieldNav(e,id),true);
-});
+function _attachLogFieldNav(){
+  ['f-bookie','f-promo','f-nonpromo-type','f-stake','f-odds','f-bsp'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el||el._hasNavListener)return;
+    el._hasNavListener=true;
+    el.addEventListener('keydown',e=>_logFieldNav(e,id),true);
+  });
+}
+// initial attach — runs after DOM ready
+_attachLogFieldNav();
 
 function toggleNotes(){const w=document.getElementById('notes-wrap');w.style.display=w.style.display==='none'?'block':'none'}
 
