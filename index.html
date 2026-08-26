@@ -1130,9 +1130,9 @@ function renderPendingBets(){
   const el=document.getElementById('pending-bets-list');if(!el)return;
   const bets=ls(K.bets,[]).filter(b=>b.result==='Pending'&&b.betCategory===betCat).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
   if(!bets.length){el.innerHTML='<div class="empty">No pending bets</div>';return}
-  el.innerHTML=`<table><thead><tr><th></th><th>Date</th><th>Bookie</th><th>Type</th><th>Stake</th><th>Odds</th><th>Settle</th></tr></thead><tbody>${bets.map(b=>`<tr>
+  el.innerHTML=`<table><thead><tr><th></th><th>Date</th><th>Bookie</th><th>Type</th><th>Stake</th><th>Odds</th><th>BSP</th><th>Settle</th></tr></thead><tbody>${bets.map(b=>`<tr>
     <td><input type="checkbox" onchange="toggleBetCheck('${b.id}')" ${window._sel.has(b.id)?'checked':''} style="cursor:pointer;accent-color:#6366f1;width:15px;height:15px"></td>
-    <td>${fmtD(b.date)}</td><td>${bkName(b.bookieId)}</td><td>${betType(b)}</td><td>${fmt$(b.stake)}</td><td>${b.fixedOdds||'-'}</td>
+    <td>${fmtD(b.date)}</td><td>${bkName(b.bookieId)}</td><td>${betType(b)}</td><td>${fmt$(b.stake)}</td><td>${b.fixedOdds||'-'}</td><td>${b.bsp||'-'}</td>
     <td><div class="flex gap-1 items-center">
       <button class="btn btn-sm" style="border:2px solid #22c55e;color:#22c55e;background:#22c55e15" onclick="settleBet('${b.id}','Win')">W</button>
       <button class="btn btn-sm" style="border:2px solid #ef4444;color:#ef4444;background:#ef444415" onclick="settleBet('${b.id}','Loss')">L</button>
@@ -1278,6 +1278,8 @@ function renderBonuses(){
   const pending=bonuses.filter(b=>b.result==='Pending');
   const completed=bonuses.filter(b=>b.result!=='Pending').sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
   const pel=document.getElementById('pending-list');
+  // save typed-but-unsaved odds/bsp values across re-renders
+  const _sv={};document.querySelectorAll('[id^="pb-odds-"],[id^="pb-bsp-"]').forEach(el=>{if(el.value)_sv[el.id]=el.value});
   if(!pending.length){pel.innerHTML='<div class="empty">No pending bonuses — all clear</div>'}
   else{pel.innerHTML=pending.map(b=>`
     <div class="pcard">
@@ -1292,12 +1294,14 @@ function renderBonuses(){
         <input class="inp-sm" type="number" id="pb-odds-${b.id}" placeholder="Odds" step="0.01" min="1.01" onkeydown="bonusFieldKey(event,'${b.id}','odds')" oninput="updateBonusEV('${b.id}')">
         <input class="inp-sm" type="number" id="pb-bsp-${b.id}" placeholder="BSP" step="0.01" onkeydown="bonusFieldKey(event,'${b.id}','bsp')" oninput="updateBonusEV('${b.id}')">
         <span id="pb-ev-${b.id}" style="font-size:11px;color:#22c55e;font-weight:700;align-self:center"></span>
-        <button id="pb-win-${b.id}" class="btn btn-s btn-sm" onclick="resolveBonus('${b.id}','Win')" onkeydown="if(event.key==='ArrowLeft'){event.preventDefault();document.getElementById('pb-bsp-${b.id}')?.focus()}">Win</button>
-        <button class="btn btn-d btn-sm" onclick="resolveBonus('${b.id}','Loss')">Loss</button>
+        <button id="pb-win-${b.id}" class="btn btn-s btn-sm" onclick="resolveBonus('${b.id}','Win')" onkeydown="if(event.key==='ArrowLeft'){event.preventDefault();document.getElementById('pb-bsp-${b.id}')?.focus()}else if(event.key==='ArrowRight'){event.preventDefault();document.getElementById('pb-loss-${b.id}')?.focus()}">Win</button>
+        <button id="pb-loss-${b.id}" class="btn btn-d btn-sm" onclick="resolveBonus('${b.id}','Loss')" onkeydown="if(event.key==='ArrowLeft'){event.preventDefault();document.getElementById('pb-win-${b.id}')?.focus()}">Loss</button>
         <button class="btn btn-purple btn-sm" onclick="openSplit('${b.id}')">Split</button>
         <button class="btn btn-d btn-sm" onclick="deleteBonus('${b.id}','${b.bonusAmount}')">Delete</button>
       </div>
     </div>`).join('')}
+  // restore saved values
+  Object.entries(_sv).forEach(([id,v])=>{const el=document.getElementById(id);if(el){el.value=v;const bid=id.replace('pb-odds-','').replace('pb-bsp-','');updateBonusEV(bid);}});
 
   const hel=document.getElementById('bonus-history');
   if(!completed.length){hel.innerHTML='<div class="empty">No completed bonus bets yet</div>';document.getElementById('bonus-totals').innerHTML='';const adjDate=document.getElementById('adj-date');if(adjDate&&!adjDate.value)adjDate.value=today();renderAdjList();return}
