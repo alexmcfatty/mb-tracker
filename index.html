@@ -895,6 +895,12 @@ function setBetCat(c){
   bb.style.display=c==='non-promo'?'none':'';
   document.getElementById('rbtns-div').style.gridTemplateColumns=c==='non-promo'?'repeat(4,1fr)':'repeat(5,1fr)';
   if(selResult==='Bonus'&&c==='non-promo'){selResult=null;bb.className='rbtn'}
+  // clear type/stake/odds/BSP/result when switching category
+  document.getElementById(c==='promo'?'f-promo':'f-nonpromo-type').value='';
+  ['f-stake','f-odds','f-bsp'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
+  selResult=null;['Win','Loss','Bonus','Void','Pending'].forEach(x=>{const el=document.getElementById('rb-'+x);if(el)el.className='rbtn'});
+  document.getElementById('kelly-display').style.display='none';
+  renderTodayBets();renderPendingBets();
 }
 function _acNorm(s){return s.toLowerCase().replace(/[^a-z0-9]/g,'')}
 function setupAC(inputId,getOpts){
@@ -1023,7 +1029,7 @@ function saveBet(){
   document.getElementById('f-stake').value='';
   document.getElementById('f-odds').value='';document.getElementById('f-bsp').value='';document.getElementById('f-notes').value='';
   selResult=null;['Win','Loss','Bonus','Void','Pending'].forEach(x=>{const el=document.getElementById('rb-'+x);if(el)el.className='rbtn'});
-  renderTodayBets();renderPendingBets();
+  renderTodayBets();renderPendingBets();renderDashboard();
 }
 
 window._sel=new Set();window._editR={};
@@ -1092,7 +1098,7 @@ function deleteBet(id){
 function _updCloneBtn(){const b=document.getElementById('clone-btn');if(b){b.style.display=window._sel.size?'inline-block':'none';b.textContent=`Clone Selected (${window._sel.size})`;}}
 function toggleBetCheck(id){if(window._sel.has(id))window._sel.delete(id);else window._sel.add(id);_updCloneBtn();}
 function renderTodayBets(){
-  const bets=ls(K.bets,[]).filter(b=>b.date===today()).sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
+  const bets=ls(K.bets,[]).filter(b=>b.date===today()&&b.betCategory===betCat).sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
   const cfg=ls(K.settings,DEF_SETTINGS);
   const el=document.getElementById('today-bets');
   if(!bets.length){el.innerHTML='<div class="empty">No bets today</div>';return}
@@ -1101,7 +1107,7 @@ function renderTodayBets(){
 
 function renderPendingBets(){
   const el=document.getElementById('pending-bets-list');if(!el)return;
-  const bets=ls(K.bets,[]).filter(b=>b.result==='Pending').sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  const bets=ls(K.bets,[]).filter(b=>b.result==='Pending'&&b.betCategory===betCat).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
   if(!bets.length){el.innerHTML='<div class="empty">No pending bets</div>';return}
   el.innerHTML=`<table><thead><tr><th></th><th>Date</th><th>Bookie</th><th>Type</th><th>Stake</th><th>Odds</th><th>Settle</th></tr></thead><tbody>${bets.map(b=>`<tr>
     <td><input type="checkbox" onchange="toggleBetCheck('${b.id}')" ${window._sel.has(b.id)?'checked':''} style="cursor:pointer;accent-color:#6366f1;width:15px;height:15px"></td>
