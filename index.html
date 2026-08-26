@@ -937,7 +937,10 @@ function setupAC(inputId,getOpts){
     const its=items();
     if(e.key==='ArrowDown'){e.preventDefault();setActive(Math.min(_idx+1,its.length-1));}
     else if(e.key==='ArrowUp'){e.preventDefault();setActive(Math.max(_idx-1,0));}
-    else if(e.key==='Enter'&&_idx>=0){e.preventDefault();pick(its[_idx].textContent);}
+    else if(e.key==='Enter'){
+      if(_idx>=0&&its.length>0){e.preventDefault();pick(its[_idx].textContent);}
+      else _logFieldNav(e,inputId,true);
+    }
     else if(e.key==='Escape'){drop.classList.remove('open');_idx=-1;}
   };
 }
@@ -982,7 +985,7 @@ function _logFieldOrder(){
   const typeId=betCat==='promo'?'f-promo':'f-nonpromo-type';
   return['f-bookie',typeId,'f-stake','f-odds','f-bsp'];
 }
-function _logFieldNav(e,id){
+function _logFieldNav(e,id,fromAC){
   if(e.key==='ArrowRight'||e.key==='ArrowLeft'){
     const order=_logFieldOrder();const i=order.indexOf(id);if(i===-1)return;
     e.preventDefault();e.stopImmediatePropagation();
@@ -996,9 +999,9 @@ function _logFieldNav(e,id){
   }else if(e.key==='ArrowUp'&&(id==='f-bsp'||id==='f-odds')){
     e.preventDefault();e.stopImmediatePropagation();
   }else if(e.key==='Enter'){
-    // only intercept if AC dropdown has no highlighted item (pick() handles that case)
-    const acActive=document.getElementById(id)?.closest('.ac-wrap')?.querySelector('.ac-drop.open .ac-active');
-    if(!acActive){e.preventDefault();e.stopImmediatePropagation();_focusNext(id);}
+    // AC fields: only navigate when called from setupAC (fromAC=true); capture-phase skips to let setupAC handle
+    const isAC=!!document.getElementById(id)?.closest('.ac-wrap');
+    if(!isAC||fromAC){e.preventDefault();_focusNext(id);}
   }else if(e.key==='Tab'&&id==='f-bsp'&&!e.shiftKey){
     e.preventDefault();document.getElementById('rb-Win')?.focus();
   }
