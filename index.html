@@ -890,14 +890,15 @@ function editBet(id){
   const rbtn=(r)=>`<button class="btn btn-xs" id="edr-${id}-${r}" onclick="selEditR('${id}','${r}')" style="border:2px solid ${r===b.result?rColors[r]:'#334155'};color:${r===b.result?rColors[r]:'#64748b'};background:${r===b.result?rColors[r]+'22':'transparent'}">${r[0]}</button>`;
   const tr=document.getElementById('bet-row-'+id);if(!tr)return;
   tr.innerHTML=`
-    <td><div class="flex gap-1" style="flex-direction:column"><button class="btn btn-p btn-xs" onclick="saveEditedBet('${id}')">✓</button><button class="btn btn-s btn-xs" onclick="renderTodayBets()">✗</button><button class="btn btn-d btn-xs" onclick="deleteBet('${id}')">🗑</button></div></td>
+    <td></td>
     <td><input class="inp-sm" type="date" id="ed-date-${id}" value="${b.date}" style="width:100px"></td>
     <td><input class="inp-sm" type="text" id="ed-bookie-${id}" value="${bkVal}" list="bookie-datalist" autocomplete="off" style="width:90px"></td>
     <td><input class="inp-sm" type="text" id="ed-type-${id}" value="${typeVal}" list="${b.betCategory==='promo'?'promo-datalist':'nonpromo-list'}" autocomplete="off" style="width:100px"></td>
     <td><input class="inp-sm" type="number" id="ed-stake-${id}" value="${b.stake||''}" style="width:55px"></td>
     <td><input class="inp-sm" type="number" id="ed-odds-${id}" value="${b.fixedOdds||''}" style="width:50px"></td>
     <td><input class="inp-sm" type="number" id="ed-bsp-${id}" value="${b.bsp||''}" style="width:50px"></td>
-    <td colspan="4"><div class="flex gap-1 items-center flex-wrap">${['Win','Loss','Bonus','Void','Pending'].map(rbtn).join('')}</div></td>`;
+    <td colspan="3"><div class="flex gap-1 items-center flex-wrap">${['Win','Loss','Bonus','Void','Pending'].map(rbtn).join('')}</div></td>
+    <td><div class="flex gap-1"><button class="btn btn-p btn-xs" onclick="saveEditedBet('${id}')">✓</button><button class="btn btn-s btn-xs" onclick="renderTodayBets()">✗</button><button class="btn btn-d btn-xs" onclick="deleteBet('${id}')">🗑</button></div></td>`;
 }
 function selEditR(id,r){
   window._editR[id]=r;
