@@ -917,7 +917,7 @@ function setupAC(inputId,getOpts){
     items().forEach((el,j)=>el.classList.toggle('ac-active',j===i));
     _idx=i;
   }
-  function pick(text){inp.value=text;drop.classList.remove('open');_idx=-1;inp.dispatchEvent(new Event('change'))}
+  function pick(text){inp.value=text;drop.classList.remove('open');_idx=-1;inp.dispatchEvent(new Event('change'));setTimeout(()=>_focusNext(inputId),0);}
   function renderDrop(q){
     _idx=-1;
     const nq=_acNorm(q);
@@ -985,16 +985,23 @@ function _logFieldOrder(){
 function _logFieldNav(e,id){
   if(e.key==='ArrowRight'||e.key==='ArrowLeft'){
     const order=_logFieldOrder();const i=order.indexOf(id);if(i===-1)return;
-    e.preventDefault();
+    e.preventDefault();e.stopImmediatePropagation();
     if(e.key==='ArrowRight'){
       const nxt=i<order.length-1?order[i+1]:null;
       (nxt?document.getElementById(nxt):document.getElementById('rb-Win'))?.focus();
     }else{if(i>0)document.getElementById(order[i-1])?.focus();}
   }else if(e.key==='ArrowDown'&&id==='f-bsp'){
-    e.preventDefault();document.getElementById('rb-Pending')?.focus();
+    e.preventDefault();e.stopImmediatePropagation();
+    document.getElementById('rb-Pending')?.focus();
   }else if(e.key==='Tab'&&id==='f-bsp'&&!e.shiftKey){
     e.preventDefault();document.getElementById('rb-Win')?.focus();
   }
+}
+function _focusNext(inputId){
+  const order=_logFieldOrder();const i=order.indexOf(inputId);
+  if(i===-1)return;
+  const nxt=i<order.length-1?order[i+1]:null;
+  (nxt?document.getElementById(nxt):document.getElementById('rb-Win'))?.focus();
 }
 function _attachLogFieldNav(){
   ['f-bookie','f-promo','f-nonpromo-type','f-stake','f-odds','f-bsp'].forEach(id=>{
@@ -1034,7 +1041,8 @@ function saveBet(){
     toast('Bonus triggered — turn it over!','info');
   }else toast('Bet saved');
   document.getElementById('f-stake').value='';
-  document.getElementById('f-odds').value='';document.getElementById('f-bsp').value='';document.getElementById('f-notes').value='';
+  document.getElementById('f-notes').value='';
+  if(result!=='Pending'){document.getElementById('f-odds').value='';document.getElementById('f-bsp').value='';}
   selResult=null;['Win','Loss','Bonus','Void','Pending'].forEach(x=>{const el=document.getElementById('rb-'+x);if(el)el.className='rbtn'});
   renderTodayBets();renderPendingBets();renderDashboard();
 }
