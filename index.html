@@ -1048,7 +1048,7 @@ function saveBet(){
   }else toast('Bet saved');
   document.getElementById('f-stake').value='';
   document.getElementById('f-notes').value='';
-  if(result!=='Pending'){document.getElementById('f-odds').value='';document.getElementById('f-bsp').value='';}
+  if(result!=='Pending'&&result!=='Bonus'){document.getElementById('f-odds').value='';document.getElementById('f-bsp').value='';}
   selResult=null;['Win','Loss','Bonus','Void','Pending'].forEach(x=>{const el=document.getElementById('rb-'+x);if(el)el.className='rbtn'});
   renderTodayBets();renderPendingBets();renderDashboard();
 }
@@ -1289,9 +1289,10 @@ function renderBonuses(){
         ${b.notes?`<div class="pdate" style="color:#64748b">${b.notes}</div>`:''}
       </div>
       <div class="pinputs">
-        <input class="inp-sm" type="number" id="pb-odds-${b.id}" placeholder="Odds" step="0.01" min="1.01">
-        <input class="inp-sm" type="number" id="pb-bsp-${b.id}" placeholder="BSP" step="0.01">
-        <button class="btn btn-s btn-sm" onclick="resolveBonus('${b.id}','Win')">Win</button>
+        <input class="inp-sm" type="number" id="pb-odds-${b.id}" placeholder="Odds" step="0.01" min="1.01" onkeydown="bonusFieldKey(event,'${b.id}','odds')" oninput="updateBonusEV('${b.id}')">
+        <input class="inp-sm" type="number" id="pb-bsp-${b.id}" placeholder="BSP" step="0.01" onkeydown="bonusFieldKey(event,'${b.id}','bsp')" oninput="updateBonusEV('${b.id}')">
+        <span id="pb-ev-${b.id}" style="font-size:11px;color:#22c55e;font-weight:700;align-self:center"></span>
+        <button id="pb-win-${b.id}" class="btn btn-s btn-sm" onclick="resolveBonus('${b.id}','Win')" onkeydown="if(event.key==='ArrowLeft'){event.preventDefault();document.getElementById('pb-bsp-${b.id}')?.focus()}">Win</button>
         <button class="btn btn-d btn-sm" onclick="resolveBonus('${b.id}','Loss')">Loss</button>
         <button class="btn btn-purple btn-sm" onclick="openSplit('${b.id}')">Split</button>
         <button class="btn btn-d btn-sm" onclick="deleteBonus('${b.id}','${b.bonusAmount}')">Delete</button>
@@ -1300,7 +1301,7 @@ function renderBonuses(){
 
   const hel=document.getElementById('bonus-history');
   if(!completed.length){hel.innerHTML='<div class="empty">No completed bonus bets yet</div>';document.getElementById('bonus-totals').innerHTML='';const adjDate=document.getElementById('adj-date');if(adjDate&&!adjDate.value)adjDate.value=today();renderAdjList();return}
-  hel.innerHTML=`<table><thead><tr><th>Date</th><th>Type</th><th>Bookie</th><th>Bonus $</th><th>Odds</th><th>BSP</th><th>Result</th><th>Profit</th></tr></thead><tbody>${completed.map(b=>{const p=bonusPnl(b);return`<tr><td>${fmtDt(b.createdAt)}</td><td>${b.sourceType==='deposit_match'?badge('Deposit Match'):badge('Bonus')}</td><td>${bkName(b.bookieId)}</td><td>${fmt$(b.bonusAmount)}</td><td>${b.fixedOdds||'-'}</td><td>${b.bsp||'-'}</td><td>${badge(b.result)}</td><td class="${clr(p)}">${fmt$(p)}</td></tr>`}).join('')}</tbody></table>`;
+  hel.innerHTML=`<table><thead><tr><th>Date</th><th>Type</th><th>Bookie</th><th>Bonus $</th><th>Odds</th><th>BSP</th><th>EV%</th><th>Result</th><th>Profit</th><th></th></tr></thead><tbody>${completed.map(b=>{const p=bonusPnl(b);const ev=(b.fixedOdds&&b.bsp)?((b.fixedOdds-1)/b.bsp*100).toFixed(1)+'%':'-';return`<tr><td>${fmtDt(b.createdAt)}</td><td>${b.sourceType==='deposit_match'?badge('Deposit Match'):badge('Bonus')}</td><td>${bkName(b.bookieId)}</td><td>${fmt$(b.bonusAmount)}</td><td>${b.fixedOdds||'-'}</td><td>${b.bsp||'-'}</td><td class="bl">${ev}</td><td>${badge(b.result)}</td><td class="${clr(p)}">${fmt$(p)}</td><td style="white-space:nowrap"><button class="btn btn-s btn-xs" onclick="editCompletedBonus('${b.id}')">Edit</button> <button class="btn btn-d btn-xs" onclick="deleteCompletedBonus('${b.id}')">Del</button></td></tr>`}).join('')}</tbody></table>`;
   const face=completed.reduce((s,b)=>s+b.bonusAmount,0);
   const pnl=completed.reduce((s,b)=>s+bonusPnl(b),0);
   const wins=completed.filter(b=>b.result==='Win'&&b.fixedOdds);
@@ -1338,6 +1339,32 @@ function deleteBonus(id,amount){
   renderBonuses();renderDashboard();
 }
 
+function bonusFieldKey(e,id,field){
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();return;}
+  if(e.key==='ArrowRight'||e.key==='Enter'){
+    e.preventDefault();
+    if(field==='odds')document.getElementById('pb-bsp-'+id)?.focus();
+    else document.getElementById('pb-win-'+id)?.focus();
+  }else if(e.key==='ArrowLeft'&&field==='bsp'){
+    e.preventDefault();document.getElementById('pb-odds-'+id)?.focus();
+  }
+}
+function updateBonusEV(id){
+  const odds=parseFloat(document.getElementById('pb-odds-'+id)?.value);
+  const bsp=parseFloat(document.getElementById('pb-bsp-'+id)?.value);
+  const el=document.getElementById('pb-ev-'+id);
+  if(el)el.textContent=(odds&&bsp)?((odds-1)/bsp*100).toFixed(1)+'%':'';
+}
+function editCompletedBonus(id){
+  const bonuses=ls(K.bonuses,[]);const b=bonuses.find(x=>x.id===id);if(!b)return;
+  b.result='Pending';b.fixedOdds=null;b.bsp=null;
+  ss(K.bonuses,bonuses);renderBonuses();renderDashboard();toast('Bonus reset to pending');
+}
+function deleteCompletedBonus(id){
+  if(!confirm('Delete this bonus record?'))return;
+  ss(K.bonuses,ls(K.bonuses,[]).filter(b=>b.id!==id));
+  renderBonuses();renderDashboard();toast('Deleted');
+}
 // ── SPLIT ─────────────────────────────────────────────────────────────────────
 let splitTarget=null,splitMode='custom';
 
