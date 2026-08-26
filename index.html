@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>MB Tracker</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -55,6 +55,11 @@ select option{background:#1e293b}
 .rbtn.sB{border-color:#60a5fa;color:#60a5fa;background:#2563eb15}
 .rbtn.sV{border-color:#94a3b8;color:#94a3b8;background:#47556915}
 .rbtn.sP{border-color:#f59e0b;color:#f59e0b;background:#d9770615}
+#rb-Win:active{border-color:#22c55e;color:#22c55e;background:#16a34a22}
+#rb-Loss:active{border-color:#ef4444;color:#ef4444;background:#dc262622}
+#rb-Bonus:active{border-color:#60a5fa;color:#60a5fa;background:#2563eb22}
+#rb-Void:active{border-color:#94a3b8;color:#94a3b8;background:#47556922}
+#rb-Pending:active{border-color:#f59e0b;color:#f59e0b;background:#d9770622}
 .profit-col{border-left:2px solid #334155;font-size:14px;font-weight:700;padding-left:14px}
 .btn{padding:7px 14px;border-radius:7px;border:none;cursor:pointer;font-weight:600;font-size:12px;transition:all .15s}
 .btn-p{background:#3b82f6;color:#fff}.btn-p:hover{background:#2563eb}
@@ -893,7 +898,7 @@ function editBet(id){
     <td><input class="inp-sm" type="number" id="ed-odds-${id}" value="${b.fixedOdds||''}" style="width:60px"></td>
     <td><input class="inp-sm" type="number" id="ed-bsp-${id}" value="${b.bsp||''}" style="width:60px"></td>
     <td colspan="3"><div class="flex gap-1 items-center flex-wrap">${['Win','Loss','Bonus','Void','Pending'].map(rbtn).join('')}</div></td>
-    <td><div class="flex gap-1"><button class="btn btn-p btn-xs" onclick="saveEditedBet('${id}')">✓</button><button class="btn btn-d btn-xs" onclick="renderTodayBets()">✗</button></div></td>`;
+    <td><div class="flex gap-1"><button class="btn btn-p btn-xs" onclick="saveEditedBet('${id}')">✓</button><button class="btn btn-d btn-xs" onclick="renderTodayBets()">✗</button><button class="btn btn-d btn-xs" onclick="deleteBet('${id}')" title="Delete">🗑</button></div></td>`;
 }
 function selEditR(id,r){
   window._editR[id]=r;
@@ -922,6 +927,11 @@ function saveEditedBet(id){
   if(stake)b.stake=stake;b.fixedOdds=odds;b.bsp=bsp;b.result=result;
   ss(K.bets,bets);toast('Bet updated');
   renderTodayBets();renderPendingBets();
+}
+function deleteBet(id){
+  if(!confirm('Delete this bet?'))return;
+  ss(K.bets,ls(K.bets,[]).filter(b=>b.id!==id));
+  toast('Bet deleted');renderTodayBets();renderPendingBets();renderDashboard();
 }
 function _updCloneBtn(){const b=document.getElementById('clone-btn');if(b){b.style.display=window._sel.size?'inline-block':'none';b.textContent=`Clone Selected (${window._sel.size})`;}}
 function toggleBetCheck(id){if(window._sel.has(id))window._sel.delete(id);else window._sel.add(id);_updCloneBtn();}
