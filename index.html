@@ -344,9 +344,9 @@ select option{background:#1e293b}
 <!-- SETTINGS -->
 <div class="tab-pane" id="tab-settings">
 
-  <div class="acc-card open" id="acc-bookies">
+  <div class="acc-card" id="acc-bookies">
     <div class="acc-hdr" onclick="toggleAcc('bookies')"><span>Bookies</span><span class="acc-chev">▼</span></div>
-    <div class="acc-body">
+    <div class="acc-body" style="display:none">
       <div id="bookies-list"></div>
       <div class="flex gap-2 fw" style="margin-top:12px">
         <input type="text" id="new-bk-name" placeholder="Bookie name (e.g. Tab - AM)" style="flex:1">
@@ -394,24 +394,27 @@ select option{background:#1e293b}
         <button class="btn btn-p btn-sm" onclick="saveSettings()">Save</button>
         <span style="font-size:10px;color:#475569">Added to Total Profit display only</span>
       </div>
-      <div style="margin-top:20px;border-top:1px solid #1e293b;padding-top:16px">
-        <div class="lbl" style="margin-bottom:10px">Kelly Stake Settings</div>
-        <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end">
-          <div><label class="lbl" style="font-size:11px">Fixed Bankroll ($)</label><input type="number" id="s-kelly-bank" step="1" placeholder="5000" style="max-width:110px"></div>
-          <div><label class="lbl" style="font-size:11px">Kelly Fraction</label>
-            <select id="s-kelly-fraction" class="inp-sm" style="max-width:110px">
-              <option value="1">Full Kelly</option>
-              <option value="2">1/2 Kelly</option>
-              <option value="4">1/4 Kelly</option>
-              <option value="8">1/8 Kelly</option>
-            </select>
-          </div>
-          <button class="btn btn-p btn-sm" onclick="saveSettings()">Save</button>
+    </div>
+  </div>
+
+  <div class="acc-card" id="acc-kelly">
+    <div class="acc-hdr" onclick="toggleAcc('kelly')"><span>Kelly Stake</span><span class="acc-chev">▼</span></div>
+    <div class="acc-body" style="display:none">
+      <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end">
+        <div><label class="lbl" style="font-size:11px">Fixed Bankroll ($)</label><input type="number" id="s-kelly-bank" step="1" placeholder="5000" style="max-width:110px"></div>
+        <div><label class="lbl" style="font-size:11px">Kelly Fraction</label>
+          <select id="s-kelly-fraction" class="inp-sm" style="max-width:110px">
+            <option value="1">Full Kelly</option>
+            <option value="2">1/2 Kelly</option>
+            <option value="4">1/4 Kelly</option>
+            <option value="8">1/8 Kelly</option>
+          </select>
         </div>
-        <div style="margin-top:10px;font-size:12px;color:#94a3b8">
-          Adjustable bank: <span id="s-kelly-adj" style="color:#22c55e;font-weight:700">—</span>
-          <span style="font-size:10px;color:#475569;margin-left:6px">(Fixed + non-promo P&L)</span>
-        </div>
+        <button class="btn btn-p btn-sm" onclick="saveSettings()">Save</button>
+      </div>
+      <div style="margin-top:10px;font-size:12px;color:#94a3b8">
+        Adjustable bank: <span id="s-kelly-adj" style="color:#22c55e;font-weight:700">—</span>
+        <span style="font-size:10px;color:#475569;margin-left:6px">(Fixed + non-promo P&L)</span>
       </div>
     </div>
   </div>
