@@ -6,6 +6,8 @@
 <title>MB Tracker</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/themes/dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;font-size:14px}
@@ -113,6 +115,12 @@ select option{background:#1e293b}
 .mapping-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
 .import-preview table{font-size:10px}
 .import-preview th,.import-preview td{padding:4px 7px}
+.ac-wrap{position:relative}
+.ac-drop{position:absolute;top:100%;left:0;right:0;background:#1e293b;border:1px solid #3b82f6;border-top:none;border-radius:0 0 8px 8px;z-index:400;max-height:220px;overflow-y:auto;display:none;box-shadow:0 8px 24px #0008}
+.ac-drop.open{display:block}
+.ac-item{padding:11px 10px;color:#e2e8f0;font-size:13px;cursor:pointer;border-bottom:1px solid #334155}
+.ac-item:last-child{border-bottom:none}
+.ac-item:hover,.ac-item.hi{background:#334155;color:#fff}
 @media(max-width:680px){.auth-user{display:none}.nav-brand{margin-right:6px}}
 @media(max-width:580px){.form-grid{grid-template-columns:1fr 1fr}.rbtns{grid-template-columns:1fr 1fr}.stats-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:380px){.nav-tab{padding:14px 9px;font-size:11px}}
@@ -202,16 +210,16 @@ select option{background:#1e293b}
       <button class="btn btn-s btn-sm" id="cat-nonpromo-btn" onclick="setBetCat('non-promo')">Non-Promo</button>
     </div>
     <div class="form-grid">
-      <div class="fg"><label class="lbl">Date</label><input type="date" id="f-date"></div>
+      <div class="fg"><label class="lbl">Date</label><input type="text" id="f-date" placeholder="Select date" readonly style="cursor:pointer"></div>
       <div class="fg"><label class="lbl">Bookie</label>
-        <input type="text" id="f-bookie" list="bookie-datalist" placeholder="Type to search…" autocomplete="off">
+        <input type="text" id="f-bookie" placeholder="Type to search…" autocomplete="off">
         <datalist id="bookie-datalist"></datalist>
       </div>
       <div class="fg" id="fg-promo"><label class="lbl">Promo Type</label>
-        <input type="text" id="f-promo" list="promo-datalist" placeholder="Type to search…" autocomplete="off">
+        <input type="text" id="f-promo" placeholder="Type to search…" autocomplete="off">
         <datalist id="promo-datalist"></datalist>
       </div>
-      <div class="fg" id="fg-nonpromo" style="display:none"><label class="lbl">Non-Promo Type</label><input type="text" id="f-nonpromo-type" list="nonpromo-list" placeholder="Type to search…"><datalist id="nonpromo-list"></datalist></div>
+      <div class="fg" id="fg-nonpromo" style="display:none"><label class="lbl">Non-Promo Type</label><input type="text" id="f-nonpromo-type" placeholder="Type to search…" autocomplete="off"><datalist id="nonpromo-list"></datalist></div>
       <div class="fg"><label class="lbl">Stake ($)</label><input type="number" id="f-stake" placeholder="50" step="0.01" min="0"></div>
       <div class="fg"><label class="lbl">Fixed Odds</label><input type="number" id="f-odds" placeholder="3.40" step="0.01" min="1.01"></div>
       <div class="fg"><label class="lbl">BSP <span class="mu">(optional)</span></label><input type="number" id="f-bsp" placeholder="Post-race" step="0.01"></div>
@@ -786,13 +794,49 @@ function setBetCat(c){
   document.getElementById('rbtns-div').style.gridTemplateColumns=c==='non-promo'?'repeat(4,1fr)':'repeat(5,1fr)';
   if(selResult==='Bonus'&&c==='non-promo'){selResult=null;bb.className='rbtn'}
 }
+function setupAC(inputId,getOpts){
+  const inp=document.getElementById(inputId);if(!inp)return;
+  if(!inp.parentElement.classList.contains('ac-wrap')){
+    const w=document.createElement('div');w.className='ac-wrap';
+    inp.parentNode.insertBefore(w,inp);w.appendChild(inp);
+  }
+  const wrap=inp.parentElement;
+  const old=wrap.querySelector('.ac-drop');if(old)old.remove();
+  const drop=document.createElement('div');drop.className='ac-drop';wrap.appendChild(drop);
+  function render(q){
+    const opts=getOpts().filter(o=>!q||o.toLowerCase().includes(q.toLowerCase())).slice(0,25);
+    drop.innerHTML=opts.map(o=>`<div class="ac-item">${o}</div>`).join('');
+    drop.classList.toggle('open',opts.length>0);
+    drop.querySelectorAll('.ac-item').forEach(item=>{
+      const pick=e=>{e.preventDefault();inp.value=item.textContent;drop.classList.remove('open');inp.dispatchEvent(new Event('input',{bubbles:true}))};
+      item.addEventListener('mousedown',pick);
+      item.addEventListener('touchstart',pick,{passive:false});
+    });
+  }
+  inp.addEventListener('focus',()=>render(inp.value));
+  inp.addEventListener('input',()=>render(inp.value));
+  inp.addEventListener('blur',()=>setTimeout(()=>drop.classList.remove('open'),200));
+}
+
 function renderLogBet(){
   const bookies=ls(K.bookies,[]).filter(b=>b.active);
   const promos=ls(K.promos,[]);
   document.getElementById('bookie-datalist').innerHTML=bookies.map(b=>`<option value="${b.alias||b.name}"></option>`).join('');
   document.getElementById('promo-datalist').innerHTML=promos.map(p=>`<option value="${p.name}"></option>`).join('');
-  document.getElementById('f-date').value=today();
   updateNPTDatalist();
+  setupAC('f-bookie',()=>ls(K.bookies,[]).filter(b=>b.active).map(b=>b.alias||b.name));
+  setupAC('f-promo',()=>ls(K.promos,[]).map(p=>p.name));
+  setupAC('f-nonpromo-type',()=>ls(K.npt,[]).map(t=>t.name));
+  // Init flatpickr date picker
+  if(!window._fpLogBet){
+    window._fpLogBet=flatpickr('#f-date',{
+      dateFormat:'Y-m-d',altInput:true,altFormat:'d M Y',
+      defaultDate:today(),maxDate:'today',disableMobile:true,
+      theme:'dark'
+    });
+  }else{
+    window._fpLogBet.setDate(today(),false);
+  }
   renderTodayBets();renderPendingBets();
 }
 
