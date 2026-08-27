@@ -152,6 +152,7 @@ select option{background:var(--sel-opt)}
     <div class="nav-tab" data-tab="logbet">Log Bet</div>
     <div class="nav-tab" data-tab="bonuses">Bonuses</div>
     <div class="nav-tab" data-tab="data">Data</div>
+    <div class="nav-tab" data-tab="balances">Balances</div>
     <div class="nav-tab" data-tab="settings">Settings</div>
   </div>
   <div id="auth-nav"></div>
@@ -354,6 +355,7 @@ select option{background:var(--sel-opt)}
   </div>
   <div class="data-section">
     <h3>Monthly Breakdown</h3>
+    <div id="monthly-range-lbl" style="font-size:11px;color:#64748b;margin-top:-6px;margin-bottom:6px"></div>
     <div class="card"><div class="tw" id="data-monthly"></div></div>
   </div>
   <div class="data-section">
@@ -381,6 +383,30 @@ select option{background:var(--sel-opt)}
     <div id="data-weekly-stats"></div>
     <div id="dsec-weekly" style="display:none"><div class="card"><div class="tw" id="data-weekly"></div></div></div>
   </div>
+</div>
+
+<!-- BALANCES -->
+<div class="tab-pane" id="tab-balances">
+<div class="content">
+  <div class="flex items-center gap-2 fw" style="margin-bottom:14px">
+    <input type="text" id="bal-search" placeholder="Search bookies…" oninput="renderBalances()" style="max-width:200px">
+    <select id="bal-sort" onchange="renderBalances()" style="width:auto;padding:7px 10px">
+      <option value="alpha-asc">A → Z</option>
+      <option value="alpha-desc">Z → A</option>
+      <option value="bal-desc">Balance ↓</option>
+      <option value="bal-asc">Balance ↑</option>
+      <option value="pnl-desc">P&amp;L ↓</option>
+      <option value="pnl-asc">P&amp;L ↑</option>
+      <option value="bets-desc">Bets ↓</option>
+    </select>
+    <label class="flex items-center gap-2" style="font-size:12px;color:var(--tx4);cursor:pointer">
+      <label class="toggle"><input type="checkbox" id="bal-active-only" checked onchange="renderBalances()"><span class="ts"></span></label>
+      Active only
+    </label>
+  </div>
+  <div id="balances-list"></div>
+  <div id="balances-totals" style="margin-top:4px"></div>
+</div>
 </div>
 
 <!-- SETTINGS -->
@@ -603,7 +629,7 @@ select option{background:var(--sel-opt)}
 
 <script>
 // ── CONSTANTS ────────────────────────────────────────────────────────────────
-const K={bets:'mb_bets',bonuses:'mb_bonuses',bookies:'mb_bookies',promos:'mb_promos',npt:'mb_npt',adj:'mb_adj',settings:'mb_settings',btypes:'mb_btypes'};
+const K={bets:'mb_bets',bonuses:'mb_bonuses',bookies:'mb_bookies',promos:'mb_promos',npt:'mb_npt',adj:'mb_adj',settings:'mb_settings',btypes:'mb_btypes',balances:'mb_balances',txns:'mb_txns'};
 const DEF_BONUS_TYPES=['Horses','Dogs','Trots','Sports'];
 const DEF_BOOKIES=[{n:'TAB',a:'TAB'},{n:'Sportsbet',a:'SB'},{n:'Bet365',a:'365'},{n:'Neds',a:'Neds'},{n:'Ladbrokes',a:'Lads'},{n:'Unibet',a:'UB'},{n:'BlueBet',a:'BB'},{n:'Pointsbet',a:'PB'}].map(b=>({id:uid(),name:b.n,alias:b.a,active:true}));
 const DEF_PROMOS=['2nd 3rd Back','2nd Back','Double Winnings','25% Bonus Boost','Dogs Boost','Horse Boost','Trots Boost','Sports Boost','3 Leg 1 Fail','Free Hit','2 Leg Free Hit','365 Megaboost'].map(n=>({id:uid(),name:n}));
@@ -629,7 +655,9 @@ function betPnl(b){if(b.result==='Win')return(b.fixedOdds-1)*b.stake;if(b.result
 function betEV(b,cfg){
   const c=cfg||ls(K.settings,DEF_SETTINGS);
   if(b.betCategory==='non-promo'){if(b.fixedOdds&&b.bsp)return(b.fixedOdds/b.bsp-1)*b.stake;return null}
-  const pr=ls(K.promos,[]).find(p=>p.id===b.promoId);return(pr&&pr.ev?pr.ev/100:0)*b.stake;
+  const pr=ls(K.promos,[]).find(p=>p.id===b.promoId);
+  if(pr&&pr.evMode==='formula'){if(b.fixedOdds&&b.bsp)return(b.fixedOdds/b.bsp-1)*b.stake;return null}
+  return(pr&&pr.ev?pr.ev/100:0)*b.stake;
 }
 function kellyAdjBank(){
   const cfg=ls(K.settings,DEF_SETTINGS);
@@ -836,8 +864,7 @@ function renderDashboard(){
   const bonusCash=bonuses.filter(b=>b.result==='Pending').reduce((s,b)=>s+b.bonusAmount,0);
 
   const promos=ls(K.promos,[]);
-  const totalEV=nonVoid.filter(b=>b.betCategory==='promo').reduce((s,b)=>{const pr=promos.find(p=>p.id===b.promoId);return s+(pr&&pr.ev?pr.ev/100:0)*b.stake},0)
-    +nonVoid.filter(b=>b.betCategory==='non-promo'&&b.fixedOdds&&b.bsp).reduce((s,b)=>s+(b.fixedOdds/b.bsp-1)*b.stake,0);
+  const totalEV=nonVoid.reduce((s,b)=>{const v=betEV(b);return s+(v||0)},0);
   document.getElementById('stats-grid').innerHTML=`
     <div class="stat"><div class="stat-lbl">Total Profit</div><div class="stat-val ${clr(total)}">${fmt$(total)}</div></div>
     <div class="stat"><div class="stat-lbl">Total EV</div><div class="stat-val am">${fmt$(totalEV)}</div></div>
@@ -861,9 +888,7 @@ function renderDashboard(){
       const bonP=mn.reduce((s,b)=>s+bonusPnl(b),0);
       const adjP=ls(K.adj,[]).filter(a=>{const dd=new Date(a.date+'T00:00:00');return dd.getFullYear()===y&&dd.getMonth()===m}).reduce((s,a)=>s+a.amount,0);
       const promos=ls(K.promos,[]);
-      const evPromo=mb.filter(b=>b.betCategory==='promo'&&b.result!=='Void').reduce((s,b)=>{const pr=promos.find(p=>p.id===b.promoId);return s+(pr&&pr.ev?pr.ev/100:0)*b.stake},0);
-      const evNP=mb.filter(b=>b.betCategory==='non-promo'&&b.fixedOdds&&b.bsp).reduce((s,b)=>s+(b.fixedOdds/b.bsp-1)*b.stake,0);
-      const ev=evPromo+evNP;
+      const ev=mb.filter(b=>b.result!=='Void').reduce((s,b)=>{const v=betEV(b);return s+(v||0)},0);
       const lbl=cur.toLocaleDateString('en-AU',{month:'short',year:'numeric'});
       mon.push({lbl,total:cashP+bonP+adjP,ev});
       cur=new Date(y,m+1,1);
@@ -887,7 +912,7 @@ function renderDashboard(){
 
   // Build chart2 data and store on window for toggle
   const promos2=ls(K.promos,[]);
-  function dayEV(db){return db.filter(b=>b.betCategory==='promo'&&b.result!=='Void').reduce((s,b)=>{const pr=promos2.find(p=>p.id===b.promoId);return s+(pr&&pr.ev?pr.ev/100:0)*b.stake},0)+db.filter(b=>b.betCategory==='non-promo'&&b.fixedOdds&&b.bsp).reduce((s,b)=>s+(b.fixedOdds/b.bsp-1)*b.stake,0)}
+  function dayEV(db){return db.filter(b=>b.result!=='Void').reduce((s,b)=>{const v=betEV(b);return s+(v||0)},0)}
   // Rolling 30-day — use UTC dates to match how today() and bet dates are stored
   const todayUTC=today();
   const days30=Array.from({length:30},(_,i)=>{const d=new Date(todayUTC+'T00:00:00Z');d.setUTCDate(d.getUTCDate()-(29-i));return d.toISOString().split('T')[0]});
@@ -1588,14 +1613,16 @@ function setPreset(preset,btn){
   const cr=document.getElementById('custom-range');
   cr.classList.remove('show');
   const lbl=document.getElementById('range-label');
+  const mlbl=document.getElementById('monthly-range-lbl');
   if(lbl)lbl.textContent='';
+  if(mlbl)mlbl.textContent='';
   const now=new Date();
   const startOf=d=>{const x=new Date(d);x.setHours(0,0,0,0);return x};
   const endOf=d=>{const x=new Date(d);x.setHours(23,59,59,999);return x};
   const fmtDS=d=>d.toLocaleDateString('en-AU',{day:'2-digit',month:'short'});
   if(preset==='all'){drFrom=null;drTo=null}
-  else if(preset==='week'){const dow=now.getDay()||7;drFrom=startOf(new Date(now.getFullYear(),now.getMonth(),now.getDate()-dow+1));drTo=endOf(now);const sun=new Date(drFrom);sun.setDate(drFrom.getDate()+6);if(lbl)lbl.textContent=fmtDS(drFrom)+' – '+fmtDS(sun);}
-  else if(preset==='lastweek'){const dow=now.getDay()||7;const ms=new Date(now.getFullYear(),now.getMonth(),now.getDate()-dow+1);drFrom=startOf(new Date(ms-7*864e5));drTo=endOf(new Date(ms-864e5));if(lbl)lbl.textContent=fmtDS(drFrom)+' – '+fmtDS(drTo);}
+  else if(preset==='week'){const dow=now.getDay()||7;drFrom=startOf(new Date(now.getFullYear(),now.getMonth(),now.getDate()-dow+1));drTo=endOf(now);const sun=new Date(drFrom);sun.setDate(drFrom.getDate()+6);if(mlbl)mlbl.textContent=fmtDS(drFrom)+' – '+fmtDS(sun);}
+  else if(preset==='lastweek'){const dow=now.getDay()||7;const ms=new Date(now.getFullYear(),now.getMonth(),now.getDate()-dow+1);drFrom=startOf(new Date(ms-7*864e5));drTo=endOf(new Date(ms-864e5));if(mlbl)mlbl.textContent=fmtDS(drFrom)+' – '+fmtDS(drTo);}
   else if(preset==='month'){drFrom=startOf(new Date(now.getFullYear(),now.getMonth(),1));drTo=endOf(now)}
   else if(preset==='lastmonth'){drFrom=startOf(new Date(now.getFullYear(),now.getMonth()-1,1));drTo=endOf(new Date(now.getFullYear(),now.getMonth(),0))}
   else if(preset==='3m'){drFrom=startOf(new Date(now.getFullYear(),now.getMonth()-3,now.getDate()));drTo=endOf(now)}
@@ -2202,12 +2229,17 @@ function renderSettings(){
     <span style="font-size:10px;color:#475569;min-width:44px">${b.active?'Active':'Off'}</span>
     <button class="btn btn-d btn-xs" onclick="removeBookie('${b.id}')">Remove</button>
   </div>`).join('');
-  document.getElementById('promos-list').innerHTML=promos.map(p=>`<div class="srow">
-    <input type="text" value="${p.name}" onchange="updatePromo('${p.id}',this.value)" style="flex:1;min-width:0">
-    <label class="lbl" style="margin:0 6px;white-space:nowrap;font-size:11px">EV%</label>
-    <input type="number" value="${p.ev??''}" onchange="updatePromoEV('${p.id}',this.value)" step="0.1" min="0" placeholder="0" style="width:62px">
-    <button class="btn btn-d btn-xs" onclick="removePromo('${p.id}')">Remove</button>
-  </div>`).join('');
+  document.getElementById('promos-list').innerHTML=promos.map(p=>{
+    const isFormula=p.evMode==='formula';
+    return`<div class="srow" style="flex-wrap:wrap;gap:6px">
+    <input type="text" value="${p.name}" onchange="updatePromo('${p.id}',this.value)" style="flex:1;min-width:120px">
+    <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">
+      <button class="btn btn-xs ${!isFormula?'btn-p':'btn-s'}" onclick="setPromoEvMode('${p.id}','fixed')" style="padding:3px 8px;font-size:10px">Fixed%</button>
+      <button class="btn btn-xs ${isFormula?'btn-p':'btn-s'}" onclick="setPromoEvMode('${p.id}','formula')" style="padding:3px 8px;font-size:10px">Formula</button>
+    </div>
+    ${!isFormula?`<input type="number" value="${p.ev??''}" onchange="updatePromoEV('${p.id}',this.value)" step="0.1" min="0" placeholder="EV%" style="width:62px">`:'<span style="font-size:10px;color:var(--tx4);width:62px">back/BSP</span>'}
+    <button class="btn btn-d btn-xs" onclick="removePromo('${p.id}')">✕</button>
+  </div>`}).join('');
   document.getElementById('npt-list').innerHTML=npts.map(t=>`<div class="srow">
     <input type="text" value="${t.name}" onchange="updateNPT('${t.id}',this.value)" style="width:205px">
     <span class="spacer"></span>
@@ -2227,6 +2259,7 @@ function removeBookie(id){if(ls(K.bets,[]).some(b=>b.bookieId===id)){toast('Has 
 function addBookie(){const n=document.getElementById('new-bk-name').value.trim();if(!n){toast('Enter name','warn');return}const bk=ls(K.bookies,[]);bk.push({id:uid(),name:n,alias:n,active:true});ss(K.bookies,bk);document.getElementById('new-bk-name').value='';renderSettings();toast('Bookie added')}
 function updatePromo(id,v){const pr=ls(K.promos,[]);const p=pr.find(x=>x.id===id);if(p){p.name=v;ss(K.promos,pr)}}
 function updatePromoEV(id,v){const pr=ls(K.promos,[]);const p=pr.find(x=>x.id===id);if(p){p.ev=parseFloat(v)||0;ss(K.promos,pr);toast('EV saved')}}
+function setPromoEvMode(id,mode){const pr=ls(K.promos,[]);const p=pr.find(x=>x.id===id);if(p){p.evMode=mode;ss(K.promos,pr);renderSettings();toast(mode==='formula'?'Using back/BSP formula':'Using fixed EV%')}}
 function removePromo(id){
   const hasBets=ls(K.bets,[]).some(b=>b.promoId===id);
   const msg=hasBets?'This promo has bets attached — removing it will orphan those bet records. Remove anyway?':'Remove this promo type?';
@@ -2297,7 +2330,172 @@ function clearAll(){if(!confirm('Delete ALL data? Cannot be undone.'))return;Obj
 function showTab(id){const t=document.querySelector(`.nav-tab[data-tab="${id}"]`);if(t)t.click()}
 
 // ── TAB ROUTING ───────────────────────────────────────────────────────────────
-const RENDERS={dashboard:renderDashboard,logbet:renderLogBet,bonuses:renderBonuses,data:renderData,settings:renderSettings};
+// ── BALANCES PAGE ─────────────────────────────────────────────────────────────
+let _balInline={};  // bookieId → 'deposit'|'withdraw'|'set'|null
+let _balExpanded=new Set();
+
+function bookiePnl(bid){return ls(K.bets,[]).filter(b=>b.bookieId===bid).reduce((s,b)=>s+betPnl(b),0)}
+function bookieBetCount(bid){return ls(K.bets,[]).filter(b=>b.bookieId===bid).length}
+
+function renderBalances(){
+  const balances=ls(K.balances,{});
+  const allBookies=ls(K.bookies,[]);
+  const activeOnly=document.getElementById('bal-active-only')?.checked!==false;
+  const search=(document.getElementById('bal-search')?.value||'').toLowerCase();
+  const sort=document.getElementById('bal-sort')?.value||'alpha-asc';
+
+  let list=allBookies
+    .filter(b=>!activeOnly||b.active)
+    .filter(b=>(b.name||'').toLowerCase().includes(search)||(b.alias||'').toLowerCase().includes(search));
+
+  list=list.map(b=>({
+    ...b,
+    bal:balances[b.id]||0,
+    pnl:bookiePnl(b.id),
+    bets:bookieBetCount(b.id)
+  }));
+
+  const sortFns={
+    'alpha-asc':(a,b)=>a.name.localeCompare(b.name),
+    'alpha-desc':(a,b)=>b.name.localeCompare(a.name),
+    'bal-desc':(a,b)=>b.bal-a.bal,
+    'bal-asc':(a,b)=>a.bal-b.bal,
+    'pnl-desc':(a,b)=>b.pnl-a.pnl,
+    'pnl-asc':(a,b)=>a.pnl-b.pnl,
+    'bets-desc':(a,b)=>b.bets-a.bets
+  };
+  list.sort(sortFns[sort]||sortFns['alpha-asc']);
+
+  const container=document.getElementById('balances-list');
+  if(!container)return;
+
+  if(!list.length){container.innerHTML='<div class="empty">No bookies found</div>';return;}
+
+  container.innerHTML=list.map(b=>{
+    const inline=_balInline[b.id];
+    const expanded=_balExpanded.has(b.id);
+    const txns=(ls(K.txns,[])).filter(t=>t.bookieId===b.id).reverse();
+
+    let inlineHtml='';
+    if(inline==='deposit'||inline==='withdraw'){
+      const label=inline==='deposit'?'Deposit':'Withdrawal';
+      const btnCls=inline==='deposit'?'btn-p':'btn-d';
+      inlineHtml=`<div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--bdr)">
+        <span style="font-size:11px;font-weight:700;color:var(--tx4);text-transform:uppercase">${label}</span>
+        <input type="number" id="bal-amt-${b.id}" placeholder="Amount" step="0.01" min="0" style="width:110px" onkeydown="if(event.key==='Enter')balConfirmTxn('${b.id}','${inline}')">
+        <input type="text" id="bal-note-${b.id}" placeholder="Note (optional)" style="width:150px" onkeydown="if(event.key==='Enter')balConfirmTxn('${b.id}','${inline}')">
+        <button class="btn ${btnCls} btn-sm" onclick="balConfirmTxn('${b.id}','${inline}')">Confirm</button>
+        <button class="btn btn-s btn-sm" onclick="balCancelInline('${b.id}')">Cancel</button>
+      </div>`;
+    } else if(inline==='set'){
+      inlineHtml=`<div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--bdr)">
+        <span style="font-size:11px;font-weight:700;color:#f59e0b;text-transform:uppercase">Set Balance</span>
+        <input type="number" id="bal-amt-${b.id}" value="${b.bal}" step="0.01" style="width:120px" onkeydown="if(event.key==='Enter')balConfirmSet('${b.id}')">
+        <input type="text" id="bal-note-${b.id}" placeholder="Reason (optional)" style="width:150px" onkeydown="if(event.key==='Enter')balConfirmSet('${b.id}')">
+        <button class="btn btn-sm" style="background:#f59e0b;color:#000;font-weight:700" onclick="balConfirmSet('${b.id}')">Confirm Set</button>
+        <button class="btn btn-s btn-sm" onclick="balCancelInline('${b.id}')">Cancel</button>
+      </div>`;
+    }
+
+    let txnHtml='';
+    if(expanded){
+      txnHtml=`<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--bdr)">
+        <div class="slabel" style="margin-bottom:6px">Transaction History</div>
+        ${txns.length?`<table style="width:100%">
+          <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Balance After</th><th>Note</th></tr></thead>
+          <tbody>${txns.map(t=>`<tr>
+            <td>${t.date}</td>
+            <td><span class="badge ${t.type==='deposit'?'bw':t.type==='withdrawal'?'bl2':'bp'}">${t.type}</span></td>
+            <td class="${t.type==='withdrawal'?'r':'g'}">${t.type==='withdrawal'?'-':''}${fmt$(Math.abs(t.amount))}</td>
+            <td>${fmt$(t.balAfter)}</td>
+            <td style="color:var(--tx4)">${t.note||''}</td>
+          </tr>`).join('')}</tbody>
+        </table>`:'<div class="empty" style="padding:10px">No transactions yet</div>'}
+      </div>`;
+    }
+
+    return`<div class="card" style="margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div style="flex:1;min-width:100px">
+          <div style="font-weight:700;font-size:13px;color:var(--tx)">${b.alias&&b.alias!==b.name?`${b.name} <span style="color:var(--tx4);font-size:11px">${b.alias}</span>`:b.name}</div>
+          <div style="font-size:10px;color:var(--tx5);margin-top:2px">${b.bets} bet${b.bets!==1?'s':''} · ${b.active?'Active':'Inactive'}</div>
+        </div>
+        <div style="text-align:right;min-width:72px">
+          <div style="font-size:9px;color:var(--tx5);text-transform:uppercase;letter-spacing:.05em">Balance</div>
+          <div style="font-size:17px;font-weight:700;color:var(--tx)">${fmt$(b.bal)}</div>
+        </div>
+        <div style="text-align:right;min-width:72px">
+          <div style="font-size:9px;color:var(--tx5);text-transform:uppercase;letter-spacing:.05em">P&amp;L</div>
+          <div style="font-size:17px;font-weight:700" class="${b.pnl>=0?'g':'r'}">${fmt$(b.pnl)}</div>
+        </div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap">
+          <button class="btn btn-s btn-xs" onclick="balInline('${b.id}','deposit')" style="color:#22c55e">＋ Dep</button>
+          <button class="btn btn-s btn-xs" onclick="balInline('${b.id}','withdraw')" style="color:#ef4444">－ With</button>
+          <button class="btn btn-s btn-xs" onclick="balInline('${b.id}','set')" style="color:#f59e0b">Set</button>
+          <button class="btn btn-s btn-xs" onclick="balToggleTxns('${b.id}')">${expanded?'History ▼':'History ▶'}</button>
+        </div>
+      </div>
+      ${inlineHtml}${txnHtml}
+    </div>`;
+  }).join('');
+
+  // Totals
+  const totBal=list.reduce((s,b)=>s+b.bal,0);
+  const totPnl=list.reduce((s,b)=>s+b.pnl,0);
+  document.getElementById('balances-totals').innerHTML=`
+    <div class="card" style="display:flex;gap:24px;flex-wrap:wrap">
+      <div><div style="font-size:9px;color:var(--tx5);text-transform:uppercase;letter-spacing:.05em">Total Balance</div><div style="font-size:20px;font-weight:700;color:var(--tx)">${fmt$(totBal)}</div></div>
+      <div><div style="font-size:9px;color:var(--tx5);text-transform:uppercase;letter-spacing:.05em">Total P&amp;L</div><div style="font-size:20px;font-weight:700" class="${totPnl>=0?'g':'r'}">${fmt$(totPnl)}</div></div>
+      <div><div style="font-size:9px;color:var(--tx5);text-transform:uppercase;letter-spacing:.05em">Bookies Shown</div><div style="font-size:20px;font-weight:700;color:var(--tx)">${list.length}</div></div>
+    </div>`;
+}
+
+function balInline(id,mode){
+  _balInline[id]=_balInline[id]===mode?null:mode;
+  renderBalances();
+  if(_balInline[id])setTimeout(()=>document.getElementById('bal-amt-'+id)?.focus(),50);
+}
+function balCancelInline(id){_balInline[id]=null;renderBalances()}
+
+function balConfirmTxn(id,type){
+  const amt=parseFloat(document.getElementById('bal-amt-'+id)?.value);
+  if(!amt||amt<=0){toast('Enter a valid amount','warn');return}
+  const note=document.getElementById('bal-note-'+id)?.value.trim()||'';
+  const balances=ls(K.balances,{});
+  const prev=balances[id]||0;
+  const delta=type==='deposit'?amt:-amt;
+  balances[id]=Math.round((prev+delta)*100)/100;
+  ss(K.balances,balances);
+  const txns=ls(K.txns,[]);
+  txns.push({id:uid(),bookieId:id,type,amount:amt,prevBalance:prev,balAfter:balances[id],note,date:new Date().toISOString().slice(0,10),createdAt:new Date().toISOString()});
+  ss(K.txns,txns);
+  _balInline[id]=null;
+  renderBalances();
+  toast(`${type==='deposit'?'Deposit':'Withdrawal'} saved`);
+}
+
+function balConfirmSet(id){
+  const amt=parseFloat(document.getElementById('bal-amt-'+id)?.value);
+  if(isNaN(amt)){toast('Enter a valid amount','warn');return}
+  const note=document.getElementById('bal-note-'+id)?.value.trim()||'';
+  const balances=ls(K.balances,{});
+  const prev=balances[id]||0;
+  balances[id]=Math.round(amt*100)/100;
+  ss(K.balances,balances);
+  const txns=ls(K.txns,[]);
+  txns.push({id:uid(),bookieId:id,type:'adjust',amount:amt,prevBalance:prev,balAfter:balances[id],note,date:new Date().toISOString().slice(0,10),createdAt:new Date().toISOString()});
+  ss(K.txns,txns);
+  _balInline[id]=null;
+  renderBalances();
+  toast('Balance updated');
+}
+
+function balToggleTxns(id){
+  if(_balExpanded.has(id))_balExpanded.delete(id);else _balExpanded.add(id);
+  renderBalances();
+}
+
+const RENDERS={dashboard:renderDashboard,logbet:renderLogBet,bonuses:renderBonuses,data:renderData,balances:renderBalances,settings:renderSettings};
 document.querySelectorAll('.nav-tab').forEach(tab=>{
   tab.addEventListener('click',()=>{
     document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
