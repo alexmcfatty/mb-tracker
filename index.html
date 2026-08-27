@@ -374,11 +374,6 @@ select option{background:var(--sel-opt)}
     <div id="dsec-nonpromos" style="display:none"><div class="card"><div class="tw" id="data-nonpromos"></div></div></div>
   </div>
   <div class="data-section">
-    <div class="dsec-hdr" onclick="toggleDataSec('bookies')"><span id="dchev-bookies" class="dsec-chev">▶</span><h3>By Bookie</h3></div>
-    <div id="data-bookies-stats"></div>
-    <div id="dsec-bookies" style="display:none"><div class="card"><div class="tw" id="data-bookies"></div></div></div>
-  </div>
-  <div class="data-section">
     <div class="dsec-hdr" onclick="toggleDataSec('weekly')"><span id="dchev-weekly" class="dsec-chev">▶</span><h3>Weekly Averages</h3></div>
     <div id="data-weekly-stats"></div>
     <div id="dsec-weekly" style="display:none"><div class="card"><div class="tw" id="data-weekly"></div></div></div>
@@ -1668,7 +1663,6 @@ function renderData(){
   renderBonusData(bonuses,cfg);
   renderPromoData(bets,bonuses,cfg);
   renderNonPromoData(bets,cfg);
-  renderBookieData(bets,bonuses,cfg);
   renderWeeklyAvg(bets,bonuses,cfg);
 }
 
@@ -2348,12 +2342,26 @@ function renderBalances(){
     .filter(b=>!activeOnly||b.active)
     .filter(b=>(b.name||'').toLowerCase().includes(search)||(b.alias||'').toLowerCase().includes(search));
 
-  list=list.map(b=>({
-    ...b,
-    bal:balances[b.id]||0,
-    pnl:bookiePnl(b.id),
-    bets:bookieBetCount(b.id)
-  }));
+  const allBets=ls(K.bets,[]);
+  const allBonuses=activeBonuses();
+  const allPromos=ls(K.promos,[]);
+  list=list.map(b=>{
+    const bal=balances[b.id]||0;
+    const bb=allBets.filter(x=>x.bookieId===b.id&&x.result!=='Void');
+    const bn=allBonuses.filter(x=>x.bookieId===b.id&&x.result!=='Pending');
+    const cashP=bb.reduce((s,x)=>s+betPnl(x),0);
+    const bonP=bn.reduce((s,x)=>s+bonusPnl(x),0);
+    const pnl=cashP+bonP;
+    const evPromo=bb.filter(x=>x.betCategory==='promo').reduce((s,x)=>{const pr=allPromos.find(p=>p.id===x.promoId);return s+(pr&&pr.ev?pr.ev/100:0)*x.stake},0);
+    const evNP=bb.filter(x=>x.betCategory==='non-promo'&&x.fixedOdds&&x.bsp).reduce((s,x)=>s+(x.fixedOdds/x.bsp-1)*x.stake,0);
+    const ev=evPromo+evNP;
+    const turnover=bb.reduce((s,x)=>s+x.stake,0);
+    const wins=bb.filter(x=>x.result==='Win').length;
+    const losses=bb.filter(x=>x.result==='Loss').length;
+    const allDates=[...bb.map(x=>x.date||''),...bn.map(x=>(x.createdAt||'').split('T')[0])].filter(Boolean);
+    const lastUsed=allDates.length?allDates.reduce((a,c)=>c>a?c:a):'';
+    return{...b,bal,pnl,bets:bb.length,wins,losses,turnover,cashP,bonP,ev,lastUsed};
+  });
 
   const sortFns={
     'alpha-asc':(a,b)=>a.name.localeCompare(b.name),
@@ -2402,13 +2410,14 @@ function renderBalances(){
       txnHtml=`<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--bdr)">
         <div class="slabel" style="margin-bottom:6px">Transaction History</div>
         ${txns.length?`<table style="width:100%">
-          <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Balance After</th><th>Note</th></tr></thead>
+          <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Balance After</th><th>Note</th><th></th></tr></thead>
           <tbody>${txns.map(t=>`<tr>
             <td>${t.date}</td>
             <td><span class="badge ${t.type==='deposit'?'bw':t.type==='withdrawal'?'bl2':'bp'}">${t.type}</span></td>
             <td class="${t.type==='withdrawal'?'r':'g'}">${t.type==='withdrawal'?'-':''}${fmt$(Math.abs(t.amount))}</td>
             <td>${fmt$(t.balAfter)}</td>
             <td style="color:var(--tx4)">${t.note||''}</td>
+            <td><button class="btn btn-d btn-xs" onclick="deleteTxn('${t.id}','${b.id}')">✕</button></td>
           </tr>`).join('')}</tbody>
         </table>`:'<div class="empty" style="padding:10px">No transactions yet</div>'}
       </div>`;
@@ -2418,7 +2427,7 @@ function renderBalances(){
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <div style="flex:1;min-width:100px">
           <div style="font-weight:700;font-size:13px;color:var(--tx)">${b.alias&&b.alias!==b.name?`${b.name} <span style="color:var(--tx4);font-size:11px">${b.alias}</span>`:b.name}</div>
-          <div style="font-size:10px;color:var(--tx5);margin-top:2px">${b.bets} bet${b.bets!==1?'s':''} · ${b.active?'Active':'Inactive'}</div>
+          <div style="font-size:10px;color:var(--tx5);margin-top:2px">${b.bets} bet${b.bets!==1?'s':''} · <span style="color:#22c55e">${b.wins}W</span>/<span style="color:#ef4444">${b.losses}L</span> ·${b.active?'Active':'Inactive'}${b.lastUsed?' · '+fmtD(b.lastUsed):''}</div>
         </div>
         <div style="text-align:right;min-width:72px">
           <div style="font-size:9px;color:var(--tx5);text-transform:uppercase;letter-spacing:.05em">Balance</div>
@@ -2435,6 +2444,12 @@ function renderBalances(){
           <button class="btn btn-s btn-xs" onclick="balToggleTxns('${b.id}')">${expanded?'History ▼':'History ▶'}</button>
         </div>
       </div>
+      ${b.bets>0?`<div style="display:flex;gap:16px;flex-wrap:wrap;padding:7px 0 2px;font-size:11px;border-top:1px solid var(--bdr2);margin-top:8px">
+        <span><span style="color:var(--tx5)">Turnover</span> <span style="color:var(--tx2)">${fmt$(b.turnover)}</span></span>
+        <span><span style="color:var(--tx5)">Cash P&L</span> <span class="${clr(b.cashP)}">${fmt$(b.cashP)}</span></span>
+        <span><span style="color:var(--tx5)">Bonus P&L</span> <span class="${clr(b.bonP)}">${fmt$(b.bonP)}</span></span>
+        <span><span style="color:var(--tx5)">EV</span> <span class="am">${fmt$(b.ev)}</span></span>
+      </div>`:''}
       ${inlineHtml}${txnHtml}
     </div>`;
   }).join('');
@@ -2449,6 +2464,7 @@ function renderBalances(){
       <div><div style="font-size:9px;color:var(--tx5);text-transform:uppercase;letter-spacing:.05em">Bookies Shown</div><div style="font-size:20px;font-weight:700;color:var(--tx)">${list.length}</div></div>
     </div>`;
 }
+
 
 function balInline(id,mode){
   _balInline[id]=_balInline[id]===mode?null:mode;
@@ -2488,6 +2504,28 @@ function balConfirmSet(id){
   _balInline[id]=null;
   renderBalances();
   toast('Balance updated');
+}
+
+function deleteTxn(txnId,bookieId){
+  if(!confirm('Delete this transaction?'))return;
+  let txns=ls(K.txns,[]);
+  txns=txns.filter(t=>t.id!==txnId);
+  const bkTxns=txns.filter(t=>t.bookieId===bookieId).sort((a,b)=>a.createdAt.localeCompare(b.createdAt));
+  // Replay remaining txns to recompute running balances
+  let runBal=0;
+  bkTxns.forEach(t=>{
+    if(t.type==='deposit')runBal=Math.round((runBal+t.amount)*100)/100;
+    else if(t.type==='withdrawal')runBal=Math.round((runBal-t.amount)*100)/100;
+    else if(t.type==='adjust')runBal=t.amount;
+    t.balAfter=runBal;
+  });
+  ss(K.txns,txns);
+  const balances=ls(K.balances,{});
+  if(bkTxns.length)balances[bookieId]=bkTxns[bkTxns.length-1].balAfter;
+  else delete balances[bookieId];
+  ss(K.balances,balances);
+  renderBalances();
+  toast('Transaction deleted');
 }
 
 function balToggleTxns(id){
