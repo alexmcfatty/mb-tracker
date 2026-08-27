@@ -2229,7 +2229,7 @@ function renderSettings(){
     <input type="text" value="${p.name}" onchange="updatePromo('${p.id}',this.value)" style="flex:1;min-width:120px">
     <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">
       <button class="btn btn-xs ${!isFormula?'btn-p':'btn-s'}" onclick="setPromoEvMode('${p.id}','fixed')" style="padding:3px 8px;font-size:10px">Fixed%</button>
-      <button class="btn btn-xs ${isFormula?'btn-p':'btn-s'}" onclick="setPromoEvMode('${p.id}','formula')" style="padding:3px 8px;font-size:10px">Formula</button>
+      <button class="btn btn-xs ${isFormula?'btn-p':'btn-s'}" onclick="setPromoEvMode('${p.id}','formula')" style="padding:3px 8px;font-size:10px">Back/BSP</button>
     </div>
     ${!isFormula?`<input type="number" value="${p.ev??''}" onchange="updatePromoEV('${p.id}',this.value)" step="0.1" min="0" placeholder="EV%" style="width:62px">`:'<span style="font-size:10px;color:var(--tx4);width:62px">back/BSP</span>'}
     <button class="btn btn-d btn-xs" onclick="removePromo('${p.id}')">✕</button>
