@@ -94,9 +94,9 @@ select option{background:var(--sel-opt)}
 .auth-user{font-size:11px;color:var(--tx4);margin-right:8px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .acc-card{background:var(--surf);border:1px solid var(--bdr);border-radius:10px;margin-bottom:8px;overflow:hidden}
 .acc-hdr{display:flex;justify-content:space-between;align-items:center;padding:13px 16px;cursor:pointer;font-weight:600;font-size:14px;color:var(--tx);user-select:none;transition:background .15s}
-.dsec-hdr{display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none;padding:2px 0;margin-bottom:2px}
+.dsec-hdr{display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none;padding:2px 0;margin-bottom:2px}
 .dsec-hdr h3{margin:0}
-.dsec-chev{font-size:11px;color:#64748b}
+.dsec-chev{font-size:11px;color:#64748b;flex-shrink:0}
 .acc-hdr:hover{background:var(--hover)}
 .acc-body{padding:14px 16px;border-top:1px solid var(--bdr)}
 .acc-chev{font-size:10px;color:var(--tx5);transition:transform .2s}
@@ -351,27 +351,27 @@ select option{background:var(--sel-opt)}
     <div class="card"><div class="tw" id="data-monthly"></div></div>
   </div>
   <div class="data-section">
-    <div class="dsec-hdr" onclick="toggleDataSec('bonuses')"><h3>Bonus Bets</h3><span id="dchev-bonuses" class="dsec-chev">▼</span></div>
+    <div class="dsec-hdr" onclick="toggleDataSec('bonuses')"><span id="dchev-bonuses" class="dsec-chev">▼</span><h3>Bonus Bets</h3></div>
     <div id="data-bonuses-stats"></div>
     <div id="dsec-bonuses"><div class="card"><div class="tw" id="data-bonuses"></div></div></div>
   </div>
   <div class="data-section">
-    <div class="dsec-hdr" onclick="toggleDataSec('promos')"><h3>By Promo Type</h3><span id="dchev-promos" class="dsec-chev">▼</span></div>
+    <div class="dsec-hdr" onclick="toggleDataSec('promos')"><span id="dchev-promos" class="dsec-chev">▼</span><h3>By Promo Type</h3></div>
     <div id="data-promos-stats"></div>
     <div id="dsec-promos"><div class="card"><div class="tw" id="data-promos"></div></div></div>
   </div>
   <div class="data-section">
-    <div class="dsec-hdr" onclick="toggleDataSec('nonpromos')"><h3>By Non-Promo Type</h3><span id="dchev-nonpromos" class="dsec-chev">▼</span></div>
+    <div class="dsec-hdr" onclick="toggleDataSec('nonpromos')"><span id="dchev-nonpromos" class="dsec-chev">▼</span><h3>By Non-Promo Type</h3></div>
     <div id="data-nonpromos-stats"></div>
     <div id="dsec-nonpromos"><div class="card"><div class="tw" id="data-nonpromos"></div></div></div>
   </div>
   <div class="data-section">
-    <div class="dsec-hdr" onclick="toggleDataSec('bookies')"><h3>By Bookie</h3><span id="dchev-bookies" class="dsec-chev">▼</span></div>
+    <div class="dsec-hdr" onclick="toggleDataSec('bookies')"><span id="dchev-bookies" class="dsec-chev">▼</span><h3>By Bookie</h3></div>
     <div id="data-bookies-stats"></div>
     <div id="dsec-bookies"><div class="card"><div class="tw" id="data-bookies"></div></div></div>
   </div>
   <div class="data-section">
-    <div class="dsec-hdr" onclick="toggleDataSec('weekly')"><h3>Weekly Averages</h3><span id="dchev-weekly" class="dsec-chev">▼</span></div>
+    <div class="dsec-hdr" onclick="toggleDataSec('weekly')"><span id="dchev-weekly" class="dsec-chev">▼</span><h3>Weekly Averages</h3></div>
     <div id="data-weekly-stats"></div>
     <div id="dsec-weekly"><div class="card"><div class="tw" id="data-weekly"></div></div></div>
   </div>
@@ -1713,9 +1713,9 @@ function renderBonusData(bonuses,cfg){
     return{type:t,bets:tb.length,wins:tw,losses:tl,face:tf,pnl:tp,ext:te,avgEV};
   });
   if(statsEl)statsEl.innerHTML=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0">
-    <div class="stat"><div class="stat-lbl">Total Bonus Face</div><div class="stat-val mu">${fmt$(face)}</div></div>
     <div class="stat"><div class="stat-lbl">Bonus P&L</div><div class="stat-val ${clr(pnl)}">${fmt$(pnl)}</div></div>
     <div class="stat"><div class="stat-lbl">Overall Extraction</div><div class="stat-val bl">${fmtP(extR)}</div><div class="stat-sub">Across all bonus bets</div></div>
+    <div class="stat"><div class="stat-lbl">Total Bonus Face</div><div class="stat-val mu">${fmt$(face)}</div></div>
     <div class="stat"><div class="stat-lbl">Win Rate</div><div class="stat-val bl">${fmtP(winR)}</div></div>
   </div>`;
   el.innerHTML=typeRows.length>1?`<table><thead><tr><th>Type</th><th># Bets</th><th>W/L</th><th>Face</th><th>P&L</th><th>Extraction</th><th>Avg EV%</th></tr></thead><tbody>${typeRows.map(r=>`<tr>
@@ -1781,8 +1781,8 @@ function renderPromoData(bets,bonuses,cfg){
     <div class="stat"><div class="stat-lbl">Total P&L</div><div class="stat-val ${clr(tot.total)}">${fmt$(tot.total)}</div></div>
     <div class="stat"><div class="stat-lbl">Total EV</div><div class="stat-val am">${fmt$(tot.expP)}</div></div>
     <div class="stat"><div class="stat-lbl">Wins</div><div class="stat-val g">${tot.wins}</div></div>
-    <div class="stat"><div class="stat-lbl">Losses</div><div class="stat-val r">${tot.losses}</div></div>
     <div class="stat"><div class="stat-lbl">Bonuses (Triggers)</div><div class="stat-val bl">${tot.triggers}</div></div>
+    <div class="stat"><div class="stat-lbl">Losses</div><div class="stat-val r">${tot.losses}</div></div>
   </div>`;
   document.getElementById('data-promos').innerHTML=`<table>
       <thead><tr><th>Promo Type</th><th># Bets</th><th>W/L/B</th><th>Turnover</th><th>Avg Odds</th><th>Bonus Face</th><th>Cash P&L</th><th>Bonus P&L</th><th>Net %</th><th>EV</th><th class="profit-col">PROFIT</th></tr></thead>
@@ -1889,10 +1889,10 @@ function renderNonPromoData(bets,cfg){
   const tot={bets:sum(rows,'bets'),wins:sum(rows,'wins'),losses:sum(rows,'losses'),turnover:sum(rows,'turnover'),cashP:sum(rows,'cashP'),totalEV:sum(rows,'totalEV')};
   const totNetPct=tot.turnover?tot.cashP/tot.turnover*100:0;
   if(statsEl)statsEl.innerHTML=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0">
-    <div class="stat"><div class="stat-lbl">Total Bets</div><div class="stat-val bl">${tot.bets}</div></div>
-    <div class="stat"><div class="stat-lbl">Turnover</div><div class="stat-val mu">${fmt$(tot.turnover)}</div></div>
     <div class="stat"><div class="stat-lbl">Cash P&L</div><div class="stat-val ${clr(tot.cashP)}">${fmt$(tot.cashP)}</div></div>
     <div class="stat"><div class="stat-lbl">Total EV</div><div class="stat-val am">${fmt$(tot.totalEV)}</div></div>
+    <div class="stat"><div class="stat-lbl">Turnover</div><div class="stat-val mu">${fmt$(tot.turnover)}</div></div>
+    <div class="stat"><div class="stat-lbl">Total Bets</div><div class="stat-val bl">${tot.bets}</div></div>
   </div>`;
   el.innerHTML=`<table>
     <thead><tr><th>Type</th><th># Bets</th><th>W/L</th><th>Turnover</th><th>Avg Odds</th><th>Cash P&L</th><th>Total EV</th><th>Avg EV%</th><th>EV Coverage</th><th>Net %</th></tr></thead>
@@ -1916,15 +1916,23 @@ function renderNonPromoData(bets,cfg){
   </table>`;
 }
 
+function filterBookieTable(q){
+  const s=q.toLowerCase();
+  document.querySelectorAll('#data-bookies tbody tr').forEach(tr=>{
+    tr.style.display=tr.dataset.bk&&tr.dataset.bk.toLowerCase().includes(s)?'':'none';
+  });
+}
 function renderBookieData(bets,bonuses,cfg){
   const el=document.getElementById('data-bookies');
   const statsEl=document.getElementById('data-bookies-stats');
   if(!el)return;
   const promos=ls(K.promos,[]);
-  const allBkSet=new Set([...bets.map(b=>b.bookie),...bonuses.map(b=>b.bookie)].filter(Boolean));
-  const rows=[...allBkSet].map(bk=>{
-    const bb=bets.filter(b=>b.bookie===bk&&b.result!=='Void');
-    const bn=bonuses.filter(b=>b.bookie===bk&&b.result!=='Pending');
+  const allBkIds=new Set([...bets.map(b=>b.bookieId),...bonuses.map(b=>b.bookieId)].filter(Boolean));
+  const rows=[...allBkIds].map(bkId=>{
+    const bb=bets.filter(b=>b.bookieId===bkId&&b.result!=='Void');
+    const bn=bonuses.filter(b=>b.bookieId===bkId&&b.result!=='Pending');
+    const allDates=[...bb.map(b=>b.date||''),...bn.map(b=>(b.createdAt||'').split('T')[0])].filter(Boolean);
+    const lastUsed=allDates.length?allDates.reduce((a,b)=>b>a?b:a):'';
     const cashP=bb.reduce((s,b)=>s+betPnl(b),0);
     const bonP=bn.reduce((s,b)=>s+bonusPnl(b),0);
     const total=cashP+bonP;
@@ -1934,21 +1942,24 @@ function renderBookieData(bets,bonuses,cfg){
     const turnover=bb.reduce((s,b)=>s+b.stake,0);
     const wins=bb.filter(b=>b.result==='Win').length;
     const losses=bb.filter(b=>b.result==='Loss').length;
-    return{bk,bets:bb.length,bonuses:bn.length,wins,losses,turnover,cashP,bonP,ev,total};
-  }).filter(r=>r.bets>0||r.bonuses>0).sort((a,b)=>b.total-a.total);
+    const bkLabel=bkName(bkId);
+    return{bk:bkLabel,bets:bb.length,bonuses:bn.length,wins,losses,turnover,cashP,bonP,ev,total,lastUsed};
+  }).filter(r=>r.bets>0||r.bonuses>0).sort((a,b)=>b.lastUsed.localeCompare(a.lastUsed));
   if(!rows.length){if(statsEl)statsEl.innerHTML='';el.innerHTML='<div class="empty">No data</div>';return}
   const tot={cashP:sum(rows,'cashP'),bonP:sum(rows,'bonP'),ev:sum(rows,'ev'),total:sum(rows,'total')};
   if(statsEl)statsEl.innerHTML=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0">
+    <div class="stat"><div class="stat-lbl">Net Profit</div><div class="stat-val ${clr(tot.total)}">${fmt$(tot.total)}</div></div>
+    <div class="stat"><div class="stat-lbl">Total EV</div><div class="stat-val am">${fmt$(tot.ev)}</div></div>
     <div class="stat"><div class="stat-lbl">Cash P&L</div><div class="stat-val ${clr(tot.cashP)}">${fmt$(tot.cashP)}</div></div>
     <div class="stat"><div class="stat-lbl">Bonus P&L</div><div class="stat-val ${clr(tot.bonP)}">${fmt$(tot.bonP)}</div></div>
-    <div class="stat"><div class="stat-lbl">Total EV</div><div class="stat-val am">${fmt$(tot.ev)}</div></div>
-    <div class="stat"><div class="stat-lbl">Net Profit</div><div class="stat-val ${clr(tot.total)}">${fmt$(tot.total)}</div></div>
   </div>`;
-  el.innerHTML=`<table>
-    <thead><tr><th>Bookie</th><th># Bets</th><th>W/L</th><th>Turnover</th><th>Cash P&L</th><th>Bonus P&L</th><th>EV</th><th class="profit-col">PROFIT</th></tr></thead>
-    <tbody>${rows.map(r=>`<tr>
+  el.innerHTML=`<input type="text" placeholder="Search bookie..." oninput="filterBookieTable(this.value)" style="width:100%;margin-bottom:10px;padding:6px 10px;font-size:12px;border:1px solid var(--bdr);border-radius:6px;background:var(--bg);color:var(--tx)">
+  <table>
+    <thead><tr><th>Bookie</th><th># Bets</th><th>W/L</th><th>Last Used</th><th>Turnover</th><th>Cash P&L</th><th>Bonus P&L</th><th>EV</th><th class="profit-col">PROFIT</th></tr></thead>
+    <tbody>${rows.map(r=>`<tr data-bk="${r.bk.toLowerCase()}">
       <td style="font-weight:600;color:var(--tx)">${r.bk}</td><td>${r.bets}</td>
       <td><span class="g">${r.wins}W</span> / <span class="r">${r.losses}L</span></td>
+      <td class="mu">${r.lastUsed?fmtD(r.lastUsed):'-'}</td>
       <td class="mu">${fmt$(r.turnover)}</td>
       <td class="${clr(r.cashP)}">${fmt$(r.cashP)}</td>
       <td class="${clr(r.bonP)}">${fmt$(r.bonP)}</td>
@@ -1956,7 +1967,7 @@ function renderBookieData(bets,bonuses,cfg){
       <td class="profit-col ${clr(r.total)}">${fmt$(r.total)}</td>
     </tr>`).join('')}</tbody>
     <tfoot><tr>
-      <td>Total</td><td>-</td><td>-</td><td>-</td>
+      <td>Total</td><td>-</td><td>-</td><td>-</td><td>-</td>
       <td class="${clr(tot.cashP)}">${fmt$(tot.cashP)}</td>
       <td class="${clr(tot.bonP)}">${fmt$(tot.bonP)}</td>
       <td class="am">${fmt$(tot.ev)}</td>
