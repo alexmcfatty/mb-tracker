@@ -94,6 +94,9 @@ select option{background:var(--sel-opt)}
 .auth-user{font-size:11px;color:var(--tx4);margin-right:8px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .acc-card{background:var(--surf);border:1px solid var(--bdr);border-radius:10px;margin-bottom:8px;overflow:hidden}
 .acc-hdr{display:flex;justify-content:space-between;align-items:center;padding:13px 16px;cursor:pointer;font-weight:600;font-size:14px;color:var(--tx);user-select:none;transition:background .15s}
+.dsec-hdr{display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none;padding:2px 0;margin-bottom:2px}
+.dsec-hdr h3{margin:0}
+.dsec-chev{font-size:11px;color:#64748b}
 .acc-hdr:hover{background:var(--hover)}
 .acc-body{padding:14px 16px;border-top:1px solid var(--bdr)}
 .acc-chev{font-size:10px;color:var(--tx5);transition:transform .2s}
@@ -257,9 +260,22 @@ select option{background:var(--sel-opt)}
     <div class="tw" id="pending-bets-list"></div>
   </div>
   <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <div class="slabel" style="margin:0">Today's Bets</div>
-      <button id="clone-btn" class="btn btn-s btn-xs" onclick="cloneSelected()" style="display:none">Clone Selected (0)</button>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+      <div class="slabel" style="margin:0">Bet History</div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap">
+        <button class="preset-btn active" id="lhist-week" onclick="setHistPreset('week',this)" style="padding:3px 8px;font-size:10px">This Week</button>
+        <button class="preset-btn" id="lhist-lastweek" onclick="setHistPreset('lastweek',this)" style="padding:3px 8px;font-size:10px">Last Week</button>
+        <button class="preset-btn" id="lhist-month" onclick="setHistPreset('month',this)" style="padding:3px 8px;font-size:10px">This Month</button>
+        <button class="preset-btn" id="lhist-all" onclick="setHistPreset('all',this)" style="padding:3px 8px;font-size:10px">All Time</button>
+        <button class="preset-btn" id="lhist-custom" onclick="setHistPreset('custom',this)" style="padding:3px 8px;font-size:10px">Custom</button>
+      </div>
+      <div id="lhist-custom-range" style="display:none;align-items:center;gap:4px">
+        <input type="date" id="lhist-from" onchange="renderTodayBets()" style="width:130px;padding:3px 7px;font-size:11px">
+        <span style="color:#64748b;font-size:11px">→</span>
+        <input type="date" id="lhist-to" onchange="renderTodayBets()" style="width:130px;padding:3px 7px;font-size:11px">
+      </div>
+      <span id="lhist-range-lbl" style="font-size:10px;color:#475569"></span>
+      <button id="clone-btn" class="btn btn-s btn-xs" onclick="cloneSelected()" style="display:none;margin-left:auto">Clone Selected (0)</button>
     </div>
     <div class="tw" id="today-bets"></div>
   </div>
@@ -335,17 +351,29 @@ select option{background:var(--sel-opt)}
     <div class="card"><div class="tw" id="data-monthly"></div></div>
   </div>
   <div class="data-section">
-    <h3>Bonus Bets</h3>
-    <div class="card"><div class="tw" id="data-bonuses"></div></div>
-  </div>
-  <div style="height:12px"></div>
-  <div class="data-section">
-    <h3>By Promo Type</h3>
-    <div class="card"><div class="tw" id="data-promos"></div></div>
+    <div class="dsec-hdr" onclick="toggleDataSec('bonuses')"><h3>Bonus Bets</h3><span id="dchev-bonuses" class="dsec-chev">▼</span></div>
+    <div id="data-bonuses-stats"></div>
+    <div id="dsec-bonuses"><div class="card"><div class="tw" id="data-bonuses"></div></div></div>
   </div>
   <div class="data-section">
-    <h3>By Non-Promo Type</h3>
-    <div class="card"><div class="tw" id="data-nonpromos"></div></div>
+    <div class="dsec-hdr" onclick="toggleDataSec('promos')"><h3>By Promo Type</h3><span id="dchev-promos" class="dsec-chev">▼</span></div>
+    <div id="data-promos-stats"></div>
+    <div id="dsec-promos"><div class="card"><div class="tw" id="data-promos"></div></div></div>
+  </div>
+  <div class="data-section">
+    <div class="dsec-hdr" onclick="toggleDataSec('nonpromos')"><h3>By Non-Promo Type</h3><span id="dchev-nonpromos" class="dsec-chev">▼</span></div>
+    <div id="data-nonpromos-stats"></div>
+    <div id="dsec-nonpromos"><div class="card"><div class="tw" id="data-nonpromos"></div></div></div>
+  </div>
+  <div class="data-section">
+    <div class="dsec-hdr" onclick="toggleDataSec('bookies')"><h3>By Bookie</h3><span id="dchev-bookies" class="dsec-chev">▼</span></div>
+    <div id="data-bookies-stats"></div>
+    <div id="dsec-bookies"><div class="card"><div class="tw" id="data-bookies"></div></div></div>
+  </div>
+  <div class="data-section">
+    <div class="dsec-hdr" onclick="toggleDataSec('weekly')"><h3>Weekly Averages</h3><span id="dchev-weekly" class="dsec-chev">▼</span></div>
+    <div id="data-weekly-stats"></div>
+    <div id="dsec-weekly"><div class="card"><div class="tw" id="data-weekly"></div></div></div>
   </div>
 </div>
 
@@ -392,6 +420,18 @@ select option{background:var(--sel-opt)}
       <div class="flex gap-2 fw" style="margin-top:12px">
         <input type="text" id="new-npt-name" placeholder="Type name" style="width:195px">
         <button class="btn btn-s btn-sm" onclick="addNPT()">Add</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="acc-card" id="acc-btypes">
+    <div class="acc-hdr" onclick="toggleAcc('btypes')"><span>Bonus Types</span><span class="acc-chev">▼</span></div>
+    <div class="acc-body" style="display:none">
+      <p style="font-size:11px;color:#64748b;margin-bottom:10px">Used on bonus cards to categorise your turnover. Default is Horses.</p>
+      <div id="btypes-list"></div>
+      <div class="flex gap-2 fw" style="margin-top:12px">
+        <input type="text" id="new-btype-name" placeholder="e.g. Dogs" style="width:195px">
+        <button class="btn btn-s btn-sm" onclick="addBonusType()">Add</button>
       </div>
     </div>
   </div>
@@ -557,7 +597,8 @@ select option{background:var(--sel-opt)}
 
 <script>
 // ── CONSTANTS ────────────────────────────────────────────────────────────────
-const K={bets:'mb_bets',bonuses:'mb_bonuses',bookies:'mb_bookies',promos:'mb_promos',npt:'mb_npt',adj:'mb_adj',settings:'mb_settings'};
+const K={bets:'mb_bets',bonuses:'mb_bonuses',bookies:'mb_bookies',promos:'mb_promos',npt:'mb_npt',adj:'mb_adj',settings:'mb_settings',btypes:'mb_btypes'};
+const DEF_BONUS_TYPES=['Horses','Dogs','Trots','Sports'];
 const DEF_BOOKIES=[{n:'TAB',a:'TAB'},{n:'Sportsbet',a:'SB'},{n:'Bet365',a:'365'},{n:'Neds',a:'Neds'},{n:'Ladbrokes',a:'Lads'},{n:'Unibet',a:'UB'},{n:'BlueBet',a:'BB'},{n:'Pointsbet',a:'PB'}].map(b=>({id:uid(),name:b.n,alias:b.a,active:true}));
 const DEF_PROMOS=['2nd 3rd Back','2nd Back','Double Winnings','25% Bonus Boost','Dogs Boost','Horse Boost','Trots Boost','Sports Boost','3 Leg 1 Fail','Free Hit','2 Leg Free Hit','365 Megaboost'].map(n=>({id:uid(),name:n}));
 const DEF_NPT=['horses','trotters','dogs','rocketboost','HKR','Degen','H2H','Price Comparison','Bet365 multiboost','Pinnacle EV Multi','Pinnacle EV','Top 4 multi','Betfair EV','Tab -1','First team scorer','NZ Gallop','2 Way Dutch'].map(n=>({id:uid(),name:n}));
@@ -718,6 +759,7 @@ function init(){
   if(!localStorage.getItem(K.promos))ss(K.promos,DEF_PROMOS);
   if(!localStorage.getItem(K.npt))ss(K.npt,DEF_NPT);
   if(!localStorage.getItem(K.settings))ss(K.settings,DEF_SETTINGS);
+  if(!localStorage.getItem(K.btypes))ss(K.btypes,DEF_BONUS_TYPES);
 }
 
 // ── ACCORDION ────────────────────────────────────────────────────────────────
@@ -816,7 +858,7 @@ function renderDashboard(){
       const evPromo=mb.filter(b=>b.betCategory==='promo'&&b.result!=='Void').reduce((s,b)=>{const pr=promos.find(p=>p.id===b.promoId);return s+(pr&&pr.ev?pr.ev/100:0)*b.stake},0);
       const evNP=mb.filter(b=>b.betCategory==='non-promo'&&b.fixedOdds&&b.bsp).reduce((s,b)=>s+(b.fixedOdds/b.bsp-1)*b.stake,0);
       const ev=evPromo+evNP;
-      const lbl=cur.toLocaleDateString('en-AU',{month:'short',year:'2-digit'});
+      const lbl=cur.toLocaleDateString('en-AU',{month:'short',year:'numeric'});
       mon.push({lbl,total:cashP+bonP+adjP,ev});
       cur=new Date(y,m+1,1);
     }
@@ -882,7 +924,7 @@ function getMonthlyRows(bets,bonuses,n){
     const cfg=ls(K.settings,DEF_SETTINGS);
     const extR=bonFace>0?bonP/bonFace*100:0;
     const expP=turnover*(trigR||cfg.triggerRate)/100*(extR||cfg.extractionRate)/100;
-    return{lbl:d.toLocaleDateString('en-AU',{month:'short',year:'2-digit'}),y,m,bets:nonVoid.length,turnover,avgOdds,triggers,trigR,cashP,bonP,adjP,total:cashP+bonP+adjP,bonFace,extR,expP,netPct:turnover?(cashP+bonP+adjP)/turnover*100:0};
+    return{lbl:d.toLocaleDateString('en-AU',{month:'short',year:'numeric'}),y,m,bets:nonVoid.length,turnover,avgOdds,triggers,trigR,cashP,bonP,adjP,total:cashP+bonP+adjP,bonFace,extR,expP,netPct:turnover?(cashP+bonP+adjP)/turnover*100:0};
   });
 }
 
@@ -1047,7 +1089,7 @@ function saveBet(){
   const bet={id:uid(),date,bookieId,promoId,nonPromoType,betCategory:betCat,stake,fixedOdds,bsp,result,notes,createdAt:new Date().toISOString()};
   const bets=ls(K.bets,[]);bets.push(bet);ss(K.bets,bets);
   if(result==='Bonus'&&betCat==='promo'){
-    const bonus={id:uid(),parentBetId:bet.id,bookieId,bonusAmount:stake,fixedOdds:null,bsp:null,result:'Pending',sourceType:'promo',createdAt:new Date().toISOString()};
+    const bonus={id:uid(),parentBetId:bet.id,bookieId,bonusAmount:stake,fixedOdds:null,bsp:null,result:'Pending',sourceType:'promo',bonusType:'Horses',createdAt:new Date().toISOString()};
     const bonuses=ls(K.bonuses,[]);bonuses.push(bonus);ss(K.bonuses,bonuses);
     toast('Bonus triggered — turn it over!','info');
   }else toast('Bet saved');
@@ -1123,12 +1165,66 @@ function deleteBet(id){
 }
 function _updCloneBtn(){const b=document.getElementById('clone-btn');if(b){b.style.display=window._sel.size?'inline-block':'none';b.textContent=`Clone Selected (${window._sel.size})`;}}
 function toggleBetCheck(id){if(window._sel.has(id))window._sel.delete(id);else window._sel.add(id);_updCloneBtn();}
+let _histPreset='week',_histFrom=null,_histTo=null;
+function _fmtDateShort(d){return d.toLocaleDateString('en-AU',{day:'2-digit',month:'short'});}
+function setHistPreset(p,btn){
+  _histPreset=p;
+  document.querySelectorAll('#lhist-week,#lhist-lastweek,#lhist-month,#lhist-all,#lhist-custom').forEach(b=>b&&b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  const cr=document.getElementById('lhist-custom-range');
+  if(cr)cr.style.display=p==='custom'?'flex':'none';
+  const now=new Date();now.setHours(0,0,0,0);
+  const lbl=document.getElementById('lhist-range-lbl');
+  if(p==='week'){
+    const dow=now.getDay()||7;
+    _histFrom=new Date(now);_histFrom.setDate(now.getDate()-dow+1);
+    const sun=new Date(_histFrom);sun.setDate(_histFrom.getDate()+6);
+    _histTo=null;
+    if(lbl)lbl.textContent=_fmtDateShort(_histFrom)+' – '+_fmtDateShort(sun);
+  }else if(p==='lastweek'){
+    const dow=now.getDay()||7;
+    const mon=new Date(now);mon.setDate(now.getDate()-dow+1);
+    _histFrom=new Date(mon);_histFrom.setDate(mon.getDate()-7);
+    _histTo=new Date(mon);_histTo.setDate(mon.getDate()-1);_histTo.setHours(23,59,59,999);
+    if(lbl)lbl.textContent=_fmtDateShort(_histFrom)+' – '+_fmtDateShort(_histTo);
+  }else if(p==='month'){
+    _histFrom=new Date(now.getFullYear(),now.getMonth(),1);_histTo=null;
+    if(lbl)lbl.textContent='';
+  }else if(p==='all'){
+    _histFrom=null;_histTo=null;
+    if(lbl)lbl.textContent='';
+  }else{
+    const f=document.getElementById('lhist-from')?.value;
+    const t=document.getElementById('lhist-to')?.value;
+    _histFrom=f?new Date(f+'T00:00:00'):null;
+    _histTo=t?new Date(t+'T23:59:59'):null;
+    if(lbl)lbl.textContent='';
+  }
+  renderTodayBets();
+}
 function renderTodayBets(){
-  const bets=ls(K.bets,[]).filter(b=>b.date===today()&&b.betCategory===betCat).sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
+  let allBets=ls(K.bets,[]).filter(b=>b.betCategory===betCat);
+  // apply history filter
+  if(_histPreset==='custom'){
+    const f=document.getElementById('lhist-from')?.value;
+    const t=document.getElementById('lhist-to')?.value;
+    _histFrom=f?new Date(f+'T00:00:00'):null;
+    _histTo=t?new Date(t+'T23:59:59'):null;
+  }
+  if(_histFrom||_histTo){
+    allBets=allBets.filter(b=>{
+      const d=new Date(b.date+'T00:00:00');
+      if(_histFrom&&d<_histFrom)return false;
+      if(_histTo&&d>_histTo)return false;
+      return true;
+    });
+  }
+  const bets=allBets.sort((a,b)=>new Date(b.date||0)-new Date(a.date||0)||new Date(b.createdAt||0)-new Date(a.createdAt||0));
   const cfg=ls(K.settings,DEF_SETTINGS);
   const el=document.getElementById('today-bets');
-  if(!bets.length){el.innerHTML='<div class="empty">No bets today</div>';return}
-  el.innerHTML=`<table><thead><tr><th></th><th>Bookie</th><th>Type</th><th>Stake</th><th>Odds</th><th>BSP</th><th>P&L</th><th>EV</th><th>Result</th><th>Quick BSP</th><th></th></tr></thead><tbody>${bets.map(b=>{const p=betPnl(b);const ev=betEV(b,cfg);return`<tr id="bet-row-${b.id}"><td><input type="checkbox" onchange="toggleBetCheck('${b.id}')" ${window._sel.has(b.id)?'checked':''} style="cursor:pointer;accent-color:#6366f1;width:15px;height:15px"></td><td>${bkName(b.bookieId)}</td><td>${betType(b)}</td><td>${fmt$(b.stake)}</td><td>${b.fixedOdds}</td><td>${b.bsp||'-'}</td><td class="${clr(p)}">${fmt$(p)}</td><td class="am">${ev!=null?fmt$(ev):'-'}</td><td>${badge(b.result)}</td><td><div class="flex gap-2 items-center"><input class="inp-sm" type="number" id="bsp-${b.id}" value="${b.bsp||''}" placeholder="BSP" step="0.01"><button class="btn btn-s btn-xs" onclick="saveBSP('${b.id}')">Set</button></div></td><td><button class="btn btn-s btn-xs" onclick="editBet('${b.id}')">Edit</button></td></tr>`}).join('')}</tbody></table>`;
+  const emptyMsg=_histPreset==='week'?'No bets this week':_histPreset==='lastweek'?'No bets last week':_histPreset==='month'?'No bets this month':'No bets';
+  if(!bets.length){el.innerHTML=`<div class="empty">${emptyMsg}</div>`;return}
+  el.innerHTML=`<table><thead><tr><th></th><th>Date</th><th>Bookie</th><th>Type</th><th>Stake</th><th>Odds</th><th>BSP</th><th>P&L</th><th>EV</th><th>Result</th><th>Quick BSP</th><th></th></tr></thead><tbody>${bets.map(b=>{const p=betPnl(b);const ev=betEV(b,cfg);return`<tr id="bet-row-${b.id}"><td><input type="checkbox" onchange="toggleBetCheck('${b.id}')" ${window._sel.has(b.id)?'checked':''} style="cursor:pointer;accent-color:#6366f1;width:15px;height:15px"></td><td>${fmtD(b.date)}</td><td>${bkName(b.bookieId)}</td><td>${betType(b)}</td><td>${fmt$(b.stake)}</td><td>${b.fixedOdds||'-'}</td><td>${b.bsp||'-'}</td><td class="${clr(p)}">${fmt$(p)}</td><td class="am">${ev!=null?fmt$(ev):'-'}</td><td>${badge(b.result)}</td><td><div class="flex gap-2 items-center"><input class="inp-sm" type="number" id="bsp-${b.id}" value="${b.bsp||''}" placeholder="BSP" step="0.01"><button class="btn btn-s btn-xs" onclick="saveBSP('${b.id}')">Set</button></div></td><td><button class="btn btn-s btn-xs" onclick="editBet('${b.id}')">Edit</button></td></tr>`}).join('')}</tbody></table>`;
 }
 
 function renderPendingBets(){
@@ -1245,7 +1341,7 @@ function settleBet(id,result){
   b.result=result;if(bsp)b.bsp=bsp;
   ss(K.bets,bets);
   if(result==='Bonus'&&b.betCategory==='promo'){
-    const bonus={id:uid(),parentBetId:b.id,bookieId:b.bookieId,bonusAmount:b.stake,fixedOdds:null,bsp:null,result:'Pending',sourceType:'promo',createdAt:new Date().toISOString()};
+    const bonus={id:uid(),parentBetId:b.id,bookieId:b.bookieId,bonusAmount:b.stake,fixedOdds:null,bsp:null,result:'Pending',sourceType:'promo',bonusType:'Horses',createdAt:new Date().toISOString()};
     const bonuses=ls(K.bonuses,[]);bonuses.push(bonus);ss(K.bonuses,bonuses);
     toast('Bonus triggered!','info');
   }else toast(`Settled: ${result}`);
@@ -1272,7 +1368,7 @@ function addDepositMatch(){
   const amount=parseFloat(document.getElementById('dm-amount').value);
   const notes=document.getElementById('dm-notes').value.trim();
   if(!bookieId||!amount){toast('Enter bookie and amount','warn');return}
-  const bonus={id:uid(),parentBetId:null,bookieId,bonusAmount:amount,fixedOdds:null,bsp:null,result:'Pending',sourceType:'deposit_match',notes,createdAt:new Date().toISOString()};
+  const bonus={id:uid(),parentBetId:null,bookieId,bonusAmount:amount,fixedOdds:null,bsp:null,result:'Pending',sourceType:'deposit_match',bonusType:'Horses',notes,createdAt:new Date().toISOString()};
   const bonuses=ls(K.bonuses,[]);bonuses.push(bonus);ss(K.bonuses,bonuses);
   document.getElementById('dm-amount').value='';document.getElementById('dm-notes').value='';
   hideDMForm();toast('Deposit match added','info');renderBonuses();
@@ -1283,11 +1379,13 @@ function renderBonuses(){
   const pending=bonuses.filter(b=>b.result==='Pending');
   const completed=bonuses.filter(b=>b.result!=='Pending').sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
   const pel=document.getElementById('pending-list');
+  const btypes=ls(K.btypes,DEF_BONUS_TYPES);
   // save typed-but-unsaved odds/bsp values across re-renders
   const _sv={};document.querySelectorAll('[id^="pb-odds-"],[id^="pb-bsp-"]').forEach(el=>{if(el.value)_sv[el.id]=el.value});
   if(!pending.length){pel.innerHTML='<div class="empty">No pending bonuses — all clear</div>'}
-  else{pel.innerHTML=pending.map(b=>`
-    <div class="pcard">
+  else{pel.innerHTML=pending.map(b=>{
+    const btOpts=btypes.map(t=>`<option value="${t}"${(b.bonusType||'Horses')===t?' selected':''}>${t}</option>`).join('');
+    return`<div class="pcard">
       <div class="pinfo">
         <div class="pname">${bkName(b.bookieId)}</div>
         <div class="pamount">${fmt$(b.bonusAmount)}</div>
@@ -1296,6 +1394,7 @@ function renderBonuses(){
         ${b.notes?`<div class="pdate" style="color:#64748b">${b.notes}</div>`:''}
       </div>
       <div class="pinputs">
+        <select style="width:82px;padding:4px 6px;font-size:11px" onchange="saveBonusType('${b.id}',this.value)">${btOpts}</select>
         <input class="inp-sm" type="number" id="pb-odds-${b.id}" placeholder="Odds" step="0.01" min="1.01" onkeydown="bonusFieldKey(event,'${b.id}','odds')" oninput="updateBonusEV('${b.id}')">
         <input class="inp-sm" type="number" id="pb-bsp-${b.id}" placeholder="BSP" step="0.01" onkeydown="bonusFieldKey(event,'${b.id}','bsp')" oninput="updateBonusEV('${b.id}')">
         <span id="pb-ev-${b.id}" style="font-size:11px;color:#22c55e;font-weight:700;align-self:center"></span>
@@ -1304,7 +1403,8 @@ function renderBonuses(){
         <button class="btn btn-purple btn-sm" onclick="openSplit('${b.id}')">Split</button>
         <button class="btn btn-d btn-sm" onclick="deleteBonus('${b.id}','${b.bonusAmount}')">Delete</button>
       </div>
-    </div>`).join('')}
+    </div>`;
+  }).join('')}
   // restore saved values
   Object.entries(_sv).forEach(([id,v])=>{const el=document.getElementById(id);if(el){el.value=v;const bid=id.replace('pb-odds-','').replace('pb-bsp-','');updateBonusEV(bid);}});
 
@@ -1373,6 +1473,22 @@ function deleteCompletedBonus(id){
   if(!confirm('Delete this bonus record?'))return;
   ss(K.bonuses,ls(K.bonuses,[]).filter(b=>b.id!==id));
   renderBonuses();renderDashboard();toast('Deleted');
+}
+function saveBonusType(id,type){
+  const bonuses=ls(K.bonuses,[]);const b=bonuses.find(x=>x.id===id);
+  if(b){b.bonusType=type;ss(K.bonuses,bonuses);}
+}
+function addBonusType(){
+  const n=document.getElementById('new-btype-name').value.trim();
+  if(!n){toast('Enter type name','warn');return}
+  const t=ls(K.btypes,DEF_BONUS_TYPES);t.push(n);
+  ss(K.btypes,t);document.getElementById('new-btype-name').value='';
+  renderSettings();toast('Bonus type added');
+}
+function removeBonusType(i){
+  if(!confirm('Remove?'))return;
+  const t=ls(K.btypes,DEF_BONUS_TYPES);t.splice(i,1);
+  ss(K.btypes,t);renderSettings();toast('Removed');
 }
 // ── SPLIT ─────────────────────────────────────────────────────────────────────
 let splitTarget=null,splitMode='custom';
@@ -1465,13 +1581,15 @@ function setPreset(preset,btn){
   btn.classList.add('active');
   const cr=document.getElementById('custom-range');
   cr.classList.remove('show');
-  document.getElementById('range-label').textContent='';
+  const lbl=document.getElementById('range-label');
+  if(lbl)lbl.textContent='';
   const now=new Date();
   const startOf=d=>{const x=new Date(d);x.setHours(0,0,0,0);return x};
   const endOf=d=>{const x=new Date(d);x.setHours(23,59,59,999);return x};
+  const fmtDS=d=>d.toLocaleDateString('en-AU',{day:'2-digit',month:'short'});
   if(preset==='all'){drFrom=null;drTo=null}
-  else if(preset==='week'){const dow=now.getDay()||7;drFrom=startOf(new Date(now.getFullYear(),now.getMonth(),now.getDate()-dow+1));drTo=endOf(now)}
-  else if(preset==='lastweek'){const dow=now.getDay()||7;const ms=new Date(now.getFullYear(),now.getMonth(),now.getDate()-dow+1);drFrom=startOf(new Date(ms-7*864e5));drTo=endOf(new Date(ms-864e5))}
+  else if(preset==='week'){const dow=now.getDay()||7;drFrom=startOf(new Date(now.getFullYear(),now.getMonth(),now.getDate()-dow+1));drTo=endOf(now);const sun=new Date(drFrom);sun.setDate(drFrom.getDate()+6);if(lbl)lbl.textContent=fmtDS(drFrom)+' – '+fmtDS(sun);}
+  else if(preset==='lastweek'){const dow=now.getDay()||7;const ms=new Date(now.getFullYear(),now.getMonth(),now.getDate()-dow+1);drFrom=startOf(new Date(ms-7*864e5));drTo=endOf(new Date(ms-864e5));if(lbl)lbl.textContent=fmtDS(drFrom)+' – '+fmtDS(drTo);}
   else if(preset==='month'){drFrom=startOf(new Date(now.getFullYear(),now.getMonth(),1));drTo=endOf(now)}
   else if(preset==='lastmonth'){drFrom=startOf(new Date(now.getFullYear(),now.getMonth()-1,1));drTo=endOf(new Date(now.getFullYear(),now.getMonth(),0))}
   else if(preset==='3m'){drFrom=startOf(new Date(now.getFullYear(),now.getMonth()-3,now.getDate()));drTo=endOf(now)}
@@ -1499,6 +1617,14 @@ function inRange(dateStr){
 }
 
 // ── DATA TAB ─────────────────────────────────────────────────────────────────
+const _dSec={};
+function toggleDataSec(id){
+  _dSec[id]=!_dSec[id];
+  const body=document.getElementById('dsec-'+id);
+  const chev=document.getElementById('dchev-'+id);
+  if(body)body.style.display=_dSec[id]?'none':'';
+  if(chev)chev.textContent=_dSec[id]?'▶':'▼';
+}
 function renderData(){
   let bets=ls(K.bets,[]),bonuses=activeBonuses(),cfg=ls(K.settings,DEF_SETTINGS);
   if(drFrom||drTo){
@@ -1509,6 +1635,8 @@ function renderData(){
   renderBonusData(bonuses,cfg);
   renderPromoData(bets,bonuses,cfg);
   renderNonPromoData(bets,cfg);
+  renderBookieData(bets,bonuses,cfg);
+  renderWeeklyAvg(bets,bonuses,cfg);
 }
 
 function renderMonthlyData(bets,bonuses,cfg){
@@ -1519,7 +1647,7 @@ function renderMonthlyData(bets,bonuses,cfg){
   const now=new Date();
   const months=[];
   let d=new Date(minD.getFullYear(),minD.getMonth(),1);
-  while(d<=now){months.push({y:d.getFullYear(),m:d.getMonth(),lbl:d.toLocaleDateString('en-AU',{month:'short',year:'2-digit'})});d=new Date(d.getFullYear(),d.getMonth()+1,1)}
+  while(d<=now){months.push({y:d.getFullYear(),m:d.getMonth(),lbl:d.toLocaleDateString('en-AU',{month:'short',year:'numeric'})});d=new Date(d.getFullYear(),d.getMonth()+1,1)}
   const rows=months.map(mo=>{
     const mb=bets.filter(b=>{const dd=new Date(b.date);return dd.getFullYear()===mo.y&&dd.getMonth()===mo.m});
     const mn=bonuses.filter(b=>{const dd=new Date(b.createdAt);return dd.getFullYear()===mo.y&&dd.getMonth()===mo.m&&b.result!=='Pending'});
@@ -1533,7 +1661,10 @@ function renderMonthlyData(bets,bonuses,cfg){
     const bonFace=mn.reduce((s,b)=>s+b.bonusAmount,0);
     const bonP=mn.reduce((s,b)=>s+bonusPnl(b),0);
     const total=cashP+bonP;
-    const expP=turnover*(trigR||cfg.triggerRate)/100*(cfg.extractionRate)/100;
+    const promosList=ls(K.promos,[]);
+    const evPromo=mb.filter(b=>b.betCategory==='promo'&&b.result!=='Void').reduce((s,b)=>{const pr=promosList.find(p=>p.id===b.promoId);return s+(pr&&pr.ev?pr.ev/100:0)*b.stake},0);
+    const evNP=mb.filter(b=>b.betCategory==='non-promo'&&b.fixedOdds&&b.bsp&&b.result!=='Void').reduce((s,b)=>s+(b.fixedOdds/b.bsp-1)*b.stake,0);
+    const expP=evPromo+evNP;
     const netPct=turnover?total/turnover*100:0;
     return{lbl:mo.lbl,bets:nv.length,turnover,avgOdds,triggers,trigR,bonFace,cashP,bonP,total,expP,netPct};
   }).filter(Boolean);
@@ -1561,19 +1692,38 @@ function renderMonthlyData(bets,bonuses,cfg){
 
 function renderBonusData(bonuses,cfg){
   const el=document.getElementById('data-bonuses');if(!el)return;
+  const statsEl=document.getElementById('data-bonuses-stats');
   const completed=bonuses.filter(b=>b.result!=='Pending');
-  if(!completed.length){el.innerHTML='<div class="empty">No completed bonus bets</div>';return}
+  if(!completed.length){if(statsEl)statsEl.innerHTML='';el.innerHTML='<div class="empty">No completed bonus bets</div>';return}
   const wonB=completed.filter(b=>b.result==='Win'&&b.fixedOdds);
   const face=completed.reduce((s,b)=>s+b.bonusAmount,0);
   const pnl=completed.reduce((s,b)=>s+bonusPnl(b),0);
   const winR=completed.length?wonB.length/completed.length*100:0;
   const extR=face>0?pnl/face*100:cfg.extractionRate;
-  el.innerHTML=`<div class="totals" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+  const types=[...new Set(completed.map(b=>b.bonusType||'Horses'))].sort();
+  const typeRows=types.map(t=>{
+    const tb=completed.filter(b=>(b.bonusType||'Horses')===t);
+    const tf=tb.reduce((s,b)=>s+b.bonusAmount,0);
+    const tp=tb.reduce((s,b)=>s+bonusPnl(b),0);
+    const tw=tb.filter(b=>b.result==='Win').length;
+    const tl=tb.filter(b=>b.result==='Loss').length;
+    const te=tf>0?tp/tf*100:0;
+    const evBets=tb.filter(b=>b.fixedOdds&&b.bsp);
+    const avgEV=evBets.length?evBets.reduce((s,b)=>s+(b.fixedOdds-1)/b.bsp*100,0)/evBets.length:null;
+    return{type:t,bets:tb.length,wins:tw,losses:tl,face:tf,pnl:tp,ext:te,avgEV};
+  });
+  if(statsEl)statsEl.innerHTML=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0">
     <div class="stat"><div class="stat-lbl">Total Bonus Face</div><div class="stat-val mu">${fmt$(face)}</div></div>
     <div class="stat"><div class="stat-lbl">Bonus P&L</div><div class="stat-val ${clr(pnl)}">${fmt$(pnl)}</div></div>
     <div class="stat"><div class="stat-lbl">Overall Extraction</div><div class="stat-val bl">${fmtP(extR)}</div><div class="stat-sub">Across all bonus bets</div></div>
     <div class="stat"><div class="stat-lbl">Win Rate</div><div class="stat-val bl">${fmtP(winR)}</div></div>
   </div>`;
+  el.innerHTML=typeRows.length>1?`<table><thead><tr><th>Type</th><th># Bets</th><th>W/L</th><th>Face</th><th>P&L</th><th>Extraction</th><th>Avg EV%</th></tr></thead><tbody>${typeRows.map(r=>`<tr>
+    <td style="font-weight:600;color:var(--tx)">${r.type}</td><td>${r.bets}</td>
+    <td><span class="g">${r.wins}W</span> / <span class="r">${r.losses}L</span></td>
+    <td class="mu">${fmt$(r.face)}</td><td class="${clr(r.pnl)}">${fmt$(r.pnl)}</td>
+    <td class="bl">${fmtP(r.ext)}</td><td class="am">${r.avgEV!=null?fmtP(r.avgEV):'-'}</td>
+  </tr>`).join('')}</tbody></table>`:'<div style="color:#64748b;font-size:12px;padding:4px 0">Only one bonus type — no breakdown needed.</div>';
 }
 
 function renderPromoData(bets,bonuses,cfg){
@@ -1609,35 +1759,46 @@ function renderPromoData(bets,bonuses,cfg){
     if(!pb.length)return null;
     const turnover=pb.reduce((s,b)=>s+b.stake,0);
     const avgOdds=pb.reduce((s,b)=>s+b.fixedOdds,0)/pb.length;
+    const wins=pb.filter(b=>b.result==='Win').length;
+    const losses=pb.filter(b=>b.result==='Loss').length;
     const triggers=pb.filter(b=>b.result==='Bonus');
     const trigR=pb.length?triggers.length/pb.length*100:0;
     const cashP=pb.reduce((s,b)=>s+betPnl(b),0);
-    // bonus face = sum of trigger stakes (face value of free bets given out per promo)
     const bonFace=triggers.reduce((s,b)=>s+b.stake,0);
-    // bonus P&L = face × global extraction rate (individual bonus bets not linked to specific promos)
     const bonP=bonFace*(globalExtR/100);
     const total=cashP+bonP;
-    const expP=turnover*(trigR||cfg.triggerRate)/100*(globalExtR||cfg.extractionRate)/100;
+    const expP=(pr.ev?pr.ev/100:0)*turnover;
     const netPct=turnover?total/turnover*100:0;
-    return{name:pr.name,bets:pb.length,turnover,avgOdds,triggers:triggers.length,trigR,bonFace,cashP,bonP,total,expP,netPct};
+    return{name:pr.name,bets:pb.length,wins,losses,turnover,avgOdds,triggers:triggers.length,trigR,bonFace,cashP,bonP,total,expP,netPct};
   }).filter(Boolean).sort((a,b)=>b.bets-a.bets);
   const allRows=rows;
-  if(!allRows.length){document.getElementById('data-promos').innerHTML='<div class="empty">No data</div>';return}
-  const tot={bets:sum(allRows,'bets'),turnover:sum(allRows,'turnover'),triggers:sum(allRows,'triggers'),cashP:sum(allRows,'cashP'),bonP:sum(allRows,'bonP'),total:sum(allRows,'total'),expP:sum(allRows,'expP'),bonFace:sum(allRows,'bonFace')};
+  const promosStatsEl=document.getElementById('data-promos-stats');
+  if(!allRows.length){if(promosStatsEl)promosStatsEl.innerHTML='';document.getElementById('data-promos').innerHTML='<div class="empty">No data</div>';return}
+  const tot={bets:sum(allRows,'bets'),wins:sum(allRows,'wins'),losses:sum(allRows,'losses'),triggers:sum(allRows,'triggers'),turnover:sum(allRows,'turnover'),cashP:sum(allRows,'cashP'),bonP:sum(allRows,'bonP'),total:sum(allRows,'total'),expP:sum(allRows,'expP'),bonFace:sum(allRows,'bonFace')};
   const totNetPct=tot.turnover?tot.total/tot.turnover*100:0;
   const totTrigR=tot.bets?tot.triggers/tot.bets*100:0;
-  document.getElementById('data-promos').innerHTML=`
-    <table>
-      <thead><tr><th>Promo Type</th><th># Bets</th><th>Turnover</th><th>Avg Odds</th><th>Triggers</th><th>Trig %</th><th>Bonus Face</th><th>Cash P&L</th><th>Bonus P&L</th><th>Net %</th><th>EV</th><th class="profit-col">PROFIT</th></tr></thead>
-      <tbody>${allRows.map(r=>`<tr ${r.isNonPromo?'style="opacity:0.85"':''}>
-        <td style="font-weight:600;color:#e2e8f0">${r.name}</td><td>${r.bets}</td><td class="mu">${fmt$(r.turnover)}</td><td class="mu">${fmtO(r.avgOdds)}</td>
-        <td>${r.isNonPromo?'-':r.triggers}</td><td class="bl">${r.isNonPromo?'-':fmtP(r.trigR)}</td><td class="mu">${r.bonFace?fmt$(r.bonFace):'-'}</td>
-        <td class="${clr(r.cashP)}">${fmt$(r.cashP)}</td><td class="${clr(r.bonP)}">${r.isNonPromo?'-':fmt$(r.bonP)}</td>
+  if(promosStatsEl)promosStatsEl.innerHTML=`<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:10px 0">
+    <div class="stat"><div class="stat-lbl">Total P&L</div><div class="stat-val ${clr(tot.total)}">${fmt$(tot.total)}</div></div>
+    <div class="stat"><div class="stat-lbl">Total EV</div><div class="stat-val am">${fmt$(tot.expP)}</div></div>
+    <div class="stat"><div class="stat-lbl">Wins</div><div class="stat-val g">${tot.wins}</div></div>
+    <div class="stat"><div class="stat-lbl">Losses</div><div class="stat-val r">${tot.losses}</div></div>
+    <div class="stat"><div class="stat-lbl">Bonuses (Triggers)</div><div class="stat-val bl">${tot.triggers}</div></div>
+  </div>`;
+  document.getElementById('data-promos').innerHTML=`<table>
+      <thead><tr><th>Promo Type</th><th># Bets</th><th>W/L/B</th><th>Turnover</th><th>Avg Odds</th><th>Bonus Face</th><th>Cash P&L</th><th>Bonus P&L</th><th>Net %</th><th>EV</th><th class="profit-col">PROFIT</th></tr></thead>
+      <tbody>${allRows.map(r=>`<tr>
+        <td style="font-weight:600;color:var(--tx)">${r.name}</td><td>${r.bets}</td>
+        <td><span class="g">${r.wins}W</span> <span class="r">${r.losses}L</span> <span class="bl">${r.triggers}B</span></td>
+        <td class="mu">${fmt$(r.turnover)}</td><td class="mu">${fmtO(r.avgOdds)}</td>
+        <td class="mu">${r.bonFace?fmt$(r.bonFace):'-'}</td>
+        <td class="${clr(r.cashP)}">${fmt$(r.cashP)}</td><td class="${clr(r.bonP)}">${fmt$(r.bonP)}</td>
         <td class="${clr(r.netPct)}">${fmtP(r.netPct)}</td><td class="am">${r.expP?fmt$(r.expP):'-'}</td><td class="profit-col ${clr(r.total)}">${fmt$(r.total)}</td>
       </tr>`).join('')}</tbody>
       <tfoot><tr>
-        <td>Total</td><td>${tot.bets}</td><td>${fmt$(tot.turnover)}</td><td>-</td>
-        <td>${tot.triggers}</td><td class="bl">${fmtP(totTrigR)}</td><td>${fmt$(tot.bonFace)}</td>
+        <td>Total</td><td>${tot.bets}</td>
+        <td><span class="g">${tot.wins}W</span> <span class="r">${tot.losses}L</span> <span class="bl">${tot.triggers}B</span></td>
+        <td>${fmt$(tot.turnover)}</td><td>-</td>
+        <td>${fmt$(tot.bonFace)}</td>
         <td class="${clr(tot.cashP)}">${fmt$(tot.cashP)}</td><td class="${clr(tot.bonP)}">${fmt$(tot.bonP)}</td>
         <td class="${clr(totNetPct)}">${fmtP(totNetPct)}</td><td>${fmt$(tot.expP)}</td><td class="profit-col ${clr(tot.total)}">${fmt$(tot.total)}</td>
       </tr></tfoot>
@@ -1647,11 +1808,70 @@ function renderPromoData(bets,bonuses,cfg){
 
 function sum(rows,key){return rows.reduce((s,r)=>s+(r[key]||0),0)}
 
+function renderWeeklyAvg(bets,bonuses,cfg){
+  const el=document.getElementById('data-weekly');if(!el)return;
+  const nonVoid=bets.filter(b=>b.result!=='Void');
+  if(!nonVoid.length){el.innerHTML='<div class="empty">No data</div>';return}
+  // group bets by ISO week (Mon start)
+  function isoWeek(dateStr){
+    const d=new Date(dateStr+'T00:00:00');
+    const dow=d.getDay()||7;// 1=Mon..7=Sun
+    const mon=new Date(d);mon.setDate(d.getDate()-dow+1);
+    return mon.toISOString().split('T')[0];
+  }
+  const weeks={};
+  nonVoid.forEach(b=>{const w=isoWeek(b.date);if(!weeks[w])weeks[w]={bets:[],bonuses:[]};weeks[w].bets.push(b);});
+  bonuses.filter(b=>b.result!=='Pending').forEach(b=>{const w=isoWeek(b.createdAt.split('T')[0]);if(weeks[w])weeks[w].bonuses.push(b);});
+  const wKeys=Object.keys(weeks).sort();
+  const promos=ls(K.promos,[]);
+  const wRows=wKeys.map(w=>{
+    const wb=weeks[w].bets;const wbn=weeks[w].bonuses;
+    const cashP=wb.reduce((s,b)=>s+betPnl(b),0);
+    const bonP=wbn.reduce((s,b)=>s+bonusPnl(b),0);
+    const evPromo=wb.filter(b=>b.betCategory==='promo').reduce((s,b)=>{const pr=promos.find(p=>p.id===b.promoId);return s+(pr&&pr.ev?pr.ev/100:0)*b.stake},0);
+    const evNP=wb.filter(b=>b.betCategory==='non-promo'&&b.fixedOdds&&b.bsp).reduce((s,b)=>s+(b.fixedOdds/b.bsp-1)*b.stake,0);
+    const ev=evPromo+evNP;
+    const total=cashP+bonP;
+    // label: Mon dd Mmm
+    const d=new Date(w+'T00:00:00');
+    const sun=new Date(d);sun.setDate(d.getDate()+6);
+    const lbl=d.toLocaleDateString('en-AU',{day:'2-digit',month:'short'})+' – '+sun.toLocaleDateString('en-AU',{day:'2-digit',month:'short'});
+    return{lbl,bets:wb.length,cashP,bonP,ev,total};
+  });
+  const weekStatsEl=document.getElementById('data-weekly-stats');
+  if(!wRows.length){if(weekStatsEl)weekStatsEl.innerHTML='';el.innerHTML='<div class="empty">No data</div>';return}
+  const n=wRows.length;
+  const avgPL=wRows.reduce((s,r)=>s+r.total,0)/n;
+  const avgEV=wRows.reduce((s,r)=>s+r.ev,0)/n;
+  const avgBets=wRows.reduce((s,r)=>s+r.bets,0)/n;
+  if(weekStatsEl)weekStatsEl.innerHTML=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0">
+    <div class="stat"><div class="stat-lbl">Avg Weekly P&L</div><div class="stat-val ${clr(avgPL)}">${fmt$(avgPL)}</div><div class="stat-sub">Over ${n} week${n!==1?'s':''}</div></div>
+    <div class="stat"><div class="stat-lbl">Avg Weekly EV</div><div class="stat-val am">${fmt$(avgEV)}</div></div>
+    <div class="stat"><div class="stat-lbl">Avg Bets/Week</div><div class="stat-val bl">${avgBets.toFixed(1)}</div></div>
+  </div>`;
+  el.innerHTML=`<table>
+      <thead><tr><th>Week</th><th># Bets</th><th>Cash P&L</th><th>Bonus P&L</th><th>EV</th><th class="profit-col">PROFIT</th></tr></thead>
+      <tbody>${wRows.map(r=>`<tr>
+        <td>${r.lbl}</td><td>${r.bets}</td>
+        <td class="${clr(r.cashP)}">${fmt$(r.cashP)}</td>
+        <td class="${clr(r.bonP)}">${fmt$(r.bonP)}</td>
+        <td class="am">${fmt$(r.ev)}</td>
+        <td class="profit-col ${clr(r.total)}">${fmt$(r.total)}</td>
+      </tr>`).join('')}</tbody>
+      <tfoot><tr>
+        <td>Avg (${n}wk)</td><td>${avgBets.toFixed(1)}</td><td>-</td><td>-</td>
+        <td class="am">${fmt$(avgEV)}</td>
+        <td class="profit-col ${clr(avgPL)}">${fmt$(avgPL)}</td>
+      </tr></tfoot>
+    </table>`;
+}
+
 function renderNonPromoData(bets,cfg){
   const npBets=bets.filter(b=>b.betCategory==='non-promo'&&b.result!=='Void');
   const types=[...new Set(npBets.map(b=>b.nonPromoType||'Other'))];
   const el=document.getElementById('data-nonpromos');
-  if(!types.length){el.innerHTML='<div class="empty">No non-promo bets</div>';return}
+  const statsEl=document.getElementById('data-nonpromos-stats');
+  if(!types.length){if(statsEl)statsEl.innerHTML='';el.innerHTML='<div class="empty">No non-promo bets</div>';return}
   const rows=types.map(type=>{
     const pb=npBets.filter(b=>(b.nonPromoType||'Other')===type);
     const turnover=pb.reduce((s,b)=>s+b.stake,0);
@@ -1668,10 +1888,16 @@ function renderNonPromoData(bets,cfg){
   }).sort((a,b)=>b.bets-a.bets);
   const tot={bets:sum(rows,'bets'),wins:sum(rows,'wins'),losses:sum(rows,'losses'),turnover:sum(rows,'turnover'),cashP:sum(rows,'cashP'),totalEV:sum(rows,'totalEV')};
   const totNetPct=tot.turnover?tot.cashP/tot.turnover*100:0;
+  if(statsEl)statsEl.innerHTML=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0">
+    <div class="stat"><div class="stat-lbl">Total Bets</div><div class="stat-val bl">${tot.bets}</div></div>
+    <div class="stat"><div class="stat-lbl">Turnover</div><div class="stat-val mu">${fmt$(tot.turnover)}</div></div>
+    <div class="stat"><div class="stat-lbl">Cash P&L</div><div class="stat-val ${clr(tot.cashP)}">${fmt$(tot.cashP)}</div></div>
+    <div class="stat"><div class="stat-lbl">Total EV</div><div class="stat-val am">${fmt$(tot.totalEV)}</div></div>
+  </div>`;
   el.innerHTML=`<table>
     <thead><tr><th>Type</th><th># Bets</th><th>W/L</th><th>Turnover</th><th>Avg Odds</th><th>Cash P&L</th><th>Total EV</th><th>Avg EV%</th><th>EV Coverage</th><th>Net %</th></tr></thead>
     <tbody>${rows.map(r=>`<tr>
-      <td style="font-weight:600;color:#e2e8f0">${r.type}</td><td>${r.bets}</td>
+      <td style="font-weight:600;color:var(--tx)">${r.type}</td><td>${r.bets}</td>
       <td><span class="g">${r.wins}W</span> / <span class="r">${r.losses}L</span></td>
       <td class="mu">${fmt$(r.turnover)}</td><td class="mu">${fmtO(r.avgOdds)}</td>
       <td class="${clr(r.cashP)}">${fmt$(r.cashP)}</td>
@@ -1686,6 +1912,55 @@ function renderNonPromoData(bets,cfg){
       <td class="${clr(tot.cashP)}">${fmt$(tot.cashP)}</td>
       <td class="am">${fmt$(tot.totalEV)}</td><td>-</td><td>-</td>
       <td class="${clr(totNetPct)}">${fmtP(totNetPct)}</td>
+    </tr></tfoot>
+  </table>`;
+}
+
+function renderBookieData(bets,bonuses,cfg){
+  const el=document.getElementById('data-bookies');
+  const statsEl=document.getElementById('data-bookies-stats');
+  if(!el)return;
+  const promos=ls(K.promos,[]);
+  const allBkSet=new Set([...bets.map(b=>b.bookie),...bonuses.map(b=>b.bookie)].filter(Boolean));
+  const rows=[...allBkSet].map(bk=>{
+    const bb=bets.filter(b=>b.bookie===bk&&b.result!=='Void');
+    const bn=bonuses.filter(b=>b.bookie===bk&&b.result!=='Pending');
+    const cashP=bb.reduce((s,b)=>s+betPnl(b),0);
+    const bonP=bn.reduce((s,b)=>s+bonusPnl(b),0);
+    const total=cashP+bonP;
+    const evPromo=bb.filter(b=>b.betCategory==='promo').reduce((s,b)=>{const pr=promos.find(p=>p.id===b.promoId);return s+(pr&&pr.ev?pr.ev/100:0)*b.stake},0);
+    const evNP=bb.filter(b=>b.betCategory==='non-promo'&&b.fixedOdds&&b.bsp).reduce((s,b)=>s+(b.fixedOdds/b.bsp-1)*b.stake,0);
+    const ev=evPromo+evNP;
+    const turnover=bb.reduce((s,b)=>s+b.stake,0);
+    const wins=bb.filter(b=>b.result==='Win').length;
+    const losses=bb.filter(b=>b.result==='Loss').length;
+    return{bk,bets:bb.length,bonuses:bn.length,wins,losses,turnover,cashP,bonP,ev,total};
+  }).filter(r=>r.bets>0||r.bonuses>0).sort((a,b)=>b.total-a.total);
+  if(!rows.length){if(statsEl)statsEl.innerHTML='';el.innerHTML='<div class="empty">No data</div>';return}
+  const tot={cashP:sum(rows,'cashP'),bonP:sum(rows,'bonP'),ev:sum(rows,'ev'),total:sum(rows,'total')};
+  if(statsEl)statsEl.innerHTML=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0">
+    <div class="stat"><div class="stat-lbl">Cash P&L</div><div class="stat-val ${clr(tot.cashP)}">${fmt$(tot.cashP)}</div></div>
+    <div class="stat"><div class="stat-lbl">Bonus P&L</div><div class="stat-val ${clr(tot.bonP)}">${fmt$(tot.bonP)}</div></div>
+    <div class="stat"><div class="stat-lbl">Total EV</div><div class="stat-val am">${fmt$(tot.ev)}</div></div>
+    <div class="stat"><div class="stat-lbl">Net Profit</div><div class="stat-val ${clr(tot.total)}">${fmt$(tot.total)}</div></div>
+  </div>`;
+  el.innerHTML=`<table>
+    <thead><tr><th>Bookie</th><th># Bets</th><th>W/L</th><th>Turnover</th><th>Cash P&L</th><th>Bonus P&L</th><th>EV</th><th class="profit-col">PROFIT</th></tr></thead>
+    <tbody>${rows.map(r=>`<tr>
+      <td style="font-weight:600;color:var(--tx)">${r.bk}</td><td>${r.bets}</td>
+      <td><span class="g">${r.wins}W</span> / <span class="r">${r.losses}L</span></td>
+      <td class="mu">${fmt$(r.turnover)}</td>
+      <td class="${clr(r.cashP)}">${fmt$(r.cashP)}</td>
+      <td class="${clr(r.bonP)}">${fmt$(r.bonP)}</td>
+      <td class="am">${fmt$(r.ev)}</td>
+      <td class="profit-col ${clr(r.total)}">${fmt$(r.total)}</td>
+    </tr>`).join('')}</tbody>
+    <tfoot><tr>
+      <td>Total</td><td>-</td><td>-</td><td>-</td>
+      <td class="${clr(tot.cashP)}">${fmt$(tot.cashP)}</td>
+      <td class="${clr(tot.bonP)}">${fmt$(tot.bonP)}</td>
+      <td class="am">${fmt$(tot.ev)}</td>
+      <td class="profit-col ${clr(tot.total)}">${fmt$(tot.total)}</td>
     </tr></tfoot>
   </table>`;
 }
@@ -1903,7 +2178,7 @@ function runCSVImport(){
 
 // ── SETTINGS ─────────────────────────────────────────────────────────────────
 function renderSettings(){
-  const bookies=ls(K.bookies,[]);const promos=ls(K.promos,[]);const npts=ls(K.npt,[]);const cfg=ls(K.settings,DEF_SETTINGS);
+  const bookies=ls(K.bookies,[]);const promos=ls(K.promos,[]);const npts=ls(K.npt,[]);const cfg=ls(K.settings,DEF_SETTINGS);const btypes=ls(K.btypes,DEF_BONUS_TYPES);
   document.getElementById('bookies-list').innerHTML=bookies.map(b=>`<div class="srow">
     <span style="flex:1;color:#cbd5e1;font-size:12px">${b.alias||b.name}</span>
     <label class="toggle"><input type="checkbox" ${b.active?'checked':''} onchange="toggleBookie('${b.id}',this.checked)"><span class="ts"></span></label>
@@ -1921,6 +2196,7 @@ function renderSettings(){
     <span class="spacer"></span>
     <button class="btn btn-d btn-xs" onclick="removeNPT('${t.id}')">Remove</button>
   </div>`).join('');
+  if(document.getElementById('btypes-list'))document.getElementById('btypes-list').innerHTML=(Array.isArray(btypes)?btypes:[]).map((t,i)=>`<div class="srow"><span style="flex:1;color:var(--tx2);font-size:12px">${t}</span><button class="btn btn-d btn-xs" onclick="removeBonusType(${i})">Remove</button></div>`).join('');
   document.getElementById('s-offset').value=cfg.profitOffset||0;
   const tt=document.getElementById('theme-toggle');if(tt)tt.checked=document.body.classList.contains('light');
   document.getElementById('s-kelly-bank').value=cfg.kellyBank||0;
@@ -1934,7 +2210,12 @@ function removeBookie(id){if(ls(K.bets,[]).some(b=>b.bookieId===id)){toast('Has 
 function addBookie(){const n=document.getElementById('new-bk-name').value.trim();if(!n){toast('Enter name','warn');return}const bk=ls(K.bookies,[]);bk.push({id:uid(),name:n,alias:n,active:true});ss(K.bookies,bk);document.getElementById('new-bk-name').value='';renderSettings();toast('Bookie added')}
 function updatePromo(id,v){const pr=ls(K.promos,[]);const p=pr.find(x=>x.id===id);if(p){p.name=v;ss(K.promos,pr)}}
 function updatePromoEV(id,v){const pr=ls(K.promos,[]);const p=pr.find(x=>x.id===id);if(p){p.ev=parseFloat(v)||0;ss(K.promos,pr);toast('EV saved')}}
-function removePromo(id){if(ls(K.bets,[]).some(b=>b.promoId===id)){toast('Has bets attached','warn');return}if(!confirm('Remove?'))return;ss(K.promos,ls(K.promos,[]).filter(p=>p.id!==id));renderSettings();toast('Removed')}
+function removePromo(id){
+  const hasBets=ls(K.bets,[]).some(b=>b.promoId===id);
+  const msg=hasBets?'This promo has bets attached — removing it will orphan those bet records. Remove anyway?':'Remove this promo type?';
+  if(!confirm(msg))return;
+  ss(K.promos,ls(K.promos,[]).filter(p=>p.id!==id));renderSettings();toast('Removed');
+}
 function addPromo(){const n=document.getElementById('new-promo-name').value.trim();if(!n){toast('Enter name','warn');return}const pr=ls(K.promos,[]);pr.push({id:uid(),name:n});ss(K.promos,pr);document.getElementById('new-promo-name').value='';renderSettings();toast('Promo added')}
 function addNPT(){const n=document.getElementById('new-npt-name').value.trim();if(!n){toast('Enter name','warn');return}const t=ls(K.npt,[]);t.push({id:uid(),name:n});ss(K.npt,t);document.getElementById('new-npt-name').value='';renderSettings();toast('Type added')}
 function updateNPT(id,v){const t=ls(K.npt,[]);const x=t.find(n=>n.id===id);if(x){x.name=v;ss(K.npt,t);updateNPTDatalist()}}
