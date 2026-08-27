@@ -212,7 +212,7 @@ select option{background:var(--sel-opt)}
 <!-- LOG BET -->
 <div class="tab-pane" id="tab-logbet">
   <div class="card section">
-    <h2>Log Bet <span style="font-size:10px;color:#475569;font-weight:400">v8</span></h2>
+    <h2>Log Bet</h2>
     <div style="display:flex;gap:6px;margin-bottom:12px">
       <button class="btn btn-p btn-sm" id="cat-promo-btn" onclick="setBetCat('promo')">Promo</button>
       <button class="btn btn-s btn-sm" id="cat-nonpromo-btn" onclick="setBetCat('non-promo')">Non-Promo</button>
@@ -334,6 +334,11 @@ select option{background:var(--sel-opt)}
     <h3>Monthly Breakdown</h3>
     <div class="card"><div class="tw" id="data-monthly"></div></div>
   </div>
+  <div class="data-section">
+    <h3>Bonus Bets</h3>
+    <div class="card"><div class="tw" id="data-bonuses"></div></div>
+  </div>
+  <div style="height:12px"></div>
   <div class="data-section">
     <h3>By Promo Type</h3>
     <div class="card"><div class="tw" id="data-promos"></div></div>
@@ -1501,6 +1506,7 @@ function renderData(){
     bonuses=bonuses.filter(b=>inRange(b.createdAt));
   }
   renderMonthlyData(bets,bonuses,cfg);
+  renderBonusData(bonuses,cfg);
   renderPromoData(bets,bonuses,cfg);
   renderNonPromoData(bets,cfg);
 }
@@ -1551,6 +1557,23 @@ function renderMonthlyData(bets,bonuses,cfg){
         <td class="${clr(totNetPct)}">${fmtP(totNetPct)}</td><td>${fmt$(tot.expP)}</td><td class="profit-col ${clr(tot.total)}">${fmt$(tot.total)}</td>
       </tr></tfoot>
     </table>`;
+}
+
+function renderBonusData(bonuses,cfg){
+  const el=document.getElementById('data-bonuses');if(!el)return;
+  const completed=bonuses.filter(b=>b.result!=='Pending');
+  if(!completed.length){el.innerHTML='<div class="empty">No completed bonus bets</div>';return}
+  const wonB=completed.filter(b=>b.result==='Win'&&b.fixedOdds);
+  const face=completed.reduce((s,b)=>s+b.bonusAmount,0);
+  const pnl=completed.reduce((s,b)=>s+bonusPnl(b),0);
+  const winR=completed.length?wonB.length/completed.length*100:0;
+  const extR=face>0?pnl/face*100:cfg.extractionRate;
+  el.innerHTML=`<div class="totals" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+    <div class="stat"><div class="stat-lbl">Total Bonus Face</div><div class="stat-val mu">${fmt$(face)}</div></div>
+    <div class="stat"><div class="stat-lbl">Bonus P&L</div><div class="stat-val ${clr(pnl)}">${fmt$(pnl)}</div></div>
+    <div class="stat"><div class="stat-lbl">Overall Extraction</div><div class="stat-val bl">${fmtP(extR)}</div><div class="stat-sub">Across all bonus bets</div></div>
+    <div class="stat"><div class="stat-lbl">Win Rate</div><div class="stat-val bl">${fmtP(winR)}</div></div>
+  </div>`;
 }
 
 function renderPromoData(bets,bonuses,cfg){
@@ -1604,12 +1627,6 @@ function renderPromoData(bets,bonuses,cfg){
   const totNetPct=tot.turnover?tot.total/tot.turnover*100:0;
   const totTrigR=tot.bets?tot.triggers/tot.bets*100:0;
   document.getElementById('data-promos').innerHTML=`
-    <div class="totals" style="margin-bottom:14px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
-      <div class="stat"><div class="stat-lbl">Total Bonus Face</div><div class="stat-val mu">${fmt$(globalBonFace)}</div></div>
-      <div class="stat"><div class="stat-lbl">Bonus P&L</div><div class="stat-val ${clr(globalBonP)}">${fmt$(globalBonP)}</div></div>
-      <div class="stat"><div class="stat-lbl">Overall Extraction</div><div class="stat-val bl">${fmtP(globalExtR)}</div><div class="stat-sub">Across all bonus bets</div></div>
-      <div class="stat"><div class="stat-lbl">Win Rate</div><div class="stat-val bl">${fmtP(globalWinR)}</div></div>
-    </div>
     <table>
       <thead><tr><th>Promo Type</th><th># Bets</th><th>Turnover</th><th>Avg Odds</th><th>Triggers</th><th>Trig %</th><th>Bonus Face</th><th>Cash P&L</th><th>Bonus P&L</th><th>Net %</th><th>EV</th><th class="profit-col">PROFIT</th></tr></thead>
       <tbody>${allRows.map(r=>`<tr ${r.isNonPromo?'style="opacity:0.85"':''}>
