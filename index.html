@@ -351,29 +351,29 @@ select option{background:var(--sel-opt)}
     <div class="card"><div class="tw" id="data-monthly"></div></div>
   </div>
   <div class="data-section">
-    <div class="dsec-hdr" onclick="toggleDataSec('bonuses')"><span id="dchev-bonuses" class="dsec-chev">▼</span><h3>Bonus Bets</h3></div>
+    <div class="dsec-hdr" onclick="toggleDataSec('bonuses')"><span id="dchev-bonuses" class="dsec-chev">▶</span><h3>Bonus Bets</h3></div>
     <div id="data-bonuses-stats"></div>
-    <div id="dsec-bonuses"><div class="card"><div class="tw" id="data-bonuses"></div></div></div>
+    <div id="dsec-bonuses" style="display:none"><div class="card"><div class="tw" id="data-bonuses"></div></div></div>
   </div>
   <div class="data-section">
-    <div class="dsec-hdr" onclick="toggleDataSec('promos')"><span id="dchev-promos" class="dsec-chev">▼</span><h3>By Promo Type</h3></div>
+    <div class="dsec-hdr" onclick="toggleDataSec('promos')"><span id="dchev-promos" class="dsec-chev">▶</span><h3>By Promo Type</h3></div>
     <div id="data-promos-stats"></div>
-    <div id="dsec-promos"><div class="card"><div class="tw" id="data-promos"></div></div></div>
+    <div id="dsec-promos" style="display:none"><div class="card"><div class="tw" id="data-promos"></div></div></div>
   </div>
   <div class="data-section">
-    <div class="dsec-hdr" onclick="toggleDataSec('nonpromos')"><span id="dchev-nonpromos" class="dsec-chev">▼</span><h3>By Non-Promo Type</h3></div>
+    <div class="dsec-hdr" onclick="toggleDataSec('nonpromos')"><span id="dchev-nonpromos" class="dsec-chev">▶</span><h3>By Non-Promo Type</h3></div>
     <div id="data-nonpromos-stats"></div>
-    <div id="dsec-nonpromos"><div class="card"><div class="tw" id="data-nonpromos"></div></div></div>
+    <div id="dsec-nonpromos" style="display:none"><div class="card"><div class="tw" id="data-nonpromos"></div></div></div>
   </div>
   <div class="data-section">
-    <div class="dsec-hdr" onclick="toggleDataSec('bookies')"><span id="dchev-bookies" class="dsec-chev">▼</span><h3>By Bookie</h3></div>
+    <div class="dsec-hdr" onclick="toggleDataSec('bookies')"><span id="dchev-bookies" class="dsec-chev">▶</span><h3>By Bookie</h3></div>
     <div id="data-bookies-stats"></div>
-    <div id="dsec-bookies"><div class="card"><div class="tw" id="data-bookies"></div></div></div>
+    <div id="dsec-bookies" style="display:none"><div class="card"><div class="tw" id="data-bookies"></div></div></div>
   </div>
   <div class="data-section">
-    <div class="dsec-hdr" onclick="toggleDataSec('weekly')"><span id="dchev-weekly" class="dsec-chev">▼</span><h3>Weekly Averages</h3></div>
+    <div class="dsec-hdr" onclick="toggleDataSec('weekly')"><span id="dchev-weekly" class="dsec-chev">▶</span><h3>Weekly Averages</h3></div>
     <div id="data-weekly-stats"></div>
-    <div id="dsec-weekly"><div class="card"><div class="tw" id="data-weekly"></div></div></div>
+    <div id="dsec-weekly" style="display:none"><div class="card"><div class="tw" id="data-weekly"></div></div></div>
   </div>
 </div>
 
@@ -1617,7 +1617,7 @@ function inRange(dateStr){
 }
 
 // ── DATA TAB ─────────────────────────────────────────────────────────────────
-const _dSec={};
+const _dSec={bonuses:true,promos:true,nonpromos:true,bookies:true,weekly:true};
 function toggleDataSec(id){
   _dSec[id]=!_dSec[id];
   const body=document.getElementById('dsec-'+id);
