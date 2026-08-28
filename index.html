@@ -1172,8 +1172,14 @@ function saveEditedBet(id){
   if(date)b.date=date;
   if(bkVal){const bk=bookies.find(x=>(x.alias||x.name).toLowerCase()===bkVal.toLowerCase())||bookies.find(x=>(x.alias||x.name).toLowerCase().includes(bkVal.toLowerCase()));if(bk)b.bookieId=bk.id;}
   if(typeVal){if(b.betCategory==='promo'){const pr=promos.find(p=>p.name.toLowerCase()===typeVal.toLowerCase());if(pr)b.promoId=pr.id;}else b.nonPromoType=typeVal;}
+  const prevResult=b.result;
   if(stake)b.stake=stake;b.fixedOdds=odds;b.bsp=bsp;b.result=result;
-  ss(K.bets,bets);toast('Bet updated');
+  ss(K.bets,bets);
+  if(result==='Bonus'&&prevResult!=='Bonus'&&b.betCategory==='promo'){
+    const bonuses=ls(K.bonuses,[]);
+    bonuses.push({id:uid(),parentBetId:b.id,bookieId:b.bookieId,bonusAmount:b.stake,fixedOdds:null,bsp:null,result:'Pending',sourceType:'promo',bonusType:'Horses',createdAt:new Date().toISOString()});
+    ss(K.bonuses,bonuses);toast('Bonus triggered!','info');
+  }else toast('Bet updated');
   renderTodayBets();renderPendingBets();
 }
 function deleteBet(id){
@@ -1261,11 +1267,11 @@ function renderPendingBets(){
     <td><input type="checkbox" onchange="toggleBetCheck('${b.id}')" ${window._sel.has(b.id)?'checked':''} style="cursor:pointer;accent-color:#6366f1;width:15px;height:15px"></td>
     <td>${fmtD(b.date)}</td><td>${bkName(b.bookieId)}</td><td>${betType(b)}</td><td>${fmt$(b.stake)}</td><td>${b.fixedOdds||'-'}</td><td>${b.bsp||'-'}</td>
     <td><div class="flex gap-1 items-center">
-      <button class="btn btn-sm" style="border:2px solid #22c55e;color:#22c55e;background:#22c55e15" onclick="settleBet('${b.id}','Win')">W</button>
-      <button class="btn btn-sm" style="border:2px solid #ef4444;color:#ef4444;background:#ef444415" onclick="settleBet('${b.id}','Loss')">L</button>
-      ${b.betCategory==='promo'?`<button class="btn btn-sm" style="border:2px solid #60a5fa;color:#60a5fa;background:#60a5fa15" onclick="settleBet('${b.id}','Bonus')">B</button>`:''}
-      <button class="btn btn-sm" style="border:2px solid #94a3b8;color:#94a3b8;background:#94a3b815" onclick="settleBet('${b.id}','Void')">V</button>
       <input class="inp-sm" type="number" id="sbsp-${b.id}" placeholder="BSP" step="0.01" style="width:58px">
+      <button class="btn btn-sm" style="border:2px solid #22c55e;color:#22c55e;background:#22c55e15" onclick="settleBet('${b.id}','Win',document.getElementById('sbsp-${b.id}').value)">W</button>
+      <button class="btn btn-sm" style="border:2px solid #ef4444;color:#ef4444;background:#ef444415" onclick="settleBet('${b.id}','Loss',document.getElementById('sbsp-${b.id}').value)">L</button>
+      ${b.betCategory==='promo'?`<button class="btn btn-sm" style="border:2px solid #60a5fa;color:#60a5fa;background:#60a5fa15" onclick="settleBet('${b.id}','Bonus',document.getElementById('sbsp-${b.id}').value)">B</button>`:''}
+      <button class="btn btn-sm" style="border:2px solid #94a3b8;color:#94a3b8;background:#94a3b815" onclick="settleBet('${b.id}','Void',document.getElementById('sbsp-${b.id}').value)">V</button>
     </div></td>
   </tr>`).join('')}</tbody></table>`;
 }
@@ -1360,10 +1366,11 @@ function saveBatchBets(){
   ss(K.bets,allBets);toast(`${saved} bet${saved>1?'s':''} added as Pending`);
   clearBatch();renderTodayBets();renderPendingBets();
 }
-function settleBet(id,result){
+function settleBet(id,result,bspStr){
   const bets=ls(K.bets,[]);const b=bets.find(x=>x.id===id);if(!b)return;
-  const bspEl=document.getElementById('sbsp-'+id);
-  const bsp=bspEl&&bspEl.value?parseFloat(bspEl.value):b.bsp;
+  const bspFromParam=bspStr?parseFloat(bspStr):null;
+  const bspFromEl=document.getElementById('sbsp-'+id)?.value?parseFloat(document.getElementById('sbsp-'+id).value):null;
+  const bsp=bspFromParam||bspFromEl||b.bsp||null;
   b.result=result;if(bsp)b.bsp=bsp;
   ss(K.bets,bets);
   if(result==='Bonus'&&b.betCategory==='promo'){
