@@ -843,7 +843,7 @@ function renderDashboard(){
   const nonVoid=bets.filter(b=>b.result!=='Void');
   const totalBets=nonVoid.length;
   const betP=bets.reduce((s,b)=>s+betPnl(b),0);
-  const completed=bonuses.filter(b=>b.result!=='Pending');
+  const completed=bonuses.filter(b=>b.result!=='Pending'&&b.sourceType!=='deposit_match');
   const bonusP=completed.reduce((s,b)=>s+bonusPnl(b),0);
   const adjTotal=ls(K.adj,[]).reduce((s,a)=>s+a.amount,0);
   const total=betP+bonusP+adjTotal+(cfg.profitOffset||0);
@@ -878,7 +878,7 @@ function renderDashboard(){
     while(cur<=now){
       const y=cur.getFullYear(),m=cur.getMonth();
       const mb=bets.filter(b=>{if(!b.date)return false;const dd=new Date(b.date);return dd.getFullYear()===y&&dd.getMonth()===m});
-      const mn=bonuses.filter(b=>{const dd=new Date(b.createdAt);return dd.getFullYear()===y&&dd.getMonth()===m&&b.result!=='Pending'});
+      const mn=bonuses.filter(b=>{const dd=new Date(b.createdAt);return dd.getFullYear()===y&&dd.getMonth()===m&&b.result!=='Pending'&&b.sourceType!=='deposit_match'});
       const cashP=mb.reduce((s,b)=>s+betPnl(b),0);
       const bonP=mn.reduce((s,b)=>s+bonusPnl(b),0);
       const adjP=ls(K.adj,[]).filter(a=>{const dd=new Date(a.date+'T00:00:00');return dd.getFullYear()===y&&dd.getMonth()===m}).reduce((s,a)=>s+a.amount,0);
@@ -913,7 +913,7 @@ function renderDashboard(){
   const days30=Array.from({length:30},(_,i)=>{const d=new Date(todayUTC+'T00:00:00Z');d.setUTCDate(d.getUTCDate()-(29-i));return d.toISOString().split('T')[0]});
   window._roll30=days30.map(ds=>{
     const db=bets.filter(b=>b.date===ds);
-    const db2=bonuses.filter(b=>b.createdAt&&b.createdAt.startsWith(ds)&&b.result!=='Pending');
+    const db2=bonuses.filter(b=>b.createdAt&&b.createdAt.startsWith(ds)&&b.result!=='Pending'&&b.sourceType!=='deposit_match');
     const profit=db.reduce((s,b)=>s+betPnl(b),0)+db2.reduce((s,b)=>s+bonusPnl(b),0);
     const lbl=new Date(ds+'T00:00:00Z').toLocaleDateString('en-AU',{day:'2-digit',month:'short'});
     return{lbl,profit,ev:dayEV(db)};
@@ -937,7 +937,7 @@ function getMonthlyRows(bets,bonuses,n){
     const d=new Date(now.getFullYear(),now.getMonth()-(n-1-i),1);
     const y=d.getFullYear(),m=d.getMonth();
     const mb=bets.filter(b=>{const dd=new Date(b.date);return dd.getFullYear()===y&&dd.getMonth()===m});
-    const mn=bonuses.filter(b=>{const dd=new Date(b.createdAt);return dd.getFullYear()===y&&dd.getMonth()===m&&b.result!=='Pending'});
+    const mn=bonuses.filter(b=>{const dd=new Date(b.createdAt);return dd.getFullYear()===y&&dd.getMonth()===m&&b.result!=='Pending'&&b.sourceType!=='deposit_match'});
     const nonVoid=mb.filter(b=>b.result!=='Void');
     const triggers=nonVoid.filter(b=>b.result==='Bonus').length;
     const turnover=nonVoid.reduce((s,b)=>s+b.stake,0);
@@ -1403,7 +1403,7 @@ function addDepositMatch(){
 function renderBonuses(){
   const bonuses=activeBonuses();
   const pending=bonuses.filter(b=>b.result==='Pending');
-  const completed=bonuses.filter(b=>b.result!=='Pending').sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  const completed=bonuses.filter(b=>b.result!=='Pending'&&b.sourceType!=='deposit_match').sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
   const pel=document.getElementById('pending-list');
   const btypes=ls(K.btypes,DEF_BONUS_TYPES);
   // save typed-but-unsaved odds/bsp values across re-renders
@@ -1677,7 +1677,7 @@ function renderMonthlyData(bets,bonuses,cfg){
   while(d<=now){months.push({y:d.getFullYear(),m:d.getMonth(),lbl:d.toLocaleDateString('en-AU',{month:'short',year:'numeric'})});d=new Date(d.getFullYear(),d.getMonth()+1,1)}
   const rows=months.map(mo=>{
     const mb=bets.filter(b=>{const dd=new Date(b.date);return dd.getFullYear()===mo.y&&dd.getMonth()===mo.m});
-    const mn=bonuses.filter(b=>{const dd=new Date(b.createdAt);return dd.getFullYear()===mo.y&&dd.getMonth()===mo.m&&b.result!=='Pending'});
+    const mn=bonuses.filter(b=>{const dd=new Date(b.createdAt);return dd.getFullYear()===mo.y&&dd.getMonth()===mo.m&&b.result!=='Pending'&&b.sourceType!=='deposit_match'});
     const nv=mb.filter(b=>b.result!=='Void');
     if(!nv.length&&!mn.length)return null;
     const turnover=nv.reduce((s,b)=>s+b.stake,0);
@@ -1720,8 +1720,10 @@ function renderMonthlyData(bets,bonuses,cfg){
 function renderBonusData(bonuses,cfg){
   const el=document.getElementById('data-bonuses');if(!el)return;
   const statsEl=document.getElementById('data-bonuses-stats');
-  const completed=bonuses.filter(b=>b.result!=='Pending');
-  if(!completed.length){if(statsEl)statsEl.innerHTML='';el.innerHTML='<div class="empty">No completed bonus bets</div>';return}
+  const allCompleted=bonuses.filter(b=>b.result!=='Pending');
+  const completed=allCompleted.filter(b=>b.sourceType!=='deposit_match');
+  const dmFaceInRange=allCompleted.filter(b=>b.sourceType==='deposit_match').reduce((s,b)=>s+b.bonusAmount,0);
+  if(!completed.length&&!dmFaceInRange){if(statsEl)statsEl.innerHTML='';el.innerHTML='<div class="empty">No completed bonus bets</div>';return}
   const wonB=completed.filter(b=>b.result==='Win'&&b.fixedOdds);
   const face=completed.reduce((s,b)=>s+b.bonusAmount,0);
   const pnl=completed.reduce((s,b)=>s+bonusPnl(b),0);
@@ -1739,7 +1741,6 @@ function renderBonusData(bonuses,cfg){
     const avgEV=evBets.length?evBets.reduce((s,b)=>s+(b.fixedOdds-1)/b.bsp*100,0)/evBets.length:null;
     return{type:t,bets:tb.length,wins:tw,losses:tl,face:tf,pnl:tp,ext:te,avgEV};
   });
-  const dmFaceInRange=completed.filter(b=>b.sourceType==='deposit_match').reduce((s,b)=>s+b.bonusAmount,0);
   if(statsEl)statsEl.innerHTML=`<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:10px 0">
     <div class="stat"><div class="stat-lbl">Bonus P&L</div><div class="stat-val ${clr(pnl)}">${fmt$(pnl)}</div></div>
     <div class="stat"><div class="stat-lbl">Overall Extraction</div><div class="stat-val bl">${fmtP(extR)}</div><div class="stat-sub">Across all bonus bets</div></div>
@@ -1774,8 +1775,8 @@ function renderPromoData(bets,bonuses,cfg){
     return{name:'⚡ '+type,bets:pb.length,turnover,avgOdds,triggers:0,trigR:0,bonFace:0,avgBonOdds:0,extR:0,cashP,bonP:0,total:cashP,expP:totalEV,netPct,bonReturnPct:0,isNonPromo:true};
   }).filter(Boolean);
 
-  // Global bonus stats (all completed bonuses combined)
-  const allCompleted=bonuses.filter(b=>b.result!=='Pending');
+  // Global bonus stats (all completed bonuses combined, excluding deposit matches)
+  const allCompleted=bonuses.filter(b=>b.result!=='Pending'&&b.sourceType!=='deposit_match');
   const allWonB=allCompleted.filter(b=>b.result==='Win'&&b.fixedOdds);
   const globalBonFace=allCompleted.reduce((s,b)=>s+b.bonusAmount,0);
   const globalBonP=allCompleted.reduce((s,b)=>s+bonusPnl(b),0);
@@ -1806,12 +1807,11 @@ function renderPromoData(bets,bonuses,cfg){
   const tot={bets:sum(allRows,'bets'),wins:sum(allRows,'wins'),losses:sum(allRows,'losses'),triggers:sum(allRows,'triggers'),turnover:sum(allRows,'turnover'),cashP:sum(allRows,'cashP'),bonP:sum(allRows,'bonP'),total:sum(allRows,'total'),expP:sum(allRows,'expP'),bonFace:sum(allRows,'bonFace')};
   const totNetPct=tot.turnover?tot.total/tot.turnover*100:0;
   const totTrigR=tot.bets?tot.triggers/tot.bets*100:0;
-  if(promosStatsEl)promosStatsEl.innerHTML=`<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:10px 0">
+  if(promosStatsEl)promosStatsEl.innerHTML=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0">
     <div class="stat"><div class="stat-lbl">Total P&L</div><div class="stat-val ${clr(tot.total)}">${fmt$(tot.total)}</div></div>
     <div class="stat"><div class="stat-lbl">Total EV</div><div class="stat-val am">${fmt$(tot.expP)}</div></div>
-    <div class="stat"><div class="stat-lbl">Wins</div><div class="stat-val g">${tot.wins}</div></div>
-    <div class="stat"><div class="stat-lbl">Bonuses (Triggers)</div><div class="stat-val bl">${tot.triggers}</div></div>
-    <div class="stat"><div class="stat-lbl">Losses</div><div class="stat-val r">${tot.losses}</div></div>
+    <div class="stat"><div class="stat-lbl">Turnover</div><div class="stat-val mu">${fmt$(tot.turnover)}</div></div>
+    <div class="stat"><div class="stat-lbl">Bets</div><div class="stat-val bl">${tot.bets}</div></div>
   </div>`;
   document.getElementById('data-promos').innerHTML=`<table>
       <thead><tr><th>Promo Type</th><th># Bets</th><th>W/L/B</th><th>Turnover</th><th>Avg Odds</th><th>Bonus Face</th><th>Cash P&L</th><th>Bonus P&L</th><th>Net %</th><th>EV</th><th class="profit-col">PROFIT</th></tr></thead>
