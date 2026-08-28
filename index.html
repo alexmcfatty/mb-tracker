@@ -399,8 +399,8 @@ select option{background:var(--sel-opt)}
       Active only
     </label>
   </div>
+  <div id="balances-totals" style="margin-bottom:12px"></div>
   <div id="balances-list"></div>
-  <div id="balances-totals" style="margin-top:4px"></div>
 </div>
 </div>
 
@@ -642,7 +642,7 @@ function fmt$(n){return(n<0?'-':'')+'$'+Math.abs(n).toFixed(2).replace(/\B(?=(\d
 function fmtP(n){return n.toFixed(1)+'%'}
 function fmtO(n){return n?n.toFixed(2):'-'}
 function clr(n){return n>0?'g':n<0?'r':''}
-function badge(r){const m={Win:'bw',Loss:'bl2',Bonus:'bb',Void:'bv',Pending:'bp','Deposit Match':'bd'};return`<span class="badge ${m[r]||'bv'}">${r}</span>`}
+function badge(r){const m={Win:'bw',Loss:'bl2',Bonus:'bb',Void:'bv',Pending:'bp','Deposit Match':'bd',Cleared:'bv'};return`<span class="badge ${m[r]||'bv'}">${r}</span>`}
 function bkName(id){const b=ls(K.bookies,[]).find(x=>x.id===id);return b?(b.alias||b.name):'?'}
 function prName(id){const p=ls(K.promos,[]).find(x=>x.id===id);return p?p.name:'?'}
 function toast(msg,type='ok'){const t=document.getElementById('toast');t.textContent=msg;t.className='toast '+type+' show';clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2800)}
@@ -1739,11 +1739,13 @@ function renderBonusData(bonuses,cfg){
     const avgEV=evBets.length?evBets.reduce((s,b)=>s+(b.fixedOdds-1)/b.bsp*100,0)/evBets.length:null;
     return{type:t,bets:tb.length,wins:tw,losses:tl,face:tf,pnl:tp,ext:te,avgEV};
   });
-  if(statsEl)statsEl.innerHTML=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0">
+  const dmFaceInRange=completed.filter(b=>b.sourceType==='deposit_match').reduce((s,b)=>s+b.bonusAmount,0);
+  if(statsEl)statsEl.innerHTML=`<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:10px 0">
     <div class="stat"><div class="stat-lbl">Bonus P&L</div><div class="stat-val ${clr(pnl)}">${fmt$(pnl)}</div></div>
     <div class="stat"><div class="stat-lbl">Overall Extraction</div><div class="stat-val bl">${fmtP(extR)}</div><div class="stat-sub">Across all bonus bets</div></div>
     <div class="stat"><div class="stat-lbl">Total Bonus Face</div><div class="stat-val mu">${fmt$(face)}</div></div>
     <div class="stat"><div class="stat-lbl">Win Rate</div><div class="stat-val bl">${fmtP(winR)}</div></div>
+    <div class="stat"><div class="stat-lbl">Deposit Matches</div><div class="stat-val" style="color:#a78bfa">${fmt$(dmFaceInRange)}</div></div>
   </div>`;
   el.innerHTML=typeRows.length>1?`<table><thead><tr><th>Type</th><th># Bets</th><th>W/L</th><th>Face</th><th>P&L</th><th>Extraction</th><th>Avg EV%</th></tr></thead><tbody>${typeRows.map(r=>`<tr>
     <td style="font-weight:600;color:var(--tx)">${r.type}</td><td>${r.bets}</td>
@@ -2340,7 +2342,7 @@ function renderBalances(){
 
   let list=allBookies
     .filter(b=>!activeOnly||b.active)
-    .filter(b=>(b.name||'').toLowerCase().includes(search)||(b.alias||'').toLowerCase().includes(search));
+    .filter(b=>{if(!search)return true;const tokens=((b.name||'')+' '+(b.alias||'')).toLowerCase().split(/\s+/);return tokens.some(t=>t.startsWith(search));});
 
   const allBets=ls(K.bets,[]);
   const allBonuses=activeBonuses();
@@ -2360,7 +2362,8 @@ function renderBalances(){
     const losses=bb.filter(x=>x.result==='Loss').length;
     const allDates=[...bb.map(x=>x.date||''),...bn.map(x=>(x.createdAt||'').split('T')[0])].filter(Boolean);
     const lastUsed=allDates.length?allDates.reduce((a,c)=>c>a?c:a):'';
-    return{...b,bal,pnl,bets:bb.length,wins,losses,turnover,cashP,bonP,ev,lastUsed};
+    const dmFace=allBonuses.filter(x=>x.bookieId===b.id&&x.sourceType==='deposit_match').reduce((s,x)=>s+x.bonusAmount,0);
+    return{...b,bal,pnl,bets:bb.length,wins,losses,turnover,cashP,bonP,ev,lastUsed,dmFace};
   });
 
   const sortFns={
@@ -2444,11 +2447,12 @@ function renderBalances(){
           <button class="btn btn-s btn-xs" onclick="balToggleTxns('${b.id}')">${expanded?'History ▼':'History ▶'}</button>
         </div>
       </div>
-      ${b.bets>0?`<div style="display:flex;gap:16px;flex-wrap:wrap;padding:7px 0 2px;font-size:11px;border-top:1px solid var(--bdr2);margin-top:8px">
-        <span><span style="color:var(--tx5)">Turnover</span> <span style="color:var(--tx2)">${fmt$(b.turnover)}</span></span>
-        <span><span style="color:var(--tx5)">Cash P&L</span> <span class="${clr(b.cashP)}">${fmt$(b.cashP)}</span></span>
-        <span><span style="color:var(--tx5)">Bonus P&L</span> <span class="${clr(b.bonP)}">${fmt$(b.bonP)}</span></span>
-        <span><span style="color:var(--tx5)">EV</span> <span class="am">${fmt$(b.ev)}</span></span>
+      ${b.bets>0||b.dmFace>0?`<div style="display:flex;gap:16px;flex-wrap:wrap;padding:7px 0 2px;font-size:11px;border-top:1px solid var(--bdr2);margin-top:8px">
+        ${b.bets>0?`<span><span style="color:var(--tx5)">Turnover</span> <span style="color:var(--tx2)">${fmt$(b.turnover)}</span></span>`:''}
+        ${b.bets>0?`<span><span style="color:var(--tx5)">Cash P&L</span> <span class="${clr(b.cashP)}">${fmt$(b.cashP)}</span></span>`:''}
+        ${b.bets>0?`<span><span style="color:var(--tx5)">Bonus P&L</span> <span class="${clr(b.bonP)}">${fmt$(b.bonP)}</span></span>`:''}
+        ${b.bets>0?`<span><span style="color:var(--tx5)">EV</span> <span class="am">${fmt$(b.ev)}</span></span>`:''}
+        ${b.dmFace>0?`<span><span style="color:var(--tx5)">Dep. Matches</span> <span style="color:#a78bfa">${fmt$(b.dmFace)}</span></span>`:''}
       </div>`:''}
       ${inlineHtml}${txnHtml}
     </div>`;
@@ -2457,11 +2461,15 @@ function renderBalances(){
   // Totals
   const totBal=list.reduce((s,b)=>s+b.bal,0);
   const totPnl=list.reduce((s,b)=>s+b.pnl,0);
+  const totDMFace=list.reduce((s,b)=>s+b.dmFace,0);
+  const totEV=list.reduce((s,b)=>s+b.ev,0);
   document.getElementById('balances-totals').innerHTML=`
-    <div class="card" style="display:flex;gap:24px;flex-wrap:wrap">
+    <div class="card" style="display:flex;gap:20px;flex-wrap:wrap;padding:12px 16px">
       <div><div style="font-size:9px;color:var(--tx5);text-transform:uppercase;letter-spacing:.05em">Total Balance</div><div style="font-size:20px;font-weight:700;color:var(--tx)">${fmt$(totBal)}</div></div>
       <div><div style="font-size:9px;color:var(--tx5);text-transform:uppercase;letter-spacing:.05em">Total P&amp;L</div><div style="font-size:20px;font-weight:700" class="${totPnl>=0?'g':'r'}">${fmt$(totPnl)}</div></div>
-      <div><div style="font-size:9px;color:var(--tx5);text-transform:uppercase;letter-spacing:.05em">Bookies Shown</div><div style="font-size:20px;font-weight:700;color:var(--tx)">${list.length}</div></div>
+      <div><div style="font-size:9px;color:var(--tx5);text-transform:uppercase;letter-spacing:.05em">Total EV</div><div style="font-size:20px;font-weight:700;color:#f59e0b">${fmt$(totEV)}</div></div>
+      ${totDMFace>0?`<div><div style="font-size:9px;color:var(--tx5);text-transform:uppercase;letter-spacing:.05em">Deposit Matches</div><div style="font-size:20px;font-weight:700;color:#a78bfa">${fmt$(totDMFace)}</div></div>`:''}
+      <div><div style="font-size:9px;color:var(--tx5);text-transform:uppercase;letter-spacing:.05em">Bookies</div><div style="font-size:20px;font-weight:700;color:var(--tx)">${list.length}</div></div>
     </div>`;
 }
 
