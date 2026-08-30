@@ -238,9 +238,12 @@ select option{background:var(--sel-opt)}
         <datalist id="promo-datalist"></datalist>
       </div>
       <div class="fg" id="fg-nonpromo" style="display:none"><label class="lbl">Non-Promo Type</label><input type="text" id="f-nonpromo-type" placeholder="Type to search…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeydown="_acFieldKey(event,'f-nonpromo-type')"><datalist id="nonpromo-list"></datalist></div>
-      <div class="fg"><label class="lbl">Stake ($)</label><input type="number" id="f-stake" placeholder="50" step="0.01" min="0" onkeydown="_logFieldNav(event,'f-stake')"></div>
-      <div class="fg"><label class="lbl">Fixed Odds</label><input type="number" id="f-odds" placeholder="3.40" step="0.01" min="1.01" oninput="updateKellyDisplay()" onkeydown="_logFieldNav(event,'f-odds')"></div>
-      <div class="fg"><label class="lbl">BSP <span class="mu" id="bsp-opt-label">(optional)</span></label><input type="number" id="f-bsp" placeholder="Post-race" step="0.01" oninput="updateKellyDisplay()" onkeydown="_logFieldNav(event,'f-bsp')"><div id="kelly-display" style="display:none;margin-top:5px;font-size:12px;color:#22c55e;font-weight:700"></div></div>
+      <div class="fg"><label class="lbl">Stake ($)</label><input type="number" id="f-stake" placeholder="50" step="0.01" min="0" onfocus="this.select()" onkeydown="_logFieldNav(event,'f-stake')" oninput="updateEVPreview()"></div>
+      <div class="fg"><label class="lbl">Fixed Odds</label><input type="number" id="f-odds" placeholder="3.40" step="0.01" min="1.01" onfocus="this.select()" oninput="updateKellyDisplay();updateEVPreview()" onkeydown="_logFieldNav(event,'f-odds')"></div>
+      <div class="fg"><label class="lbl">BSP <span class="mu" id="bsp-opt-label">(optional)</span></label><input type="number" id="f-bsp" placeholder="Post-race" step="0.01" onfocus="this.select()" oninput="updateKellyDisplay();updateEVPreview()" onkeydown="_logFieldNav(event,'f-bsp')"><div id="kelly-display" style="display:none;margin-top:5px;font-size:12px;color:#22c55e;font-weight:700"></div></div>
+    </div>
+    <div id="ev-preview" style="display:none;font-size:11px;color:#64748b;padding:2px 0 10px;gap:14px;align-items:center">
+      Back/BSP: <strong id="ev-ratio"></strong>&nbsp;&nbsp;EV: <strong id="ev-val"></strong>
     </div>
     <div class="fg mb-4">
       <label class="lbl">Result</label>
@@ -670,6 +673,22 @@ function calcKellyStake(backOdds,bsp){
   if(f<=0)return null;
   return(f/fraction)*kellyAdjBank();
 }
+function updateEVPreview(){
+  const odds=parseFloat(document.getElementById('f-odds')?.value);
+  const bsp=parseFloat(document.getElementById('f-bsp')?.value);
+  const stake=parseFloat(document.getElementById('f-stake')?.value);
+  const el=document.getElementById('ev-preview');if(!el)return;
+  if(!odds||!bsp||bsp<=0){el.style.display='none';return;}
+  const ratio=odds/bsp;
+  const edgePct=((ratio-1)*100).toFixed(1);
+  const rEl=document.getElementById('ev-ratio');
+  rEl.textContent=(ratio>=1?'+':'')+edgePct+'%';
+  rEl.style.color=ratio>=1?'#22c55e':'#ef4444';
+  const vEl=document.getElementById('ev-val');
+  if(stake&&!isNaN(stake)){const ev=(ratio-1)*stake;vEl.textContent=(ev>=0?'+':'')+ev.toFixed(2);vEl.style.color=ev>=0?'#22c55e':'#ef4444';}
+  else{vEl.textContent='-';vEl.style.color='#64748b';}
+  el.style.display='flex';
+}
 function updateKellyDisplay(){
   const el=document.getElementById('kelly-display');if(!el)return;
   const odds=parseFloat(document.getElementById('f-odds')?.value);
@@ -928,7 +947,8 @@ function renderDashboard(){
   const recent=[...bets].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).slice(0,20);
   const el=document.getElementById('recent-bets');
   if(!recent.length){el.innerHTML='<div class="empty">No bets logged yet</div>';return}
-  el.innerHTML=`<table><thead><tr><th>Date</th><th>Bookie</th><th>Type</th><th>Stake</th><th>Odds</th><th>BSP</th><th>P&L</th><th>Result</th></tr></thead><tbody>${recent.map(b=>{const p=betPnl(b);return`<tr><td>${fmtD(b.date)}</td><td>${bkName(b.bookieId)}</td><td>${betType(b)}</td><td>${fmt$(b.stake)}</td><td>${b.fixedOdds}</td><td>${b.bsp||'-'}</td><td class="${clr(p)}">${fmt$(p)}</td><td>${badge(b.result)}</td></tr>`}).join('')}</tbody></table>`;
+  let _rs=0,_rl=null;
+  el.innerHTML=`<table><thead><tr><th>Date</th><th>Bookie</th><th>Type</th><th>Stake</th><th>Odds</th><th>BSP</th><th>P&L</th><th>Result</th></tr></thead><tbody>${recent.map(b=>{if(b.bookieId!==_rl){_rs=1-_rs;_rl=b.bookieId;}const rbg=_rs?'background:#0f172a':'';const p=betPnl(b);return`<tr style="${rbg}"><td>${fmtD(b.date)}</td><td>${bkName(b.bookieId)}</td><td>${betType(b)}</td><td>${fmt$(b.stake)}</td><td>${b.fixedOdds}</td><td>${b.bsp||'-'}</td><td class="${clr(p)}">${fmt$(p)}</td><td>${badge(b.result)}</td></tr>`}).join('')}</tbody></table>`;
 }
 
 function getMonthlyRows(bets,bonuses,n){
@@ -1030,6 +1050,7 @@ const _rbOrder=['Win','Loss','Bonus','Void','Pending'];
 function selR(r){
   selResult=r;
   _rbOrder.forEach(x=>{const el=document.getElementById('rb-'+x);if(el){el.className='rbtn'+(x===r?' s'+x[0]:'');el.setAttribute('tabindex','0')}});
+  document.getElementById('rb-'+r)?.focus();
   saveBet();
 }
 function rbKey(e,r){
@@ -1043,6 +1064,8 @@ function rbKey(e,r){
     e.preventDefault();
     if(i>0)document.getElementById('rb-'+vis[i-1])?.focus();
     else document.getElementById('f-bsp')?.focus();
+  }else if(e.key==='ArrowUp'){
+    e.preventDefault();const b=document.getElementById('f-bsp');if(b){b.focus();b.select();}
   }
 }
 // Tab from BSP → first result button; ArrowRight/ArrowDown in BSP → first result button
@@ -1119,9 +1142,7 @@ function saveBet(){
     const bonuses=ls(K.bonuses,[]);bonuses.push(bonus);ss(K.bonuses,bonuses);
     toast('Bonus triggered — turn it over!','info');
   }else toast('Bet saved');
-  document.getElementById('f-stake').value='';
   document.getElementById('f-notes').value='';
-  if(result!=='Pending'&&result!=='Bonus'){document.getElementById('f-odds').value='';document.getElementById('f-bsp').value='';}
   selResult=null;['Win','Loss','Bonus','Void','Pending'].forEach(x=>{const el=document.getElementById('rb-'+x);if(el)el.className='rbtn'});
   renderTodayBets();renderPendingBets();renderDashboard();
 }
@@ -1256,16 +1277,20 @@ function renderTodayBets(){
   const el=document.getElementById('today-bets');
   const emptyMsg=_histPreset==='week'?'No bets this week':_histPreset==='lastweek'?'No bets last week':_histPreset==='month'?'No bets this month':'No bets';
   if(!bets.length){el.innerHTML=`<div class="empty">${emptyMsg}</div>`;return}
-  el.innerHTML=`<table><thead><tr><th></th><th>Date</th><th>Bookie</th><th>Type</th><th>Stake</th><th>Odds</th><th>BSP</th><th>P&L</th><th>EV</th><th>Result</th><th>Quick BSP</th><th></th></tr></thead><tbody>${bets.map(b=>{const p=betPnl(b);const ev=betEV(b,cfg);return`<tr id="bet-row-${b.id}"><td><input type="checkbox" onchange="toggleBetCheck('${b.id}')" ${window._sel.has(b.id)?'checked':''} style="cursor:pointer;accent-color:#6366f1;width:15px;height:15px"></td><td>${fmtD(b.date)}</td><td>${bkName(b.bookieId)}</td><td>${betType(b)}</td><td>${fmt$(b.stake)}</td><td>${b.fixedOdds||'-'}</td><td>${b.bsp||'-'}</td><td class="${clr(p)}">${fmt$(p)}</td><td class="am">${ev!=null?fmt$(ev):'-'}</td><td>${badge(b.result)}</td><td><div class="flex gap-2 items-center"><input class="inp-sm" type="number" id="bsp-${b.id}" value="${b.bsp||''}" placeholder="BSP" step="0.01"><button class="btn btn-s btn-xs" onclick="saveBSP('${b.id}')">Set</button></div></td><td><button class="btn btn-s btn-xs" onclick="editBet('${b.id}')">Edit</button></td></tr>`}).join('')}</tbody></table>`;
+  let _ts=0,_tl=null;
+  el.innerHTML=`<table><thead><tr><th></th><th>Date</th><th>Bookie</th><th>Type</th><th>Stake</th><th>Odds</th><th>BSP</th><th>P&L</th><th>EV</th><th>Result</th><th>Quick BSP</th><th></th></tr></thead><tbody>${bets.map(b=>{if(b.bookieId!==_tl){_ts=1-_ts;_tl=b.bookieId;}const rbg=_ts?'background:#0f172a':'';const p=betPnl(b);const ev=betEV(b,cfg);return`<tr id="bet-row-${b.id}" style="${rbg}"><td><input type="checkbox" onchange="toggleBetCheck('${b.id}')" ${window._sel.has(b.id)?'checked':''} style="cursor:pointer;accent-color:#6366f1;width:15px;height:15px"></td><td>${fmtD(b.date)}</td><td>${bkName(b.bookieId)}</td><td>${betType(b)}</td><td>${fmt$(b.stake)}</td><td>${b.fixedOdds||'-'}</td><td>${b.bsp||'-'}</td><td class="${clr(p)}">${fmt$(p)}</td><td class="am">${ev!=null?fmt$(ev):'-'}</td><td>${badge(b.result)}</td><td><div class="flex gap-2 items-center"><input class="inp-sm" type="number" id="bsp-${b.id}" value="${b.bsp||''}" placeholder="BSP" step="0.01"><button class="btn btn-s btn-xs" onclick="saveBSP('${b.id}')">Set</button></div></td><td><button class="btn btn-s btn-xs" onclick="editBet('${b.id}')">Edit</button></td></tr>`}).join('')}</tbody></table>`;
 }
 
 function renderPendingBets(){
   const el=document.getElementById('pending-bets-list');if(!el)return;
   const bets=ls(K.bets,[]).filter(b=>b.result==='Pending'&&b.betCategory===betCat).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
   if(!bets.length){el.innerHTML='<div class="empty">No pending bets</div>';return}
-  el.innerHTML=`<table><thead><tr><th></th><th>Date</th><th>Bookie</th><th>Type</th><th>Stake</th><th>Odds</th><th>BSP</th><th>Settle</th></tr></thead><tbody>${bets.map(b=>`<tr>
+  const cfg=ls(K.settings,DEF_SETTINGS);
+  let _ps=0,_pl=null;
+  el.innerHTML=`<table><thead><tr><th></th><th>Date</th><th>Bookie</th><th>Type</th><th>Stake</th><th>Odds</th><th>BSP</th><th>EV</th><th>Settle</th></tr></thead><tbody>${bets.map(b=>{if(b.bookieId!==_pl){_ps=1-_ps;_pl=b.bookieId;}const rbg=_ps?'background:#0f172a':'';const ev=betEV(b,cfg);return`<tr style="${rbg}">
     <td><input type="checkbox" onchange="toggleBetCheck('${b.id}')" ${window._sel.has(b.id)?'checked':''} style="cursor:pointer;accent-color:#6366f1;width:15px;height:15px"></td>
     <td>${fmtD(b.date)}</td><td>${bkName(b.bookieId)}</td><td>${betType(b)}</td><td>${fmt$(b.stake)}</td><td>${b.fixedOdds||'-'}</td><td>${b.bsp||'-'}</td>
+    <td class="am">${ev!=null?fmt$(ev):'-'}</td>
     <td><div class="flex gap-1 items-center">
       <input class="inp-sm" type="number" id="sbsp-${b.id}" placeholder="BSP" step="0.01" style="width:58px">
       <button class="btn btn-sm" style="border:2px solid #22c55e;color:#22c55e;background:#22c55e15" onclick="settleBet('${b.id}','Win',document.getElementById('sbsp-${b.id}').value)">W</button>
@@ -1273,7 +1298,7 @@ function renderPendingBets(){
       ${b.betCategory==='promo'?`<button class="btn btn-sm" style="border:2px solid #60a5fa;color:#60a5fa;background:#60a5fa15" onclick="settleBet('${b.id}','Bonus',document.getElementById('sbsp-${b.id}').value)">B</button>`:''}
       <button class="btn btn-sm" style="border:2px solid #94a3b8;color:#94a3b8;background:#94a3b815" onclick="settleBet('${b.id}','Void',document.getElementById('sbsp-${b.id}').value)">V</button>
     </div></td>
-  </tr>`).join('')}</tbody></table>`;
+  </tr>`}).join('')}</tbody></table>`;
 }
 
 window._batchCount=0;
