@@ -15,8 +15,8 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/themes/dark.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
 <style>
-:root{--bg:#0f172a;--surf:#1e293b;--surf2:#0f172a;--bdr:#334155;--bdr2:#263348;--tx:#e2e8f0;--tx2:#cbd5e1;--tx3:#94a3b8;--tx4:#64748b;--tx5:#475569;--hover:#263348;--inp:#0f172a;--sel-opt:#1e293b}
-body.light{--bg:#f1f5f9;--surf:#ffffff;--surf2:#f1f5f9;--bdr:#e2e8f0;--bdr2:#f1f5f9;--tx:#0f172a;--tx2:#1e293b;--tx3:#475569;--tx4:#64748b;--tx5:#94a3b8;--hover:#f8fafc;--inp:#f8fafc;--sel-opt:#ffffff}
+:root{--bg:#0f172a;--surf:#1e293b;--surf2:#0f172a;--bdr:#334155;--bdr2:#263348;--tx:#e2e8f0;--tx2:#cbd5e1;--tx3:#94a3b8;--tx4:#64748b;--tx5:#475569;--hover:#263348;--inp:#0f172a;--sel-opt:#1e293b;--row-alt:#0f172a}
+body.light{--bg:#f1f5f9;--surf:#ffffff;--surf2:#f1f5f9;--bdr:#e2e8f0;--bdr2:#f1f5f9;--tx:#0f172a;--tx2:#1e293b;--tx3:#475569;--tx4:#64748b;--tx5:#94a3b8;--hover:#f8fafc;--inp:#f8fafc;--sel-opt:#ffffff;--row-alt:#dbeafe}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;font-size:14px;transition:background .2s,color .2s}
 .nav{background:var(--surf);border-bottom:1px solid var(--bdr);padding:0 16px;padding-top:env(safe-area-inset-top);display:flex;align-items:center;position:sticky;top:0;z-index:100}
@@ -109,7 +109,7 @@ select option{background:var(--sel-opt)}
 .acc-card.open .acc-chev{transform:rotate(180deg)}
 .totrow{display:flex;justify-content:space-between;font-size:11px;color:var(--tx4);padding:3px 0}
 .totals{background:var(--surf2);border-radius:6px;padding:9px 11px;margin-top:8px}
-.modal{display:none;position:fixed;inset:0;background:#0f172a99;z-index:200;align-items:center;justify-content:center}
+.modal{display:none;position:fixed;inset:0;background:var(--surf2)99;z-index:200;align-items:center;justify-content:center}
 .modal.open{display:flex}
 .modal-box{background:var(--surf);border:1px solid var(--bdr);border-radius:12px;padding:20px;width:340px;max-width:95vw}
 .modal-box h3{font-size:14px;font-weight:600;margin-bottom:14px;color:var(--tx)}
@@ -238,7 +238,7 @@ select option{background:var(--sel-opt)}
         <datalist id="promo-datalist"></datalist>
       </div>
       <div class="fg" id="fg-nonpromo" style="display:none"><label class="lbl">Non-Promo Type</label><input type="text" id="f-nonpromo-type" placeholder="Type to search…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeydown="_acFieldKey(event,'f-nonpromo-type')"><datalist id="nonpromo-list"></datalist></div>
-      <div class="fg"><label class="lbl">Stake ($)</label><input type="number" id="f-stake" placeholder="50" step="0.01" min="0" onfocus="this.select()" onkeydown="_logFieldNav(event,'f-stake')" oninput="updateEVPreview()"></div>
+      <div class="fg"><label class="lbl">Stake ($)</label><input type="number" id="f-stake" placeholder="50" step="0.01" min="0" onkeydown="_logFieldNav(event,'f-stake')" oninput="updateEVPreview()"></div>
       <div class="fg"><label class="lbl">Fixed Odds</label><input type="number" id="f-odds" placeholder="3.40" step="0.01" min="1.01" onfocus="this.select()" oninput="updateKellyDisplay();updateEVPreview()" onkeydown="_logFieldNav(event,'f-odds')"></div>
       <div class="fg"><label class="lbl">BSP <span class="mu" id="bsp-opt-label">(optional)</span></label><input type="number" id="f-bsp" placeholder="Post-race" step="0.01" onfocus="this.select()" oninput="updateKellyDisplay();updateEVPreview()" onkeydown="_logFieldNav(event,'f-bsp')"><div id="kelly-display" style="display:none;margin-top:5px;font-size:12px;color:#22c55e;font-weight:700"></div></div>
     </div>
@@ -525,7 +525,7 @@ select option{background:var(--sel-opt)}
           <option value="bonuses">Bonus Bets</option>
         </select>
       </div>
-      <div style="background:#0f172a;border:1px solid #334155;border-radius:8px;padding:13px;margin-bottom:14px">
+      <div style="background:var(--surf2);border:1px solid #334155;border-radius:8px;padding:13px;margin-bottom:14px">
         <div class="slabel" style="margin-bottom:8px">Paste from Google Sheets</div>
         <p style="font-size:11px;color:#64748b;margin-bottom:10px">In your Google Sheet: select all your data (including header row), press Ctrl+C, then paste below.</p>
         <textarea id="csv-paste" rows="6" placeholder="Paste your Google Sheets data here..." style="font-size:11px;font-family:monospace;resize:vertical"></textarea>
@@ -948,7 +948,7 @@ function renderDashboard(){
   const el=document.getElementById('recent-bets');
   if(!recent.length){el.innerHTML='<div class="empty">No bets logged yet</div>';return}
   let _rs=0,_rl=null;
-  el.innerHTML=`<table><thead><tr><th>Date</th><th>Bookie</th><th>Type</th><th>Stake</th><th>Odds</th><th>BSP</th><th>P&L</th><th>Result</th></tr></thead><tbody>${recent.map(b=>{if(b.bookieId!==_rl){_rs=1-_rs;_rl=b.bookieId;}const rbg=_rs?'background:#0f172a':'';const p=betPnl(b);return`<tr style="${rbg}"><td>${fmtD(b.date)}</td><td>${bkName(b.bookieId)}</td><td>${betType(b)}</td><td>${fmt$(b.stake)}</td><td>${b.fixedOdds}</td><td>${b.bsp||'-'}</td><td class="${clr(p)}">${fmt$(p)}</td><td>${badge(b.result)}</td></tr>`}).join('')}</tbody></table>`;
+  el.innerHTML=`<table><thead><tr><th>Date</th><th>Bookie</th><th>Type</th><th>Stake</th><th>Odds</th><th>BSP</th><th>P&L</th><th>Result</th></tr></thead><tbody>${recent.map(b=>{if(b.bookieId!==_rl){_rs=1-_rs;_rl=b.bookieId;}const rbg=_rs?'background:var(--row-alt)':'';const p=betPnl(b);return`<tr style="${rbg}"><td>${fmtD(b.date)}</td><td>${bkName(b.bookieId)}</td><td>${betType(b)}</td><td>${fmt$(b.stake)}</td><td>${b.fixedOdds}</td><td>${b.bsp||'-'}</td><td class="${clr(p)}">${fmt$(p)}</td><td>${badge(b.result)}</td></tr>`}).join('')}</tbody></table>`;
 }
 
 function getMonthlyRows(bets,bonuses,n){
@@ -1142,7 +1142,9 @@ function saveBet(){
     const bonuses=ls(K.bonuses,[]);bonuses.push(bonus);ss(K.bonuses,bonuses);
     toast('Bonus triggered — turn it over!','info');
   }else toast('Bet saved');
+  document.getElementById('f-stake').value='';
   document.getElementById('f-notes').value='';
+  if(result!=='Pending'&&result!=='Bonus'){document.getElementById('f-odds').value='';document.getElementById('f-bsp').value='';}
   selResult=null;['Win','Loss','Bonus','Void','Pending'].forEach(x=>{const el=document.getElementById('rb-'+x);if(el)el.className='rbtn'});
   renderTodayBets();renderPendingBets();renderDashboard();
 }
@@ -1278,7 +1280,7 @@ function renderTodayBets(){
   const emptyMsg=_histPreset==='week'?'No bets this week':_histPreset==='lastweek'?'No bets last week':_histPreset==='month'?'No bets this month':'No bets';
   if(!bets.length){el.innerHTML=`<div class="empty">${emptyMsg}</div>`;return}
   let _ts=0,_tl=null;
-  el.innerHTML=`<table><thead><tr><th></th><th>Date</th><th>Bookie</th><th>Type</th><th>Stake</th><th>Odds</th><th>BSP</th><th>P&L</th><th>EV</th><th>Result</th><th>Quick BSP</th><th></th></tr></thead><tbody>${bets.map(b=>{if(b.bookieId!==_tl){_ts=1-_ts;_tl=b.bookieId;}const rbg=_ts?'background:#0f172a':'';const p=betPnl(b);const ev=betEV(b,cfg);return`<tr id="bet-row-${b.id}" style="${rbg}"><td><input type="checkbox" onchange="toggleBetCheck('${b.id}')" ${window._sel.has(b.id)?'checked':''} style="cursor:pointer;accent-color:#6366f1;width:15px;height:15px"></td><td>${fmtD(b.date)}</td><td>${bkName(b.bookieId)}</td><td>${betType(b)}</td><td>${fmt$(b.stake)}</td><td>${b.fixedOdds||'-'}</td><td>${b.bsp||'-'}</td><td class="${clr(p)}">${fmt$(p)}</td><td class="am">${ev!=null?fmt$(ev):'-'}</td><td>${badge(b.result)}</td><td><div class="flex gap-2 items-center"><input class="inp-sm" type="number" id="bsp-${b.id}" value="${b.bsp||''}" placeholder="BSP" step="0.01"><button class="btn btn-s btn-xs" onclick="saveBSP('${b.id}')">Set</button></div></td><td><button class="btn btn-s btn-xs" onclick="editBet('${b.id}')">Edit</button></td></tr>`}).join('')}</tbody></table>`;
+  el.innerHTML=`<table><thead><tr><th></th><th>Date</th><th>Bookie</th><th>Type</th><th>Stake</th><th>Odds</th><th>BSP</th><th>P&L</th><th>EV</th><th>Result</th><th>Quick BSP</th><th></th></tr></thead><tbody>${bets.map(b=>{if(b.bookieId!==_tl){_ts=1-_ts;_tl=b.bookieId;}const rbg=_ts?'background:var(--row-alt)':'';const p=betPnl(b);const ev=betEV(b,cfg);return`<tr id="bet-row-${b.id}" style="${rbg}"><td><input type="checkbox" onchange="toggleBetCheck('${b.id}')" ${window._sel.has(b.id)?'checked':''} style="cursor:pointer;accent-color:#6366f1;width:15px;height:15px"></td><td>${fmtD(b.date)}</td><td>${bkName(b.bookieId)}</td><td>${betType(b)}</td><td>${fmt$(b.stake)}</td><td>${b.fixedOdds||'-'}</td><td>${b.bsp||'-'}</td><td class="${clr(p)}">${fmt$(p)}</td><td class="am">${ev!=null?fmt$(ev):'-'}</td><td>${badge(b.result)}</td><td><div class="flex gap-2 items-center"><input class="inp-sm" type="number" id="bsp-${b.id}" value="${b.bsp||''}" placeholder="BSP" step="0.01"><button class="btn btn-s btn-xs" onclick="saveBSP('${b.id}')">Set</button></div></td><td><button class="btn btn-s btn-xs" onclick="editBet('${b.id}')">Edit</button></td></tr>`}).join('')}</tbody></table>`;
 }
 
 function renderPendingBets(){
@@ -1287,7 +1289,7 @@ function renderPendingBets(){
   if(!bets.length){el.innerHTML='<div class="empty">No pending bets</div>';return}
   const cfg=ls(K.settings,DEF_SETTINGS);
   let _ps=0,_pl=null;
-  el.innerHTML=`<table><thead><tr><th></th><th>Date</th><th>Bookie</th><th>Type</th><th>Stake</th><th>Odds</th><th>BSP</th><th>EV</th><th>Settle</th></tr></thead><tbody>${bets.map(b=>{if(b.bookieId!==_pl){_ps=1-_ps;_pl=b.bookieId;}const rbg=_ps?'background:#0f172a':'';const ev=betEV(b,cfg);return`<tr style="${rbg}">
+  el.innerHTML=`<table><thead><tr><th></th><th>Date</th><th>Bookie</th><th>Type</th><th>Stake</th><th>Odds</th><th>BSP</th><th>EV</th><th>Settle</th></tr></thead><tbody>${bets.map(b=>{if(b.bookieId!==_pl){_ps=1-_ps;_pl=b.bookieId;}const rbg=_ps?'background:var(--row-alt)':'';const ev=betEV(b,cfg);return`<tr style="${rbg}">
     <td><input type="checkbox" onchange="toggleBetCheck('${b.id}')" ${window._sel.has(b.id)?'checked':''} style="cursor:pointer;accent-color:#6366f1;width:15px;height:15px"></td>
     <td>${fmtD(b.date)}</td><td>${bkName(b.bookieId)}</td><td>${betType(b)}</td><td>${fmt$(b.stake)}</td><td>${b.fixedOdds||'-'}</td><td>${b.bsp||'-'}</td>
     <td class="am">${ev!=null?fmt$(ev):'-'}</td>
