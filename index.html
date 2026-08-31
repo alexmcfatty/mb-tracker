@@ -901,8 +901,10 @@ function renderDashboard(){
   const triggers=nonVoid.filter(b=>b.result==='Bonus').length;
   const trigR=totalBets?triggers/totalBets*100:0;
   const wonB=completed.filter(b=>b.result==='Win'&&b.fixedOdds);
-  const totalBonFace=completed.reduce((s,b)=>s+b.bonusAmount,0);
-  const totalBonP=completed.reduce((s,b)=>s+bonusPnl(b),0);
+  // BTO% based on promo bonuses only (not deposit matches, which have different economics)
+  const promoCompleted=completed.filter(b=>b.sourceType!=='deposit_match');
+  const totalBonFace=promoCompleted.reduce((s,b)=>s+b.bonusAmount,0);
+  const totalBonP=promoCompleted.reduce((s,b)=>s+bonusPnl(b),0);
   const extR=totalBonFace>0?totalBonP/totalBonFace*100:cfg.extractionRate;
   const avgStake=totalBets?nonVoid.reduce((s,b)=>s+b.stake,0)/totalBets:0;
   const expP=avgStake*triggers*(cfg.extractionRate/100);
@@ -998,9 +1000,10 @@ function getMonthlyRows(bets,bonuses,n){
     const adjP=ls(K.adj,[]).filter(a=>{const dd=new Date(a.date+'T00:00:00');return dd.getFullYear()===y&&dd.getMonth()===m}).reduce((s,a)=>s+a.amount,0);
     const avgOdds=nonVoid.length?nonVoid.reduce((s,b)=>s+b.fixedOdds,0)/nonVoid.length:0;
     const trigR=nonVoid.length?triggers/nonVoid.length*100:0;
-    const bonFace=mn.reduce((s,b)=>s+b.bonusAmount,0);
+    const mnPromo=mn.filter(b=>b.sourceType!=='deposit_match');
+    const bonFace=mnPromo.reduce((s,b)=>s+b.bonusAmount,0);
     const cfg=ls(K.settings,DEF_SETTINGS);
-    const extR=bonFace>0?bonP/bonFace*100:0;
+    const extR=bonFace>0?mnPromo.reduce((s,b)=>s+bonusPnl(b),0)/bonFace*100:0;
     const expP=turnover*(trigR||cfg.triggerRate)/100*(extR||cfg.extractionRate)/100;
     return{lbl:d.toLocaleDateString('en-AU',{month:'short',year:'numeric'}),y,m,bets:nonVoid.length,turnover,avgOdds,triggers,trigR,cashP,bonP,adjP,total:cashP+bonP+adjP,bonFace,extR,expP,netPct:turnover?(cashP+bonP+adjP)/turnover*100:0};
   });
