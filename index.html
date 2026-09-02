@@ -755,7 +755,23 @@ async function supaLoad(){
   const{data,error}=await supa.from('user_data').select('data').eq('user_id',_syncUser.id).single();
   if(error||!data||!data.data||!Object.keys(data.data).length){await supaSync();return}
   const d=data.data;
-  Object.entries(K).forEach(([k,storageKey])=>{if(d[k]!==undefined)localStorage.setItem(storageKey,JSON.stringify(d[k]))});
+  // Merge transactional arrays by ID so bets logged on one device aren't wiped by another device syncing
+  const MERGE_KEYS=new Set(['bets','bonuses','txns','bankTxns']);
+  let didMerge=false;
+  Object.entries(K).forEach(([k,storageKey])=>{
+    if(d[k]===undefined)return;
+    if(MERGE_KEYS.has(k)&&Array.isArray(d[k])){
+      const remote=d[k];
+      const local=ls(storageKey,[]);
+      const remoteIds=new Set(remote.map(x=>x.id));
+      const localOnly=local.filter(x=>x.id&&!remoteIds.has(x.id));
+      if(localOnly.length)didMerge=true;
+      localStorage.setItem(storageKey,JSON.stringify([...remote,...localOnly]));
+    }else{
+      localStorage.setItem(storageKey,JSON.stringify(d[k]));
+    }
+  });
+  if(didMerge)scheduleSync();
 }
 
 function updateAuthUI(user){
