@@ -917,8 +917,9 @@ function renderDashboard(){
   const triggers=nonVoid.filter(b=>b.result==='Bonus').length;
   const trigR=totalBets?triggers/totalBets*100:0;
   const wonB=completed.filter(b=>b.result==='Win'&&b.fixedOdds);
-  const totalBonFace=completed.reduce((s,b)=>s+b.bonusAmount,0);
-  const totalBonP=completed.reduce((s,b)=>s+bonusPnl(b),0);
+  const btoBase=completed.filter(b=>b.result!=='Cleared');
+  const totalBonFace=btoBase.reduce((s,b)=>s+b.bonusAmount,0);
+  const totalBonP=btoBase.reduce((s,b)=>s+bonusPnl(b),0);
   const extR=totalBonFace>0?totalBonP/totalBonFace*100:cfg.extractionRate;
   const avgStake=totalBets?nonVoid.reduce((s,b)=>s+b.stake,0)/totalBets:0;
   const expP=avgStake*triggers*(cfg.extractionRate/100);
@@ -1822,8 +1823,9 @@ function renderBonusData(bonuses,cfg){
   const dmPnl=dmCompleted.reduce((s,b)=>s+bonusPnl(b),0);
   if(!completed.length&&!dmFaceInRange){if(statsEl)statsEl.innerHTML='';el.innerHTML='<div class="empty">No completed bonus bets</div>';return}
   const wonB=completed.filter(b=>b.result==='Win'&&b.fixedOdds);
-  const face=completed.reduce((s,b)=>s+b.bonusAmount,0);
-  const pnl=completed.reduce((s,b)=>s+bonusPnl(b),0)+dmPnl;
+  const btoComp=completed.filter(b=>b.result!=='Cleared');
+  const face=btoComp.reduce((s,b)=>s+b.bonusAmount,0);
+  const pnl=btoComp.reduce((s,b)=>s+bonusPnl(b),0)+dmPnl;
   const winR=completed.length?wonB.length/completed.length*100:0;
   const extR=face>0?pnl/face*100:cfg.extractionRate;
   const types=[...new Set(completed.map(b=>b.bonusType||'Horses'))].sort();
