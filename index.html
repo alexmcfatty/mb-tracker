@@ -1090,7 +1090,7 @@ function renderLogBet(){
   setupAC('f-nonpromo-type',()=>ls(K.npt,[]).map(t=>t.name));
   _attachLogFieldNav();
   if(!window._fpDate){
-    window._fpDate=flatpickr('#f-date',{dateFormat:'Y-m-d',altInput:true,altFormat:'d M Y',defaultDate:today(),maxDate:'today',disableMobile:true});
+    window._fpDate=flatpickr('#f-date',{dateFormat:'Y-m-d',altInput:true,altFormat:'d M Y',defaultDate:today(),disableMobile:true});
   }else{window._fpDate.setDate(today(),false)}
   renderTodayBets();renderPendingBets();
 }
@@ -2764,13 +2764,14 @@ function balConfirmTxn(id,type){
   const amt=parseFloat(document.getElementById('bal-amt-'+id)?.value);
   if(!amt||amt<=0){toast('Enter a valid amount','warn');return}
   const note=document.getElementById('bal-note-'+id)?.value.trim()||'';
+  const normalType=type==='withdraw'?'withdrawal':type;
   const balances=ls(K.balances,{});
   const prev=balances[id]||0;
-  const delta=type==='deposit'?amt:-amt;
+  const delta=normalType==='deposit'?amt:-amt;
   balances[id]=Math.round((prev+delta)*100)/100;
   ss(K.balances,balances);
   const txns=ls(K.txns,[]);
-  txns.push({id:uid(),bookieId:id,type,amount:amt,prevBalance:prev,balAfter:balances[id],note,date:new Date().toISOString().slice(0,10),createdAt:new Date().toISOString()});
+  txns.push({id:uid(),bookieId:id,type:normalType,amount:amt,prevBalance:prev,balAfter:balances[id],note,date:new Date().toISOString().slice(0,10),createdAt:new Date().toISOString()});
   ss(K.txns,txns);
   _balInline[id]=null;
   // auto-link to bank account
@@ -2779,11 +2780,12 @@ function balConfirmTxn(id,type){
     const _bankAcct=ls(K.bankAccounts,[]).find(a=>a.name.trim().toLowerCase()===_person.toLowerCase()&&a.active);
     if(_bankAcct){
       const _bankBals=ls(K.bankBals,{});const _bankPrev=_bankBals[_bankAcct.id]||0;
-      const _bankDelta=type==='withdrawal'?amt:-amt;
+      const _bankDelta=type==='withdraw'||type==='withdrawal'?amt:-amt;
       _bankBals[_bankAcct.id]=Math.round((_bankPrev+_bankDelta)*100)/100;
       ss(K.bankBals,_bankBals);
       const _bankTxns=ls(K.bankTxns,[]);
-      _bankTxns.push({id:uid(),bankAccountId:_bankAcct.id,type:type==='withdrawal'?'deposit':'withdrawal',amount:amt,prevBalance:_bankPrev,balAfter:_bankBals[_bankAcct.id],note:`Auto: ${type} ${type==='withdrawal'?'from':'to'} ${bkName(id)}`,date:new Date().toISOString().slice(0,10),createdAt:new Date().toISOString()});
+      const _isWithdraw=type==='withdraw'||type==='withdrawal';
+      _bankTxns.push({id:uid(),bankAccountId:_bankAcct.id,type:_isWithdraw?'deposit':'withdrawal',amount:amt,prevBalance:_bankPrev,balAfter:_bankBals[_bankAcct.id],note:`Auto: ${type} ${_isWithdraw?'from':'to'} ${bkName(id)}`,date:new Date().toISOString().slice(0,10),createdAt:new Date().toISOString()});
       ss(K.bankTxns,_bankTxns);
     }
   }
@@ -2816,7 +2818,7 @@ function deleteTxn(txnId,bookieId){
   let runBal=0;
   bkTxns.forEach(t=>{
     if(t.type==='deposit')runBal=Math.round((runBal+t.amount)*100)/100;
-    else if(t.type==='withdrawal')runBal=Math.round((runBal-t.amount)*100)/100;
+    else if(t.type==='withdrawal'||t.type==='withdraw')runBal=Math.round((runBal-t.amount)*100)/100;
     else if(t.type==='adjust')runBal=t.amount;
     t.balAfter=runBal;
   });
