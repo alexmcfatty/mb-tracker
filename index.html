@@ -1897,7 +1897,7 @@ function renderPromoData(bets,bonuses,cfg){
     const bonFace=triggers.reduce((s,b)=>s+b.stake,0);
     const bonP=bonFace*(globalExtR/100);
     const total=cashP+bonP;
-    const expP=(pr.ev?pr.ev/100:0)*turnover;
+    const expP=pb.reduce((s,b)=>{const v=betEV(b);return s+(v||0);},0);
     const netPct=turnover?total/turnover*100:0;
     return{name:pr.name,bets:pb.length,wins,losses,turnover,avgOdds,triggers:triggers.length,trigR,bonFace,cashP,bonP,total,expP,netPct};
   }).filter(Boolean).sort((a,b)=>b.bets-a.bets);
