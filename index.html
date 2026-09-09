@@ -726,7 +726,7 @@ function updateKellyDisplay(){
   const odds=parseFloat(document.getElementById('f-odds')?.value);
   const bsp=parseFloat(document.getElementById('f-bsp')?.value);
   const cat=betCat;
-  if(cat!=='non-promo'||!odds||!bsp){el.style.display='none';return}
+  if(!odds||!bsp){el.style.display='none';return}
   const k=calcKellyStake(odds,bsp);
   if(k===null){el.style.display='none';return}
   el.textContent='Kelly stake: '+fmt$(k);el.style.display='block';
@@ -1041,6 +1041,7 @@ function setBetCat(c){
   document.getElementById(c==='promo'?'f-promo':'f-nonpromo-type').value='';
   selResult=null;['Win','Loss','Bonus','Void','Pending'].forEach(x=>{const el=document.getElementById('rb-'+x);if(el)el.className='rbtn'});
   renderTodayBets();renderPendingBets();
+  updateKellyDisplay();
 }
 function _acNorm(s){return s.toLowerCase().replace(/[^a-z0-9]/g,'')}
 function setupAC(inputId,getOpts){
@@ -1785,7 +1786,7 @@ function renderMonthlyData(bets,bonuses,cfg){
     const bonP=mn.reduce((s,b)=>s+bonusPnl(b),0);
     const total=cashP+bonP;
     const promosList=ls(K.promos,[]);
-    const evPromo=mb.filter(b=>b.betCategory==='promo'&&b.result!=='Void').reduce((s,b)=>{const pr=promosList.find(p=>p.id===b.promoId);return s+(pr&&pr.ev?pr.ev/100:0)*b.stake},0);
+    const evPromo=mb.filter(b=>b.betCategory==='promo'&&b.result!=='Void').reduce((s,b)=>{const v=betEV(b);return s+(v||0);},0);
     const evNP=mb.filter(b=>b.betCategory==='non-promo'&&b.fixedOdds&&b.bsp&&b.result!=='Void').reduce((s,b)=>s+(b.fixedOdds/b.bsp-1)*b.stake,0);
     const expP=evPromo+evNP;
     const netPct=turnover?total/turnover*100:0;
@@ -1956,7 +1957,7 @@ function renderWeeklyAvg(bets,bonuses,cfg){
     const wb=weeks[w].bets;const wbn=weeks[w].bonuses;
     const cashP=wb.reduce((s,b)=>s+betPnl(b),0);
     const bonP=wbn.reduce((s,b)=>s+bonusPnl(b),0);
-    const evPromo=wb.filter(b=>b.betCategory==='promo').reduce((s,b)=>{const pr=promos.find(p=>p.id===b.promoId);return s+(pr&&pr.ev?pr.ev/100:0)*b.stake},0);
+    const evPromo=wb.filter(b=>b.betCategory==='promo').reduce((s,b)=>{const v=betEV(b);return s+(v||0);},0);
     const evNP=wb.filter(b=>b.betCategory==='non-promo'&&b.fixedOdds&&b.bsp).reduce((s,b)=>s+(b.fixedOdds/b.bsp-1)*b.stake,0);
     const ev=evPromo+evNP;
     const total=cashP+bonP;
@@ -2064,7 +2065,7 @@ function renderBookieData(bets,bonuses,cfg){
     const cashP=bb.reduce((s,b)=>s+betPnl(b),0);
     const bonP=bn.reduce((s,b)=>s+bonusPnl(b),0);
     const total=cashP+bonP;
-    const evPromo=bb.filter(b=>b.betCategory==='promo').reduce((s,b)=>{const pr=promos.find(p=>p.id===b.promoId);return s+(pr&&pr.ev?pr.ev/100:0)*b.stake},0);
+    const evPromo=bb.filter(b=>b.betCategory==='promo').reduce((s,b)=>{const v=betEV(b);return s+(v||0);},0);
     const evNP=bb.filter(b=>b.betCategory==='non-promo'&&b.fixedOdds&&b.bsp).reduce((s,b)=>s+(b.fixedOdds/b.bsp-1)*b.stake,0);
     const ev=evPromo+evNP;
     const turnover=bb.reduce((s,b)=>s+b.stake,0);
@@ -2621,7 +2622,7 @@ function renderBalances(){
     const cashP=bb.reduce((s,x)=>s+betPnl(x),0);
     const bonP=bn.reduce((s,x)=>s+bonusPnl(x),0);
     const pnl=cashP+bonP;
-    const evPromo=bb.filter(x=>x.betCategory==='promo').reduce((s,x)=>{const pr=allPromos.find(p=>p.id===x.promoId);return s+(pr&&pr.ev?pr.ev/100:0)*x.stake},0);
+    const evPromo=bb.filter(x=>x.betCategory==='promo').reduce((s,x)=>{const v=betEV(x);return s+(v||0);},0);
     const evNP=bb.filter(x=>x.betCategory==='non-promo'&&x.fixedOdds&&x.bsp).reduce((s,x)=>s+(x.fixedOdds/x.bsp-1)*x.stake,0);
     const ev=evPromo+evNP;
     const turnover=bb.reduce((s,x)=>s+x.stake,0);
