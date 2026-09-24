@@ -15,8 +15,8 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/themes/dark.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
 <style>
-:root{--bg:#0f172a;--surf:#1e293b;--surf2:#0f172a;--bdr:#334155;--bdr2:#263348;--tx:#e2e8f0;--tx2:#cbd5e1;--tx3:#94a3b8;--tx4:#64748b;--tx5:#475569;--hover:#263348;--inp:#0f172a;--sel-opt:#1e293b;--row-alt:#0f172a}
-body.light{--bg:#f1f5f9;--surf:#ffffff;--surf2:#f1f5f9;--bdr:#e2e8f0;--bdr2:#f1f5f9;--tx:#0f172a;--tx2:#1e293b;--tx3:#475569;--tx4:#64748b;--tx5:#94a3b8;--hover:#f8fafc;--inp:#f8fafc;--sel-opt:#ffffff;--row-alt:#dbeafe}
+:root{--bg:#0f172a;--surf:#1e293b;--surf2:#0f172a;--bdr:#334155;--bdr2:#263348;--tx:#e2e8f0;--tx2:#cbd5e1;--tx3:#94a3b8;--tx4:#64748b;--tx5:#475569;--hover:#263348;--inp:#0f172a;--sel-opt:#1e293b}
+body.light{--bg:#f1f5f9;--surf:#ffffff;--surf2:#f1f5f9;--bdr:#e2e8f0;--bdr2:#f1f5f9;--tx:#0f172a;--tx2:#1e293b;--tx3:#475569;--tx4:#64748b;--tx5:#94a3b8;--hover:#f8fafc;--inp:#f8fafc;--sel-opt:#ffffff}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;font-size:14px;transition:background .2s,color .2s}
 .nav{background:var(--surf);border-bottom:1px solid var(--bdr);padding:0 16px;padding-top:env(safe-area-inset-top);display:flex;align-items:center;position:sticky;top:0;z-index:100}
@@ -109,7 +109,7 @@ select option{background:var(--sel-opt)}
 .acc-card.open .acc-chev{transform:rotate(180deg)}
 .totrow{display:flex;justify-content:space-between;font-size:11px;color:var(--tx4);padding:3px 0}
 .totals{background:var(--surf2);border-radius:6px;padding:9px 11px;margin-top:8px}
-.modal{display:none;position:fixed;inset:0;background:var(--surf2)99;z-index:200;align-items:center;justify-content:center}
+.modal{display:none;position:fixed;inset:0;background:#0f172a99;z-index:200;align-items:center;justify-content:center}
 .modal.open{display:flex}
 .modal-box{background:var(--surf);border:1px solid var(--bdr);border-radius:12px;padding:20px;width:340px;max-width:95vw}
 .modal-box h3{font-size:14px;font-weight:600;margin-bottom:14px;color:var(--tx)}
@@ -238,12 +238,9 @@ select option{background:var(--sel-opt)}
         <datalist id="promo-datalist"></datalist>
       </div>
       <div class="fg" id="fg-nonpromo" style="display:none"><label class="lbl">Non-Promo Type</label><input type="text" id="f-nonpromo-type" placeholder="Type to search…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeydown="_acFieldKey(event,'f-nonpromo-type')"><datalist id="nonpromo-list"></datalist></div>
-      <div class="fg"><label class="lbl">Stake ($)</label><input type="number" id="f-stake" placeholder="50" step="0.01" min="0" onkeydown="_logFieldNav(event,'f-stake')" oninput="updateEVPreview()"></div>
-      <div class="fg"><label class="lbl">Fixed Odds</label><input type="number" id="f-odds" placeholder="3.40" step="0.01" min="1.01" onfocus="this.select()" oninput="updateKellyDisplay();updateEVPreview()" onkeydown="_logFieldNav(event,'f-odds')"></div>
-      <div class="fg"><label class="lbl">BSP <span class="mu" id="bsp-opt-label">(optional)</span></label><input type="number" id="f-bsp" placeholder="Post-race" step="0.01" onfocus="this.select()" oninput="updateKellyDisplay();updateEVPreview()" onkeydown="_logFieldNav(event,'f-bsp')"><div id="kelly-display" style="display:none;margin-top:5px;font-size:12px;color:#22c55e;font-weight:700"></div></div>
-    </div>
-    <div id="ev-preview" style="display:none;font-size:11px;color:#64748b;padding:2px 0 10px;gap:14px;align-items:center">
-      Back/BSP: <strong id="ev-ratio"></strong>&nbsp;&nbsp;EV: <strong id="ev-val"></strong>
+      <div class="fg"><label class="lbl">Stake ($)</label><input type="number" id="f-stake" placeholder="50" step="0.01" min="0" onkeydown="_logFieldNav(event,'f-stake')"></div>
+      <div class="fg"><label class="lbl">Fixed Odds</label><input type="number" id="f-odds" placeholder="3.40" step="0.01" min="1.01" oninput="updateKellyDisplay()" onkeydown="_logFieldNav(event,'f-odds')"></div>
+      <div class="fg"><label class="lbl">BSP <span class="mu" id="bsp-opt-label">(optional)</span></label><input type="number" id="f-bsp" placeholder="Post-race" step="0.01" oninput="updateKellyDisplay()" onkeydown="_logFieldNav(event,'f-bsp')"><div id="kelly-display" style="display:none;margin-top:5px;font-size:12px;color:#22c55e;font-weight:700"></div></div>
     </div>
     <div class="fg mb-4">
       <label class="lbl">Result</label>
@@ -263,10 +260,6 @@ select option{background:var(--sel-opt)}
     </div>
   </div>
   <div id="batch-form-section" style="display:none"></div>
-  <div style="margin:10px 0 4px;display:flex;gap:8px;align-items:center">
-    <input type="text" id="bet-search" placeholder="Search bets… (bookie, type, result)" oninput="renderTodayBets();renderPendingBets()" style="flex:1;font-size:12px">
-    <button class="btn btn-s btn-xs" onclick="document.getElementById('bet-search').value='';renderTodayBets();renderPendingBets()" title="Clear search" style="flex-shrink:0">✕</button>
-  </div>
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
       <div class="slabel" style="margin:0">Pending Bets</div>
@@ -305,14 +298,9 @@ select option{background:var(--sel-opt)}
         <button class="btn btn-d btn-sm" onclick="clearAllPending()">Clear All Pending</button>
       </div>
     </div>
-    <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
-      <input type="text" id="bonus-search" placeholder="Search bonuses… (bookie, type)" oninput="renderBonuses()" style="flex:1;font-size:12px">
-      <button class="btn btn-s btn-xs" onclick="document.getElementById('bonus-search').value='';renderBonuses()" style="flex-shrink:0">✕</button>
-    </div>
     <div id="dm-form" class="dm-form" style="display:none">
       <h2 style="font-size:13px;margin-bottom:10px">Add Deposit Match Bonus</h2>
       <div class="form-grid" style="grid-template-columns:repeat(auto-fill,minmax(145px,1fr))">
-        <div class="fg"><label class="lbl">Date</label><input type="date" id="dm-date"></div>
         <div class="fg"><label class="lbl">Bookie</label><select id="dm-bookie"></select></div>
         <div class="fg"><label class="lbl">Bonus Amount ($)</label><input type="number" id="dm-amount" placeholder="200" step="0.01" min="0.01"></div>
         <div class="fg"><label class="lbl">Notes</label><input type="text" id="dm-notes" placeholder="Deposit match, welcome bonus..."></div>
@@ -395,28 +383,24 @@ select option{background:var(--sel-opt)}
 <!-- BALANCES -->
 <div class="tab-pane" id="tab-balances">
 <div class="content">
-  <div style="display:flex;align-items:stretch;gap:12px;margin-bottom:14px">
-    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;flex:1">
-      <input type="text" id="bal-search" placeholder="Search bookies…" oninput="renderBalances()" style="max-width:200px">
-      <select id="bal-sort" onchange="renderBalances()" style="width:auto;padding:7px 10px">
-        <option value="alpha-asc">A → Z</option>
-        <option value="alpha-desc">Z → A</option>
-        <option value="bal-desc">Balance ↓</option>
-        <option value="bal-asc">Balance ↑</option>
-        <option value="pnl-desc">P&amp;L ↓</option>
-        <option value="pnl-asc">P&amp;L ↑</option>
-        <option value="bets-desc">Bets ↓</option>
-      </select>
-      <label class="flex items-center gap-2" style="font-size:12px;color:var(--tx4);cursor:pointer">
-        <label class="toggle"><input type="checkbox" id="bal-active-only" checked onchange="renderBalances()"><span class="ts"></span></label>
-        Active only
-      </label>
-    </div>
-    <div id="total-outlay-box" class="card" style="display:flex;flex-direction:column;justify-content:center;align-items:flex-end;padding:12px 18px;min-width:160px;flex-shrink:0;gap:4px"></div>
+  <div class="flex items-center gap-2 fw" style="margin-bottom:14px">
+    <input type="text" id="bal-search" placeholder="Search bookies…" oninput="renderBalances()" style="max-width:200px">
+    <select id="bal-sort" onchange="renderBalances()" style="width:auto;padding:7px 10px">
+      <option value="alpha-asc">A → Z</option>
+      <option value="alpha-desc">Z → A</option>
+      <option value="bal-desc">Balance ↓</option>
+      <option value="bal-asc">Balance ↑</option>
+      <option value="pnl-desc">P&amp;L ↓</option>
+      <option value="pnl-asc">P&amp;L ↑</option>
+      <option value="bets-desc">Bets ↓</option>
+    </select>
+    <label class="flex items-center gap-2" style="font-size:12px;color:var(--tx4);cursor:pointer">
+      <label class="toggle"><input type="checkbox" id="bal-active-only" checked onchange="renderBalances()"><span class="ts"></span></label>
+      Active only
+    </label>
   </div>
   <div id="balances-totals" style="margin-bottom:12px"></div>
   <div id="balances-list"></div>
-  <div id="bank-balances" style="margin-top:18px"></div>
 </div>
 </div>
 
@@ -437,22 +421,10 @@ select option{background:var(--sel-opt)}
   <div class="acc-card" id="acc-bookies">
     <div class="acc-hdr" onclick="toggleAcc('bookies')"><span>Bookies</span><span class="acc-chev">▼</span></div>
     <div class="acc-body" style="display:none">
-      <input type="text" id="bk-search" placeholder="Search bookies…" oninput="renderBkList()" style="width:100%;margin-bottom:8px;box-sizing:border-box">
       <div id="bookies-list"></div>
       <div class="flex gap-2 fw" style="margin-top:12px">
         <input type="text" id="new-bk-name" placeholder="Bookie name (e.g. Tab - AM)" style="flex:1">
         <button class="btn btn-s btn-sm" onclick="addBookie()">Add</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="acc-card" id="acc-bank-accounts">
-    <div class="acc-hdr" onclick="toggleAcc('bank-accounts')"><span>Bank Accounts</span><span class="acc-chev">▼</span></div>
-    <div class="acc-body" style="display:none">
-      <div id="bank-accounts-list"></div>
-      <div class="flex gap-2 fw" style="margin-top:12px">
-        <input type="text" id="new-bank-name" placeholder="Account name (e.g. AL, RM)" style="flex:1">
-        <button class="btn btn-s btn-sm" onclick="addBankAccount()">Add</button>
       </div>
     </div>
   </div>
@@ -533,6 +505,15 @@ select option{background:var(--sel-opt)}
     </div>
   </div>
 
+  <div class="acc-card" id="acc-ai-coach">
+    <div class="acc-hdr" onclick="toggleAcc('ai-coach')"><span>🤖 Ask the AI Coach</span><span class="acc-chev">▼</span></div>
+    <div class="acc-body" style="display:none">
+      <div id="ai-coach-inner" style="min-height:60px">
+        <p style="font-size:12px;color:#64748b;text-align:center;padding:20px 0">Loading…</p>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 </div><!-- /content -->
@@ -550,7 +531,7 @@ select option{background:var(--sel-opt)}
           <option value="bonuses">Bonus Bets</option>
         </select>
       </div>
-      <div style="background:var(--surf2);border:1px solid #334155;border-radius:8px;padding:13px;margin-bottom:14px">
+      <div style="background:#0f172a;border:1px solid #334155;border-radius:8px;padding:13px;margin-bottom:14px">
         <div class="slabel" style="margin-bottom:8px">Paste from Google Sheets</div>
         <p style="font-size:11px;color:#64748b;margin-bottom:10px">In your Google Sheet: select all your data (including header row), press Ctrl+C, then paste below.</p>
         <textarea id="csv-paste" rows="6" placeholder="Paste your Google Sheets data here..." style="font-size:11px;font-family:monospace;resize:vertical"></textarea>
@@ -652,7 +633,7 @@ select option{background:var(--sel-opt)}
 
 <script>
 // ── CONSTANTS ────────────────────────────────────────────────────────────────
-const K={bets:'mb_bets',bonuses:'mb_bonuses',bookies:'mb_bookies',promos:'mb_promos',npt:'mb_npt',adj:'mb_adj',settings:'mb_settings',btypes:'mb_btypes',balances:'mb_balances',txns:'mb_txns',bankAccounts:'mb_bank_accounts',bankTxns:'mb_bank_txns',bankBals:'mb_bank_bals'};
+const K={bets:'mb_bets',bonuses:'mb_bonuses',bookies:'mb_bookies',promos:'mb_promos',npt:'mb_npt',adj:'mb_adj',settings:'mb_settings',btypes:'mb_btypes',balances:'mb_balances',txns:'mb_txns'};
 const DEF_BONUS_TYPES=['Horses','Dogs','Trots','Sports'];
 const DEF_BOOKIES=[{n:'TAB',a:'TAB'},{n:'Sportsbet',a:'SB'},{n:'Bet365',a:'365'},{n:'Neds',a:'Neds'},{n:'Ladbrokes',a:'Lads'},{n:'Unibet',a:'UB'},{n:'BlueBet',a:'BB'},{n:'Pointsbet',a:'PB'}].map(b=>({id:uid(),name:b.n,alias:b.a,active:true}));
 const DEF_PROMOS=['2nd 3rd Back','2nd Back','Double Winnings','25% Bonus Boost','Dogs Boost','Horse Boost','Trots Boost','Sports Boost','3 Leg 1 Fail','Free Hit','2 Leg Free Hit','365 Megaboost'].map(n=>({id:uid(),name:n}));
@@ -675,13 +656,6 @@ function bkName(id){const b=ls(K.bookies,[]).find(x=>x.id===id);return b?(b.alia
 function prName(id){const p=ls(K.promos,[]).find(x=>x.id===id);return p?p.name:'?'}
 function toast(msg,type='ok'){const t=document.getElementById('toast');t.textContent=msg;t.className='toast '+type+' show';clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2800)}
 function betPnl(b){if(b.result==='Win')return(b.fixedOdds-1)*b.stake;if(b.result==='Loss')return b.betCategory==='bonus'?0:-b.stake;if(b.result==='Bonus')return-b.stake;return 0}
-function applyBetPnlToBalance(bet,mult){
-  if(!bet||!bet.bookieId)return;
-  const pnl=betPnl(bet);if(pnl===0)return;
-  const bals=ls(K.balances,{});
-  bals[bet.bookieId]=Math.round(((bals[bet.bookieId]||0)+pnl*mult)*100)/100;
-  ss(K.balances,bals);
-}
 function betEV(b,cfg){
   const c=cfg||ls(K.settings,DEF_SETTINGS);
   if(b.betCategory==='non-promo'){if(b.fixedOdds&&b.bsp)return(b.fixedOdds/b.bsp-1)*b.stake;return null}
@@ -705,28 +679,12 @@ function calcKellyStake(backOdds,bsp){
   if(f<=0)return null;
   return(f/fraction)*kellyAdjBank();
 }
-function updateEVPreview(){
-  const odds=parseFloat(document.getElementById('f-odds')?.value);
-  const bsp=parseFloat(document.getElementById('f-bsp')?.value);
-  const stake=parseFloat(document.getElementById('f-stake')?.value);
-  const el=document.getElementById('ev-preview');if(!el)return;
-  if(!odds||!bsp||bsp<=0){el.style.display='none';return;}
-  const ratio=odds/bsp;
-  const edgePct=((ratio-1)*100).toFixed(1);
-  const rEl=document.getElementById('ev-ratio');
-  rEl.textContent=(ratio>=1?'+':'')+edgePct+'%';
-  rEl.style.color=ratio>=1?'#22c55e':'#ef4444';
-  const vEl=document.getElementById('ev-val');
-  if(stake&&!isNaN(stake)){const ev=(ratio-1)*stake;vEl.textContent=(ev>=0?'+':'')+ev.toFixed(2);vEl.style.color=ev>=0?'#22c55e':'#ef4444';}
-  else{vEl.textContent='-';vEl.style.color='#64748b';}
-  el.style.display='flex';
-}
 function updateKellyDisplay(){
   const el=document.getElementById('kelly-display');if(!el)return;
   const odds=parseFloat(document.getElementById('f-odds')?.value);
   const bsp=parseFloat(document.getElementById('f-bsp')?.value);
   const cat=betCat;
-  if(!odds||!bsp){el.style.display='none';return}
+  if(cat!=='non-promo'||!odds||!bsp){el.style.display='none';return}
   const k=calcKellyStake(odds,bsp);
   if(k===null){el.style.display='none';return}
   el.textContent='Kelly stake: '+fmt$(k);el.style.display='block';
@@ -740,13 +698,15 @@ function activeBonuses(){return ls(K.bonuses,[]).filter(b=>b.result!=='split')}
 const SUPA_URL='https://ncqdxovhzjvdoruoookj.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jcWR4b3Zoemp2ZG9ydW9vb2tqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2NzY4ODUsImV4cCI6MjEwMzI1Mjg4NX0.nNL_8zCFoYCZv1lrkFLY4jAF5k1mcx-1ji8_CJ94JWI';
 const supa=supabase.createClient(SUPA_URL,SUPA_KEY);
-let _syncUser=null,_syncTimer=null;
+let _syncUser=null,_syncTimer=null,_isSyncing=false,_realtimeCh=null;
 
 function _allData(){const d={};Object.entries(K).forEach(([k,v])=>{const val=localStorage.getItem(v);if(val)try{d[k]=JSON.parse(val)}catch{}});return d}
 
 async function supaSync(){
   if(!_syncUser||READONLY)return;
+  _isSyncing=true;
   await supa.from('user_data').upsert({user_id:_syncUser.id,data:_allData(),updated_at:new Date().toISOString()});
+  setTimeout(()=>{_isSyncing=false},2000);
 }
 function scheduleSync(){clearTimeout(_syncTimer);_syncTimer=setTimeout(supaSync,2500)}
 
@@ -755,7 +715,7 @@ async function supaLoad(){
   const{data,error}=await supa.from('user_data').select('data').eq('user_id',_syncUser.id).single();
   if(error||!data||!data.data||!Object.keys(data.data).length){await supaSync();return}
   const d=data.data;
-  // Merge transactional arrays by ID so bets logged on one device aren't wiped by another device syncing
+  // Merge transactional arrays by ID so bets on one device aren't wiped by another device syncing
   const MERGE_KEYS=new Set(['bets','bonuses','txns','bankTxns']);
   let didMerge=false;
   Object.entries(K).forEach(([k,storageKey])=>{
@@ -772,6 +732,21 @@ async function supaLoad(){
     }
   });
   if(didMerge)scheduleSync();
+}
+
+function setupRealtimeSync(){
+  if(_realtimeCh){supa.removeChannel(_realtimeCh);_realtimeCh=null;}
+  if(!_syncUser)return;
+  _realtimeCh=supa.channel('user-data-'+_syncUser.id)
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'user_data',filter:`user_id=eq.${_syncUser.id}`},
+      async()=>{
+        if(_isSyncing)return; // this device made the change — skip
+        await supaLoad();
+        const activeTab=document.querySelector('.tab-pane.active')?.id?.replace('tab-','');
+        if(activeTab&&RENDERS[activeTab])RENDERS[activeTab]();
+        toast('Synced from another device','info');
+      })
+    .subscribe();
 }
 
 function updateAuthUI(user){
@@ -813,7 +788,10 @@ async function submitAuth(){
     closeAuthModal();
   }catch(e){errEl.style.color='#ef4444';errEl.textContent=e.message;btn.disabled=false;btn.textContent=mode==='signin'?'Sign In':'Create Account'}
 }
-async function supaSignOut(){await supa.auth.signOut();_syncUser=null;updateAuthUI(null);toast('Signed out','info')}
+async function supaSignOut(){
+  if(_realtimeCh){supa.removeChannel(_realtimeCh);_realtimeCh=null;}
+  await supa.auth.signOut();_syncUser=null;updateAuthUI(null);toast('Signed out','info');
+}
 
 supa.auth.onAuthStateChange(async(event,session)=>{
   _syncUser=session?.user||null;
@@ -821,13 +799,14 @@ supa.auth.onAuthStateChange(async(event,session)=>{
   if(event==='USER_UPDATED'){
     document.getElementById('invite-modal').classList.remove('open');
     toast('Account activated — welcome!','ok');
-    await supaLoad();init();renderDashboard();
+    await supaLoad();init();renderDashboard();setupRealtimeSync();
   }else if(event==='INITIAL_SESSION'&&_syncUser){
-    await supaLoad();init();renderDashboard();
+    await supaLoad();init();renderDashboard();setupRealtimeSync();
   }else if(event==='SIGNED_IN'){
     toast('Syncing your data…','info');
     await supaLoad();init();renderDashboard();
     toast('Data loaded','ok');
+    setupRealtimeSync();
   }
 });
 // detect invite link on page load
@@ -910,16 +889,15 @@ function renderDashboard(){
   const nonVoid=bets.filter(b=>b.result!=='Void');
   const totalBets=nonVoid.length;
   const betP=bets.reduce((s,b)=>s+betPnl(b),0);
-  const completed=bonuses.filter(b=>b.result!=='Pending');
+  const completed=bonuses.filter(b=>b.result!=='Pending'&&b.sourceType!=='deposit_match');
   const bonusP=completed.reduce((s,b)=>s+bonusPnl(b),0);
   const adjTotal=ls(K.adj,[]).reduce((s,a)=>s+a.amount,0);
   const total=betP+bonusP+adjTotal+(cfg.profitOffset||0);
   const triggers=nonVoid.filter(b=>b.result==='Bonus').length;
   const trigR=totalBets?triggers/totalBets*100:0;
   const wonB=completed.filter(b=>b.result==='Win'&&b.fixedOdds);
-  const btoBase=completed.filter(b=>b.result!=='Cleared');
-  const totalBonFace=btoBase.reduce((s,b)=>s+b.bonusAmount,0);
-  const totalBonP=btoBase.reduce((s,b)=>s+bonusPnl(b),0);
+  const totalBonFace=completed.reduce((s,b)=>s+b.bonusAmount,0);
+  const totalBonP=completed.reduce((s,b)=>s+bonusPnl(b),0);
   const extR=totalBonFace>0?totalBonP/totalBonFace*100:cfg.extractionRate;
   const avgStake=totalBets?nonVoid.reduce((s,b)=>s+b.stake,0)/totalBets:0;
   const expP=avgStake*triggers*(cfg.extractionRate/100);
@@ -946,7 +924,7 @@ function renderDashboard(){
     while(cur<=now){
       const y=cur.getFullYear(),m=cur.getMonth();
       const mb=bets.filter(b=>{if(!b.date)return false;const dd=new Date(b.date);return dd.getFullYear()===y&&dd.getMonth()===m});
-      const mn=bonuses.filter(b=>{const dd=new Date(b.createdAt);return dd.getFullYear()===y&&dd.getMonth()===m&&b.result!=='Pending'});
+      const mn=bonuses.filter(b=>{const dd=new Date(b.createdAt);return dd.getFullYear()===y&&dd.getMonth()===m&&b.result!=='Pending'&&b.sourceType!=='deposit_match'});
       const cashP=mb.reduce((s,b)=>s+betPnl(b),0);
       const bonP=mn.reduce((s,b)=>s+bonusPnl(b),0);
       const adjP=ls(K.adj,[]).filter(a=>{const dd=new Date(a.date+'T00:00:00');return dd.getFullYear()===y&&dd.getMonth()===m}).reduce((s,a)=>s+a.amount,0);
@@ -981,7 +959,7 @@ function renderDashboard(){
   const days30=Array.from({length:30},(_,i)=>{const d=new Date(todayUTC+'T00:00:00Z');d.setUTCDate(d.getUTCDate()-(29-i));return d.toISOString().split('T')[0]});
   window._roll30=days30.map(ds=>{
     const db=bets.filter(b=>b.date===ds);
-    const db2=bonuses.filter(b=>b.createdAt&&b.createdAt.startsWith(ds)&&b.result!=='Pending');
+    const db2=bonuses.filter(b=>b.createdAt&&b.createdAt.startsWith(ds)&&b.result!=='Pending'&&b.sourceType!=='deposit_match');
     const profit=db.reduce((s,b)=>s+betPnl(b),0)+db2.reduce((s,b)=>s+bonusPnl(b),0);
     const lbl=new Date(ds+'T00:00:00Z').toLocaleDateString('en-AU',{day:'2-digit',month:'short'});
     return{lbl,profit,ev:dayEV(db)};
@@ -996,8 +974,7 @@ function renderDashboard(){
   const recent=[...bets].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).slice(0,20);
   const el=document.getElementById('recent-bets');
   if(!recent.length){el.innerHTML='<div class="empty">No bets logged yet</div>';return}
-  let _rs=0,_rl=null;
-  el.innerHTML=`<table><thead><tr><th>Date</th><th>Bookie</th><th>Type</th><th>Stake</th><th>Odds</th><th>BSP</th><th>P&L</th><th>Result</th></tr></thead><tbody>${recent.map(b=>{if(b.bookieId!==_rl){_rs=1-_rs;_rl=b.bookieId;}const rbg=_rs?'background:var(--row-alt)':'';const p=betPnl(b);return`<tr style="${rbg}"><td>${fmtD(b.date)}</td><td>${bkName(b.bookieId)}</td><td>${betType(b)}</td><td>${fmt$(b.stake)}</td><td>${b.fixedOdds}</td><td>${b.bsp||'-'}</td><td class="${clr(p)}">${fmt$(p)}</td><td>${badge(b.result)}</td></tr>`}).join('')}</tbody></table>`;
+  el.innerHTML=`<table><thead><tr><th>Date</th><th>Bookie</th><th>Type</th><th>Stake</th><th>Odds</th><th>BSP</th><th>P&L</th><th>Result</th></tr></thead><tbody>${recent.map(b=>{const p=betPnl(b);return`<tr><td>${fmtD(b.date)}</td><td>${bkName(b.bookieId)}</td><td>${betType(b)}</td><td>${fmt$(b.stake)}</td><td>${b.fixedOdds}</td><td>${b.bsp||'-'}</td><td class="${clr(p)}">${fmt$(p)}</td><td>${badge(b.result)}</td></tr>`}).join('')}</tbody></table>`;
 }
 
 function getMonthlyRows(bets,bonuses,n){
@@ -1006,7 +983,7 @@ function getMonthlyRows(bets,bonuses,n){
     const d=new Date(now.getFullYear(),now.getMonth()-(n-1-i),1);
     const y=d.getFullYear(),m=d.getMonth();
     const mb=bets.filter(b=>{const dd=new Date(b.date);return dd.getFullYear()===y&&dd.getMonth()===m});
-    const mn=bonuses.filter(b=>{const dd=new Date(b.createdAt);return dd.getFullYear()===y&&dd.getMonth()===m&&b.result!=='Pending'});
+    const mn=bonuses.filter(b=>{const dd=new Date(b.createdAt);return dd.getFullYear()===y&&dd.getMonth()===m&&b.result!=='Pending'&&b.sourceType!=='deposit_match'});
     const nonVoid=mb.filter(b=>b.result!=='Void');
     const triggers=nonVoid.filter(b=>b.result==='Bonus').length;
     const turnover=nonVoid.reduce((s,b)=>s+b.stake,0);
@@ -1041,7 +1018,6 @@ function setBetCat(c){
   document.getElementById(c==='promo'?'f-promo':'f-nonpromo-type').value='';
   selResult=null;['Win','Loss','Bonus','Void','Pending'].forEach(x=>{const el=document.getElementById('rb-'+x);if(el)el.className='rbtn'});
   renderTodayBets();renderPendingBets();
-  updateKellyDisplay();
 }
 function _acNorm(s){return s.toLowerCase().replace(/[^a-z0-9]/g,'')}
 function setupAC(inputId,getOpts){
@@ -1091,7 +1067,7 @@ function renderLogBet(){
   setupAC('f-nonpromo-type',()=>ls(K.npt,[]).map(t=>t.name));
   _attachLogFieldNav();
   if(!window._fpDate){
-    window._fpDate=flatpickr('#f-date',{dateFormat:'Y-m-d',altInput:true,altFormat:'d M Y',defaultDate:today(),disableMobile:true});
+    window._fpDate=flatpickr('#f-date',{dateFormat:'Y-m-d',altInput:true,altFormat:'d M Y',defaultDate:today(),maxDate:'today',disableMobile:true});
   }else{window._fpDate.setDate(today(),false)}
   renderTodayBets();renderPendingBets();
 }
@@ -1100,7 +1076,6 @@ const _rbOrder=['Win','Loss','Bonus','Void','Pending'];
 function selR(r){
   selResult=r;
   _rbOrder.forEach(x=>{const el=document.getElementById('rb-'+x);if(el){el.className='rbtn'+(x===r?' s'+x[0]:'');el.setAttribute('tabindex','0')}});
-  document.getElementById('rb-'+r)?.focus();
   saveBet();
 }
 function rbKey(e,r){
@@ -1114,8 +1089,6 @@ function rbKey(e,r){
     e.preventDefault();
     if(i>0)document.getElementById('rb-'+vis[i-1])?.focus();
     else document.getElementById('f-bsp')?.focus();
-  }else if(e.key==='ArrowUp'){
-    e.preventDefault();const b=document.getElementById('f-bsp');if(b){b.focus();b.select();}
   }
 }
 // Tab from BSP → first result button; ArrowRight/ArrowDown in BSP → first result button
@@ -1187,7 +1160,6 @@ function saveBet(){
   const result=selResult||'Pending';
   const bet={id:uid(),date,bookieId,promoId,nonPromoType,betCategory:betCat,stake,fixedOdds,bsp,result,notes,createdAt:new Date().toISOString()};
   const bets=ls(K.bets,[]);bets.push(bet);ss(K.bets,bets);
-  applyBetPnlToBalance(bet,1);
   if(result==='Bonus'&&betCat==='promo'){
     const bonus={id:uid(),parentBetId:bet.id,bookieId,bonusAmount:stake,fixedOdds:null,bsp:null,result:'Pending',sourceType:'promo',bonusType:'Horses',createdAt:new Date().toISOString()};
     const bonuses=ls(K.bonuses,[]);bonuses.push(bonus);ss(K.bonuses,bonuses);
@@ -1246,22 +1218,13 @@ function saveEditedBet(id){
   if(date)b.date=date;
   if(bkVal){const bk=bookies.find(x=>(x.alias||x.name).toLowerCase()===bkVal.toLowerCase())||bookies.find(x=>(x.alias||x.name).toLowerCase().includes(bkVal.toLowerCase()));if(bk)b.bookieId=bk.id;}
   if(typeVal){if(b.betCategory==='promo'){const pr=promos.find(p=>p.name.toLowerCase()===typeVal.toLowerCase());if(pr)b.promoId=pr.id;}else b.nonPromoType=typeVal;}
-  const prevResult=b.result;
-  const oldSnap={...b};
   if(stake)b.stake=stake;b.fixedOdds=odds;b.bsp=bsp;b.result=result;
-  ss(K.bets,bets);
-  applyBetPnlToBalance(oldSnap,-1);applyBetPnlToBalance(b,1);
-  if(result==='Bonus'&&prevResult!=='Bonus'&&b.betCategory==='promo'){
-    const bonuses=ls(K.bonuses,[]);
-    bonuses.push({id:uid(),parentBetId:b.id,bookieId:b.bookieId,bonusAmount:b.stake,fixedOdds:null,bsp:null,result:'Pending',sourceType:'promo',bonusType:'Horses',createdAt:new Date().toISOString()});
-    ss(K.bonuses,bonuses);toast('Bonus triggered!','info');
-  }else toast('Bet updated');
+  ss(K.bets,bets);toast('Bet updated');
   renderTodayBets();renderPendingBets();
 }
 function deleteBet(id){
   if(!confirm('Delete this bet?'))return;
   const bet=ls(K.bets,[]).find(b=>b.id===id);
-  applyBetPnlToBalance(bet,-1);
   ss(K.bets,ls(K.bets,[]).filter(b=>b.id!==id));
   // remove any bonus triggered by this bet
   if(bet?.result==='Bonus'){
@@ -1312,9 +1275,7 @@ function setHistPreset(p,btn){
   renderTodayBets();
 }
 function renderTodayBets(){
-  const _bq=(document.getElementById('bet-search')?.value||'').trim().toLowerCase();
   let allBets=ls(K.bets,[]).filter(b=>b.betCategory===betCat);
-  if(_bq){allBets=allBets.filter(b=>[bkName(b.bookieId),betType(b),b.result,b.date,b.notes||''].join(' ').toLowerCase().includes(_bq));}
   // apply history filter
   if(_histPreset==='custom'){
     const f=document.getElementById('lhist-from')?.value;
@@ -1335,30 +1296,24 @@ function renderTodayBets(){
   const el=document.getElementById('today-bets');
   const emptyMsg=_histPreset==='week'?'No bets this week':_histPreset==='lastweek'?'No bets last week':_histPreset==='month'?'No bets this month':'No bets';
   if(!bets.length){el.innerHTML=`<div class="empty">${emptyMsg}</div>`;return}
-  let _ts=0,_tl=null;
-  el.innerHTML=`<table><thead><tr><th></th><th>Date</th><th>Bookie</th><th>Type</th><th>Stake</th><th>Odds</th><th>BSP</th><th>P&L</th><th>EV</th><th>Result</th><th>Quick BSP</th><th></th></tr></thead><tbody>${bets.map(b=>{if(b.bookieId!==_tl){_ts=1-_ts;_tl=b.bookieId;}const rbg=_ts?'background:var(--row-alt)':'';const p=betPnl(b);const ev=betEV(b,cfg);return`<tr id="bet-row-${b.id}" style="${rbg}"><td><input type="checkbox" onchange="toggleBetCheck('${b.id}')" ${window._sel.has(b.id)?'checked':''} style="cursor:pointer;accent-color:#6366f1;width:15px;height:15px"></td><td>${fmtD(b.date)}</td><td>${bkName(b.bookieId)}</td><td>${betType(b)}</td><td>${fmt$(b.stake)}</td><td>${b.fixedOdds||'-'}</td><td>${b.bsp||'-'}</td><td class="${clr(p)}">${fmt$(p)}</td><td class="am">${ev!=null?fmt$(ev):'-'}</td><td>${badge(b.result)}</td><td><div class="flex gap-2 items-center"><input class="inp-sm" type="number" id="bsp-${b.id}" value="${b.bsp||''}" placeholder="BSP" step="0.01"><button class="btn btn-s btn-xs" onclick="saveBSP('${b.id}')">Set</button></div></td><td><button class="btn btn-s btn-xs" onclick="editBet('${b.id}')">Edit</button></td></tr>`}).join('')}</tbody></table>`;
+  el.innerHTML=`<table><thead><tr><th></th><th>Date</th><th>Bookie</th><th>Type</th><th>Stake</th><th>Odds</th><th>BSP</th><th>P&L</th><th>EV</th><th>Result</th><th>Quick BSP</th><th></th></tr></thead><tbody>${bets.map(b=>{const p=betPnl(b);const ev=betEV(b,cfg);return`<tr id="bet-row-${b.id}"><td><input type="checkbox" onchange="toggleBetCheck('${b.id}')" ${window._sel.has(b.id)?'checked':''} style="cursor:pointer;accent-color:#6366f1;width:15px;height:15px"></td><td>${fmtD(b.date)}</td><td>${bkName(b.bookieId)}</td><td>${betType(b)}</td><td>${fmt$(b.stake)}</td><td>${b.fixedOdds||'-'}</td><td>${b.bsp||'-'}</td><td class="${clr(p)}">${fmt$(p)}</td><td class="am">${ev!=null?fmt$(ev):'-'}</td><td>${badge(b.result)}</td><td><div class="flex gap-2 items-center"><input class="inp-sm" type="number" id="bsp-${b.id}" value="${b.bsp||''}" placeholder="BSP" step="0.01"><button class="btn btn-s btn-xs" onclick="saveBSP('${b.id}')">Set</button></div></td><td><button class="btn btn-s btn-xs" onclick="editBet('${b.id}')">Edit</button></td></tr>`}).join('')}</tbody></table>`;
 }
 
 function renderPendingBets(){
   const el=document.getElementById('pending-bets-list');if(!el)return;
-  const _bq=(document.getElementById('bet-search')?.value||'').trim().toLowerCase();
-  let bets=ls(K.bets,[]).filter(b=>b.result==='Pending'&&b.betCategory===betCat).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
-  if(_bq){bets=bets.filter(b=>[bkName(b.bookieId),betType(b),b.date,b.notes||''].join(' ').toLowerCase().includes(_bq));}
+  const bets=ls(K.bets,[]).filter(b=>b.result==='Pending'&&b.betCategory===betCat).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
   if(!bets.length){el.innerHTML='<div class="empty">No pending bets</div>';return}
-  const cfg=ls(K.settings,DEF_SETTINGS);
-  let _ps=0,_pl=null;
-  el.innerHTML=`<table><thead><tr><th></th><th>Date</th><th>Bookie</th><th>Type</th><th>Stake</th><th>Odds</th><th>BSP</th><th>EV</th><th>Settle</th></tr></thead><tbody>${bets.map(b=>{if(b.bookieId!==_pl){_ps=1-_ps;_pl=b.bookieId;}const rbg=_ps?'background:var(--row-alt)':'';const ev=betEV(b,cfg);return`<tr style="${rbg}">
+  el.innerHTML=`<table><thead><tr><th></th><th>Date</th><th>Bookie</th><th>Type</th><th>Stake</th><th>Odds</th><th>BSP</th><th>Settle</th></tr></thead><tbody>${bets.map(b=>`<tr>
     <td><input type="checkbox" onchange="toggleBetCheck('${b.id}')" ${window._sel.has(b.id)?'checked':''} style="cursor:pointer;accent-color:#6366f1;width:15px;height:15px"></td>
     <td>${fmtD(b.date)}</td><td>${bkName(b.bookieId)}</td><td>${betType(b)}</td><td>${fmt$(b.stake)}</td><td>${b.fixedOdds||'-'}</td><td>${b.bsp||'-'}</td>
-    <td class="am">${ev!=null?fmt$(ev):'-'}</td>
     <td><div class="flex gap-1 items-center">
+      <button class="btn btn-sm" style="border:2px solid #22c55e;color:#22c55e;background:#22c55e15" onclick="settleBet('${b.id}','Win')">W</button>
+      <button class="btn btn-sm" style="border:2px solid #ef4444;color:#ef4444;background:#ef444415" onclick="settleBet('${b.id}','Loss')">L</button>
+      ${b.betCategory==='promo'?`<button class="btn btn-sm" style="border:2px solid #60a5fa;color:#60a5fa;background:#60a5fa15" onclick="settleBet('${b.id}','Bonus')">B</button>`:''}
+      <button class="btn btn-sm" style="border:2px solid #94a3b8;color:#94a3b8;background:#94a3b815" onclick="settleBet('${b.id}','Void')">V</button>
       <input class="inp-sm" type="number" id="sbsp-${b.id}" placeholder="BSP" step="0.01" style="width:58px">
-      <button class="btn btn-sm" style="border:2px solid #22c55e;color:#22c55e;background:#22c55e15" onclick="settleBet('${b.id}','Win',document.getElementById('sbsp-${b.id}').value)">W</button>
-      <button class="btn btn-sm" style="border:2px solid #ef4444;color:#ef4444;background:#ef444415" onclick="settleBet('${b.id}','Loss',document.getElementById('sbsp-${b.id}').value)">L</button>
-      ${b.betCategory==='promo'?`<button class="btn btn-sm" style="border:2px solid #60a5fa;color:#60a5fa;background:#60a5fa15" onclick="settleBet('${b.id}','Bonus',document.getElementById('sbsp-${b.id}').value)">B</button>`:''}
-      <button class="btn btn-sm" style="border:2px solid #94a3b8;color:#94a3b8;background:#94a3b815" onclick="settleBet('${b.id}','Void',document.getElementById('sbsp-${b.id}').value)">V</button>
     </div></td>
-  </tr>`}).join('')}</tbody></table>`;
+  </tr>`).join('')}</tbody></table>`;
 }
 
 window._batchCount=0;
@@ -1451,14 +1406,12 @@ function saveBatchBets(){
   ss(K.bets,allBets);toast(`${saved} bet${saved>1?'s':''} added as Pending`);
   clearBatch();renderTodayBets();renderPendingBets();
 }
-function settleBet(id,result,bspStr){
+function settleBet(id,result){
   const bets=ls(K.bets,[]);const b=bets.find(x=>x.id===id);if(!b)return;
-  const bspFromParam=bspStr?parseFloat(bspStr):null;
-  const bspFromEl=document.getElementById('sbsp-'+id)?.value?parseFloat(document.getElementById('sbsp-'+id).value):null;
-  const bsp=bspFromParam||bspFromEl||b.bsp||null;
+  const bspEl=document.getElementById('sbsp-'+id);
+  const bsp=bspEl&&bspEl.value?parseFloat(bspEl.value):b.bsp;
   b.result=result;if(bsp)b.bsp=bsp;
   ss(K.bets,bets);
-  applyBetPnlToBalance(b,1);
   if(result==='Bonus'&&b.betCategory==='promo'){
     const bonus={id:uid(),parentBetId:b.id,bookieId:b.bookieId,bonusAmount:b.stake,fixedOdds:null,bsp:null,result:'Pending',sourceType:'promo',bonusType:'Horses',createdAt:new Date().toISOString()};
     const bonuses=ls(K.bonuses,[]);bonuses.push(bonus);ss(K.bonuses,bonuses);
@@ -1478,7 +1431,6 @@ function saveBSP(id){
 function showDMForm(){
   const bookies=ls(K.bookies,[]).filter(b=>b.active);
   document.getElementById('dm-bookie').innerHTML=bookies.map(b=>`<option value="${b.id}">${b.alias||b.name}</option>`).join('');
-  if(!document.getElementById('dm-date').value)document.getElementById('dm-date').value=new Date().toISOString().slice(0,10);
   document.getElementById('dm-form').style.display='block';
 }
 function hideDMForm(){document.getElementById('dm-form').style.display='none'}
@@ -1487,20 +1439,17 @@ function addDepositMatch(){
   const bookieId=document.getElementById('dm-bookie').value;
   const amount=parseFloat(document.getElementById('dm-amount').value);
   const notes=document.getElementById('dm-notes').value.trim();
-  const dateVal=document.getElementById('dm-date').value||new Date().toISOString().slice(0,10);
   if(!bookieId||!amount){toast('Enter bookie and amount','warn');return}
-  const createdAt=dateVal+'T'+new Date().toISOString().slice(11);
-  const bonus={id:uid(),parentBetId:null,bookieId,bonusAmount:amount,fixedOdds:null,bsp:null,result:'Pending',sourceType:'deposit_match',bonusType:'Horses',notes,date:dateVal,createdAt};
+  const bonus={id:uid(),parentBetId:null,bookieId,bonusAmount:amount,fixedOdds:null,bsp:null,result:'Pending',sourceType:'deposit_match',bonusType:'Horses',notes,createdAt:new Date().toISOString()};
   const bonuses=ls(K.bonuses,[]);bonuses.push(bonus);ss(K.bonuses,bonuses);
-  document.getElementById('dm-amount').value='';document.getElementById('dm-notes').value='';document.getElementById('dm-date').value='';
+  document.getElementById('dm-amount').value='';document.getElementById('dm-notes').value='';
   hideDMForm();toast('Deposit match added','info');renderBonuses();
 }
 
 function renderBonuses(){
   const bonuses=activeBonuses();
-  const _bq=(document.getElementById('bonus-search')?.value||'').trim().toLowerCase();
-  const pending=bonuses.filter(b=>b.result==='Pending'&&(!_bq||[bkName(b.bookieId),(b.bonusType||''),(b.notes||'')].join(' ').toLowerCase().includes(_bq)));
-  const completed=bonuses.filter(b=>b.result!=='Pending').sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  const pending=bonuses.filter(b=>b.result==='Pending');
+  const completed=bonuses.filter(b=>b.result!=='Pending'&&b.sourceType!=='deposit_match').sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
   const pel=document.getElementById('pending-list');
   const btypes=ls(K.btypes,DEF_BONUS_TYPES);
   // save typed-but-unsaved odds/bsp values across re-renders
@@ -1774,7 +1723,7 @@ function renderMonthlyData(bets,bonuses,cfg){
   while(d<=now){months.push({y:d.getFullYear(),m:d.getMonth(),lbl:d.toLocaleDateString('en-AU',{month:'short',year:'numeric'})});d=new Date(d.getFullYear(),d.getMonth()+1,1)}
   const rows=months.map(mo=>{
     const mb=bets.filter(b=>{const dd=new Date(b.date);return dd.getFullYear()===mo.y&&dd.getMonth()===mo.m});
-    const mn=bonuses.filter(b=>{const dd=new Date(b.createdAt);return dd.getFullYear()===mo.y&&dd.getMonth()===mo.m&&b.result!=='Pending'});
+    const mn=bonuses.filter(b=>{const dd=new Date(b.createdAt);return dd.getFullYear()===mo.y&&dd.getMonth()===mo.m&&b.result!=='Pending'&&b.sourceType!=='deposit_match'});
     const nv=mb.filter(b=>b.result!=='Void');
     if(!nv.length&&!mn.length)return null;
     const turnover=nv.reduce((s,b)=>s+b.stake,0);
@@ -1786,7 +1735,7 @@ function renderMonthlyData(bets,bonuses,cfg){
     const bonP=mn.reduce((s,b)=>s+bonusPnl(b),0);
     const total=cashP+bonP;
     const promosList=ls(K.promos,[]);
-    const evPromo=mb.filter(b=>b.betCategory==='promo'&&b.result!=='Void').reduce((s,b)=>{const v=betEV(b);return s+(v||0);},0);
+    const evPromo=mb.filter(b=>b.betCategory==='promo'&&b.result!=='Void').reduce((s,b)=>{const pr=promosList.find(p=>p.id===b.promoId);return s+(pr&&pr.ev?pr.ev/100:0)*b.stake},0);
     const evNP=mb.filter(b=>b.betCategory==='non-promo'&&b.fixedOdds&&b.bsp&&b.result!=='Void').reduce((s,b)=>s+(b.fixedOdds/b.bsp-1)*b.stake,0);
     const expP=evPromo+evNP;
     const netPct=turnover?total/turnover*100:0;
@@ -1819,14 +1768,11 @@ function renderBonusData(bonuses,cfg){
   const statsEl=document.getElementById('data-bonuses-stats');
   const allCompleted=bonuses.filter(b=>b.result!=='Pending');
   const completed=allCompleted.filter(b=>b.sourceType!=='deposit_match');
-  const dmCompleted=allCompleted.filter(b=>b.sourceType==='deposit_match');
-  const dmFaceInRange=dmCompleted.reduce((s,b)=>s+b.bonusAmount,0);
-  const dmPnl=dmCompleted.reduce((s,b)=>s+bonusPnl(b),0);
+  const dmFaceInRange=allCompleted.filter(b=>b.sourceType==='deposit_match').reduce((s,b)=>s+b.bonusAmount,0);
   if(!completed.length&&!dmFaceInRange){if(statsEl)statsEl.innerHTML='';el.innerHTML='<div class="empty">No completed bonus bets</div>';return}
   const wonB=completed.filter(b=>b.result==='Win'&&b.fixedOdds);
-  const btoComp=completed.filter(b=>b.result!=='Cleared');
-  const face=btoComp.reduce((s,b)=>s+b.bonusAmount,0);
-  const pnl=btoComp.reduce((s,b)=>s+bonusPnl(b),0)+dmPnl;
+  const face=completed.reduce((s,b)=>s+b.bonusAmount,0);
+  const pnl=completed.reduce((s,b)=>s+bonusPnl(b),0);
   const winR=completed.length?wonB.length/completed.length*100:0;
   const extR=face>0?pnl/face*100:cfg.extractionRate;
   const types=[...new Set(completed.map(b=>b.bonusType||'Horses'))].sort();
@@ -1876,7 +1822,7 @@ function renderPromoData(bets,bonuses,cfg){
   }).filter(Boolean);
 
   // Global bonus stats (all completed bonuses combined, excluding deposit matches)
-  const allCompleted=bonuses.filter(b=>b.result!=='Pending');
+  const allCompleted=bonuses.filter(b=>b.result!=='Pending'&&b.sourceType!=='deposit_match');
   const allWonB=allCompleted.filter(b=>b.result==='Win'&&b.fixedOdds);
   const globalBonFace=allCompleted.reduce((s,b)=>s+b.bonusAmount,0);
   const globalBonP=allCompleted.reduce((s,b)=>s+bonusPnl(b),0);
@@ -1897,7 +1843,7 @@ function renderPromoData(bets,bonuses,cfg){
     const bonFace=triggers.reduce((s,b)=>s+b.stake,0);
     const bonP=bonFace*(globalExtR/100);
     const total=cashP+bonP;
-    const expP=pb.reduce((s,b)=>{const v=betEV(b);return s+(v||0);},0);
+    const expP=(pr.ev?pr.ev/100:0)*turnover;
     const netPct=turnover?total/turnover*100:0;
     return{name:pr.name,bets:pb.length,wins,losses,turnover,avgOdds,triggers:triggers.length,trigR,bonFace,cashP,bonP,total,expP,netPct};
   }).filter(Boolean).sort((a,b)=>b.bets-a.bets);
@@ -1957,7 +1903,7 @@ function renderWeeklyAvg(bets,bonuses,cfg){
     const wb=weeks[w].bets;const wbn=weeks[w].bonuses;
     const cashP=wb.reduce((s,b)=>s+betPnl(b),0);
     const bonP=wbn.reduce((s,b)=>s+bonusPnl(b),0);
-    const evPromo=wb.filter(b=>b.betCategory==='promo').reduce((s,b)=>{const v=betEV(b);return s+(v||0);},0);
+    const evPromo=wb.filter(b=>b.betCategory==='promo').reduce((s,b)=>{const pr=promos.find(p=>p.id===b.promoId);return s+(pr&&pr.ev?pr.ev/100:0)*b.stake},0);
     const evNP=wb.filter(b=>b.betCategory==='non-promo'&&b.fixedOdds&&b.bsp).reduce((s,b)=>s+(b.fixedOdds/b.bsp-1)*b.stake,0);
     const ev=evPromo+evNP;
     const total=cashP+bonP;
@@ -2065,7 +2011,7 @@ function renderBookieData(bets,bonuses,cfg){
     const cashP=bb.reduce((s,b)=>s+betPnl(b),0);
     const bonP=bn.reduce((s,b)=>s+bonusPnl(b),0);
     const total=cashP+bonP;
-    const evPromo=bb.filter(b=>b.betCategory==='promo').reduce((s,b)=>{const v=betEV(b);return s+(v||0);},0);
+    const evPromo=bb.filter(b=>b.betCategory==='promo').reduce((s,b)=>{const pr=promos.find(p=>p.id===b.promoId);return s+(pr&&pr.ev?pr.ev/100:0)*b.stake},0);
     const evNP=bb.filter(b=>b.betCategory==='non-promo'&&b.fixedOdds&&b.bsp).reduce((s,b)=>s+(b.fixedOdds/b.bsp-1)*b.stake,0);
     const ev=evPromo+evNP;
     const turnover=bb.reduce((s,b)=>s+b.stake,0);
@@ -2319,14 +2265,12 @@ function runCSVImport(){
 // ── SETTINGS ─────────────────────────────────────────────────────────────────
 function renderSettings(){
   const bookies=ls(K.bookies,[]);const promos=ls(K.promos,[]);const npts=ls(K.npt,[]);const cfg=ls(K.settings,DEF_SETTINGS);const btypes=ls(K.btypes,DEF_BONUS_TYPES);
-  const bankAccounts=ls(K.bankAccounts,[]);
-  if(document.getElementById('bank-accounts-list'))document.getElementById('bank-accounts-list').innerHTML=bankAccounts.map(a=>`<div class="srow">
-    <span style="flex:1;color:var(--tx2);font-size:12px">${a.name}</span>
-    <label class="toggle"><input type="checkbox" ${a.active?'checked':''} onchange="toggleBankAccount('${a.id}',this.checked)"><span class="ts"></span></label>
-    <span style="font-size:10px;color:var(--tx5);min-width:44px">${a.active?'Active':'Off'}</span>
-    <button class="btn btn-d btn-xs" onclick="removeBankAccount('${a.id}')">Remove</button>
-  </div>`).join('')||'<div style="font-size:12px;color:var(--tx5);padding:6px 0">No bank accounts added yet</div>';
-  renderBkList();
+  document.getElementById('bookies-list').innerHTML=bookies.map(b=>`<div class="srow">
+    <span style="flex:1;color:#cbd5e1;font-size:12px">${b.alias||b.name}</span>
+    <label class="toggle"><input type="checkbox" ${b.active?'checked':''} onchange="toggleBookie('${b.id}',this.checked)"><span class="ts"></span></label>
+    <span style="font-size:10px;color:#475569;min-width:44px">${b.active?'Active':'Off'}</span>
+    <button class="btn btn-d btn-xs" onclick="removeBookie('${b.id}')">Remove</button>
+  </div>`).join('');
   document.getElementById('promos-list').innerHTML=promos.map(p=>{
     const isFormula=p.evMode==='formula';
     return`<div class="srow" style="flex-wrap:wrap;gap:6px">
@@ -2352,17 +2296,6 @@ function renderSettings(){
   updateNPTDatalist();
 }
 function updateAlias(id,v){const bk=ls(K.bookies,[]);const b=bk.find(x=>x.id===id);if(b){b.alias=v;ss(K.bookies,bk);toast('Alias updated')}}
-function renderBkList(){
-  const q=(document.getElementById('bk-search')?.value||'').trim().toLowerCase();
-  const bookies=ls(K.bookies,[]).filter(b=>!q||(b.alias||b.name).toLowerCase().includes(q));
-  const el=document.getElementById('bookies-list');if(!el)return;
-  el.innerHTML=bookies.map(b=>`<div class="srow">
-    <span style="flex:1;color:#cbd5e1;font-size:12px">${b.alias||b.name}</span>
-    <label class="toggle"><input type="checkbox" ${b.active?'checked':''} onchange="toggleBookie('${b.id}',this.checked)"><span class="ts"></span></label>
-    <span style="font-size:10px;color:#475569;min-width:44px">${b.active?'Active':'Off'}</span>
-    <button class="btn btn-d btn-xs" onclick="removeBookie('${b.id}')">Remove</button>
-  </div>`).join('')||`<div style="font-size:12px;color:var(--tx5);padding:6px 0">No bookies match "${q}"</div>`;
-}
 function toggleBookie(id,v){const bk=ls(K.bookies,[]);const b=bk.find(x=>x.id===id);if(b){b.active=v;ss(K.bookies,bk);renderSettings()}}
 function removeBookie(id){if(ls(K.bets,[]).some(b=>b.bookieId===id)){toast('Has bets — deactivate instead','warn');return}if(!confirm('Remove?'))return;ss(K.bookies,ls(K.bookies,[]).filter(b=>b.id!==id));renderSettings();toast('Removed')}
 function addBookie(){const n=document.getElementById('new-bk-name').value.trim();if(!n){toast('Enter name','warn');return}const bk=ls(K.bookies,[]);bk.push({id:uid(),name:n,alias:n,active:true});ss(K.bookies,bk);document.getElementById('new-bk-name').value='';renderSettings();toast('Bookie added')}
@@ -2432,7 +2365,7 @@ function exportData(){
 }
 function importData(e){
   const file=e.target.files[0];if(!file)return;
-  const reader=new FileReader();reader.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(d.bets)ss(K.bets,d.bets);if(d.bonuses)ss(K.bonuses,d.bonuses);if(d.bookies)ss(K.bookies,d.bookies);if(d.promos)ss(K.promos,d.promos);if(d.npt)ss(K.npt,d.npt);else if(d.bets){const _uids=[...new Set(d.bets.filter(b=>b.nonPromoType).map(b=>b.nonPromoType))];const _nl=_uids.map(id=>({id,name:id.replace(/^npt_/,"").replace(/_/g," ")}));if(_nl.length)ss(K.npt,_nl);else localStorage.removeItem(K.npt);}if(d.adj)ss(K.adj,d.adj);if(d.settings)ss(K.settings,d.settings);toast('Imported — reload to refresh','info')}catch{toast('Invalid file','warn')}};reader.readAsText(file);
+  const reader=new FileReader();reader.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(d.bets)ss(K.bets,d.bets);if(d.bonuses)ss(K.bonuses,d.bonuses);if(d.bookies)ss(K.bookies,d.bookies);if(d.promos)ss(K.promos,d.promos);if(d.npt)ss(K.npt,d.npt);if(d.adj)ss(K.adj,d.adj);if(d.settings)ss(K.settings,d.settings);toast('Imported — reload to refresh','info')}catch{toast('Invalid file','warn')}};reader.readAsText(file);
 }
 function clearAll(){if(!confirm('Delete ALL data? Cannot be undone.'))return;Object.values(K).forEach(k=>localStorage.removeItem(k));init();location.reload()}
 
@@ -2442,161 +2375,6 @@ function showTab(id){const t=document.querySelector(`.nav-tab[data-tab="${id}"]`
 // ── BALANCES PAGE ─────────────────────────────────────────────────────────────
 let _balInline={};  // bookieId → 'deposit'|'withdraw'|'set'|null
 let _balExpanded=new Set();
-
-function extractPerson(bookieId){
-  const bk=ls(K.bookies,[]).find(b=>b.id===bookieId);if(!bk)return null;
-  const name=bk.alias||bk.name;const parts=name.split(' - ');
-  return parts.length>1?parts[parts.length-1].trim():null;
-}
-
-// ── BANK ACCOUNTS ─────────────────────────────────────────────────────────────
-function addBankAccount(){
-  const n=document.getElementById('new-bank-name')?.value.trim();
-  if(!n){toast('Enter a name','warn');return}
-  const accounts=ls(K.bankAccounts,[]);
-  accounts.push({id:uid(),name:n,active:true});
-  ss(K.bankAccounts,accounts);
-  document.getElementById('new-bank-name').value='';
-  renderSettings();toast('Bank account added');
-}
-function removeBankAccount(id){
-  if(!confirm('Remove this bank account?'))return;
-  ss(K.bankAccounts,ls(K.bankAccounts,[]).filter(a=>a.id!==id));
-  renderSettings();toast('Removed');
-}
-function toggleBankAccount(id,v){
-  const accounts=ls(K.bankAccounts,[]);const a=accounts.find(x=>x.id===id);
-  if(a){a.active=v;ss(K.bankAccounts,accounts);renderSettings();}
-}
-
-let _bankInline={};
-let _bankExpanded=new Set();
-
-function bankInline(id,mode){
-  _bankInline[id]=_bankInline[id]===mode?null:mode;
-  renderBankBalances();
-  if(_bankInline[id])setTimeout(()=>document.getElementById('bank-amt-'+id)?.focus(),50);
-}
-function bankCancelInline(id){_bankInline[id]=null;renderBankBalances();}
-function bankToggleHistory(id){_bankExpanded.has(id)?_bankExpanded.delete(id):_bankExpanded.add(id);renderBankBalances();}
-
-function bankConfirmTxn(id,type){
-  const amt=parseFloat(document.getElementById('bank-amt-'+id)?.value);
-  if(!amt||amt<=0){toast('Enter a valid amount','warn');return}
-  const note=document.getElementById('bank-note-'+id)?.value.trim()||'';
-  const bals=ls(K.bankBals,{});const prev=bals[id]||0;
-  const delta=type==='deposit'?amt:-amt;
-  bals[id]=Math.round((prev+delta)*100)/100;
-  ss(K.bankBals,bals);
-  const txns=ls(K.bankTxns,[]);
-  txns.push({id:uid(),bankAccountId:id,type,amount:amt,prevBalance:prev,balAfter:bals[id],note,date:new Date().toISOString().slice(0,10),createdAt:new Date().toISOString()});
-  ss(K.bankTxns,txns);
-  _bankInline[id]=null;renderBankBalances();
-  toast(`${type==='deposit'?'Deposit':'Withdrawal'} saved`);
-}
-function bankConfirmSet(id){
-  const amt=parseFloat(document.getElementById('bank-amt-'+id)?.value);
-  if(isNaN(amt)){toast('Enter a valid amount','warn');return}
-  const note=document.getElementById('bank-note-'+id)?.value.trim()||'';
-  const bals=ls(K.bankBals,{});const prev=bals[id]||0;
-  bals[id]=Math.round(amt*100)/100;ss(K.bankBals,bals);
-  const txns=ls(K.bankTxns,[]);
-  txns.push({id:uid(),bankAccountId:id,type:'adjust',amount:amt,prevBalance:prev,balAfter:bals[id],note,date:new Date().toISOString().slice(0,10),createdAt:new Date().toISOString()});
-  ss(K.bankTxns,txns);
-  _bankInline[id]=null;renderBankBalances();toast('Balance updated');
-}
-function deleteBankTxn(txnId,accId){
-  if(!confirm('Delete this transaction?'))return;
-  const bals=ls(K.bankBals,{});
-  const txns=ls(K.bankTxns,[]);
-  const t=txns.find(x=>x.id===txnId);
-  if(t){
-    const delta=t.type==='deposit'?-t.amount:t.type==='withdrawal'?t.amount:0;
-    if(delta!==0)bals[accId]=Math.round(((bals[accId]||0)+delta)*100)/100;
-    ss(K.bankBals,bals);
-  }
-  ss(K.bankTxns,txns.filter(x=>x.id!==txnId));
-  renderBankBalances();toast('Transaction deleted');
-}
-
-function renderBankBalances(){
-  const el=document.getElementById('bank-balances');if(!el)return;
-  const accounts=ls(K.bankAccounts,[]).filter(a=>a.active);
-  if(!accounts.length){el.innerHTML='';return;}
-  const bals=ls(K.bankBals,{});
-  const allTxns=ls(K.bankTxns,[]);
-  const total=Math.round(accounts.reduce((s,a)=>s+(bals[a.id]||0),0)*100)/100;
-
-  el.innerHTML=`<div class="acc-card open" id="acc-bank">
-    <div class="acc-hdr" onclick="toggleAcc('bank')"><span>Bank Accounts</span><span class="acc-chev">▼</span></div>
-    <div class="acc-body">
-      <div style="display:flex;flex-direction:column;gap:10px">
-        ${accounts.map(a=>{
-          const bal=bals[a.id]||0;
-          const inline=_bankInline[a.id];
-          const expanded=_bankExpanded.has(a.id);
-          const txns=allTxns.filter(t=>t.bankAccountId===a.id).slice().reverse();
-          let inlineHtml='';
-          if(inline==='deposit'||inline==='withdraw'){
-            const label=inline==='deposit'?'Deposit':'Withdrawal';
-            const btnCls=inline==='deposit'?'btn-p':'btn-d';
-            inlineHtml=`<div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--bdr)">
-              <span style="font-size:11px;font-weight:700;color:var(--tx4);text-transform:uppercase">${label}</span>
-              <input type="number" id="bank-amt-${a.id}" placeholder="Amount" step="0.01" min="0" style="width:110px" onkeydown="if(event.key==='Enter')bankConfirmTxn('${a.id}','${inline}')">
-              <input type="text" id="bank-note-${a.id}" placeholder="Note (optional)" style="width:150px" onkeydown="if(event.key==='Enter')bankConfirmTxn('${a.id}','${inline}')">
-              <button class="btn ${btnCls} btn-sm" onclick="bankConfirmTxn('${a.id}','${inline}')">Confirm</button>
-              <button class="btn btn-s btn-sm" onclick="bankCancelInline('${a.id}')">Cancel</button>
-            </div>`;
-          }else if(inline==='set'){
-            inlineHtml=`<div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--bdr)">
-              <span style="font-size:11px;font-weight:700;color:#f59e0b;text-transform:uppercase">Set Balance</span>
-              <input type="number" id="bank-amt-${a.id}" value="${bal}" step="0.01" style="width:120px" onkeydown="if(event.key==='Enter')bankConfirmSet('${a.id}')">
-              <input type="text" id="bank-note-${a.id}" placeholder="Reason (optional)" style="width:150px" onkeydown="if(event.key==='Enter')bankConfirmSet('${a.id}')">
-              <button class="btn btn-sm" style="background:#f59e0b;color:#000;font-weight:700" onclick="bankConfirmSet('${a.id}')">Confirm Set</button>
-              <button class="btn btn-s btn-sm" onclick="bankCancelInline('${a.id}')">Cancel</button>
-            </div>`;
-          }
-          let txnHtml='';
-          if(expanded){
-            txnHtml=`<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--bdr)">
-              <div class="slabel" style="margin-bottom:6px">Transaction History</div>
-              ${txns.length?`<table style="width:100%"><thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Balance After</th><th>Note</th><th></th></tr></thead>
-              <tbody>${txns.map(t=>`<tr>
-                <td>${t.date}</td>
-                <td><span class="badge ${t.type==='deposit'?'bw':t.type==='withdrawal'?'bl2':'bp'}">${t.type}</span></td>
-                <td class="${t.type==='withdrawal'?'r':'g'}">${t.type==='withdrawal'?'-':''}${fmt$(Math.abs(t.amount))}</td>
-                <td>${fmt$(t.balAfter)}</td>
-                <td style="color:var(--tx4)">${t.note||'-'}</td>
-                <td><button class="btn btn-d btn-xs" onclick="deleteBankTxn('${t.id}','${a.id}')">✕</button></td>
-              </tr>`).join('')}</tbody></table>`
-              :'<div style="font-size:11px;color:var(--tx5)">No transactions yet</div>'}
-            </div>`;
-          }
-          return`<div class="card">
-            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-              <div>
-                <div style="font-size:10px;color:var(--tx5);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">${a.name}</div>
-                <div style="font-size:24px;font-weight:700" class="${bal>=0?'g':'r'}">${fmt$(bal)}</div>
-              </div>
-              <div class="flex gap-2" style="flex-wrap:wrap">
-                <button class="btn btn-s btn-xs" onclick="bankInline('${a.id}','deposit')" style="color:#22c55e">＋ Deposit</button>
-                <button class="btn btn-s btn-xs" onclick="bankInline('${a.id}','withdraw')" style="color:#ef4444">－ Withdrawal</button>
-                <button class="btn btn-s btn-xs" onclick="bankInline('${a.id}','set')" style="color:#f59e0b">Set</button>
-                <button class="btn btn-s btn-xs" onclick="bankToggleHistory('${a.id}')">${expanded?'Hide':'History'}</button>
-              </div>
-            </div>
-            ${inlineHtml}${txnHtml}
-          </div>`;
-        }).join('')}
-        ${accounts.length>1?`<div class="card" style="border-color:#3b82f644;padding:12px 16px">
-          <div style="font-size:9px;color:var(--tx5);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">Total Bank</div>
-          <div style="font-size:24px;font-weight:700" class="${total>=0?'g':'r'}">${fmt$(total)}</div>
-        </div>`:''}
-      </div>
-      <p style="font-size:10px;color:var(--tx5);margin-top:10px">Deposits/withdrawals on bookies with a matching suffix auto-update the bank balance.</p>
-    </div>
-  </div>`;
-}
 
 function bookiePnl(bid){return ls(K.bets,[]).filter(b=>b.bookieId===bid).reduce((s,b)=>s+betPnl(b),0)}
 function bookieBetCount(bid){return ls(K.bets,[]).filter(b=>b.bookieId===bid).length}
@@ -2622,7 +2400,7 @@ function renderBalances(){
     const cashP=bb.reduce((s,x)=>s+betPnl(x),0);
     const bonP=bn.reduce((s,x)=>s+bonusPnl(x),0);
     const pnl=cashP+bonP;
-    const evPromo=bb.filter(x=>x.betCategory==='promo').reduce((s,x)=>{const v=betEV(x);return s+(v||0);},0);
+    const evPromo=bb.filter(x=>x.betCategory==='promo').reduce((s,x)=>{const pr=allPromos.find(p=>p.id===x.promoId);return s+(pr&&pr.ev?pr.ev/100:0)*x.stake},0);
     const evNP=bb.filter(x=>x.betCategory==='non-promo'&&x.fixedOdds&&x.bsp).reduce((s,x)=>s+(x.fixedOdds/x.bsp-1)*x.stake,0);
     const ev=evPromo+evNP;
     const turnover=bb.reduce((s,x)=>s+x.stake,0);
@@ -2726,22 +2504,11 @@ function renderBalances(){
     </div>`;
   }).join('');
 
-  // Totals (filtered list for display card)
+  // Totals
   const totBal=list.reduce((s,b)=>s+b.bal,0);
   const totPnl=list.reduce((s,b)=>s+b.pnl,0);
   const totDMFace=list.reduce((s,b)=>s+b.dmFace,0);
   const totEV=list.reduce((s,b)=>s+b.ev,0);
-  // Grand total outlay (ALL bookies unfiltered + ALL bank accounts)
-  const _allBals=ls(K.balances,{});
-  const _grandBookies=allBookies.reduce((s,b)=>s+(_allBals[b.id]||0),0);
-  const _bankBalsAll=ls(K.bankBals,{});
-  const _grandBank=Object.values(_bankBalsAll).reduce((s,v)=>s+(v||0),0);
-  const _grandTotal=_grandBookies+_grandBank;
-  const _outlay=document.getElementById('total-outlay-box');
-  if(_outlay)_outlay.innerHTML=`
-    <div style="font-size:9px;color:var(--tx5);text-transform:uppercase;letter-spacing:.05em;text-align:right">Total Outlay</div>
-    <div style="font-size:26px;font-weight:800;color:var(--tx);text-align:right;line-height:1.1">${fmt$(_grandTotal)}</div>
-    <div style="font-size:10px;color:var(--tx5);text-align:right;margin-top:2px">Bookies ${fmt$(_grandBookies)} · Bank ${fmt$(_grandBank)}</div>`;
   document.getElementById('balances-totals').innerHTML=`
     <div class="card" style="display:flex;gap:20px;flex-wrap:wrap;padding:12px 16px">
       <div><div style="font-size:9px;color:var(--tx5);text-transform:uppercase;letter-spacing:.05em">Total Balance</div><div style="font-size:20px;font-weight:700;color:var(--tx)">${fmt$(totBal)}</div></div>
@@ -2750,7 +2517,6 @@ function renderBalances(){
       ${totDMFace>0?`<div><div style="font-size:9px;color:var(--tx5);text-transform:uppercase;letter-spacing:.05em">Deposit Matches</div><div style="font-size:20px;font-weight:700;color:#a78bfa">${fmt$(totDMFace)}</div></div>`:''}
       <div><div style="font-size:9px;color:var(--tx5);text-transform:uppercase;letter-spacing:.05em">Bookies</div><div style="font-size:20px;font-weight:700;color:var(--tx)">${list.length}</div></div>
     </div>`;
-  renderBankBalances();
 }
 
 
@@ -2765,31 +2531,15 @@ function balConfirmTxn(id,type){
   const amt=parseFloat(document.getElementById('bal-amt-'+id)?.value);
   if(!amt||amt<=0){toast('Enter a valid amount','warn');return}
   const note=document.getElementById('bal-note-'+id)?.value.trim()||'';
-  const normalType=type==='withdraw'?'withdrawal':type;
   const balances=ls(K.balances,{});
   const prev=balances[id]||0;
-  const delta=normalType==='deposit'?amt:-amt;
+  const delta=type==='deposit'?amt:-amt;
   balances[id]=Math.round((prev+delta)*100)/100;
   ss(K.balances,balances);
   const txns=ls(K.txns,[]);
-  txns.push({id:uid(),bookieId:id,type:normalType,amount:amt,prevBalance:prev,balAfter:balances[id],note,date:new Date().toISOString().slice(0,10),createdAt:new Date().toISOString()});
+  txns.push({id:uid(),bookieId:id,type,amount:amt,prevBalance:prev,balAfter:balances[id],note,date:new Date().toISOString().slice(0,10),createdAt:new Date().toISOString()});
   ss(K.txns,txns);
   _balInline[id]=null;
-  // auto-link to bank account
-  const _person=extractPerson(id);
-  if(_person){
-    const _bankAcct=ls(K.bankAccounts,[]).find(a=>a.name.trim().toLowerCase()===_person.toLowerCase()&&a.active);
-    if(_bankAcct){
-      const _bankBals=ls(K.bankBals,{});const _bankPrev=_bankBals[_bankAcct.id]||0;
-      const _bankDelta=type==='withdraw'||type==='withdrawal'?amt:-amt;
-      _bankBals[_bankAcct.id]=Math.round((_bankPrev+_bankDelta)*100)/100;
-      ss(K.bankBals,_bankBals);
-      const _bankTxns=ls(K.bankTxns,[]);
-      const _isWithdraw=type==='withdraw'||type==='withdrawal';
-      _bankTxns.push({id:uid(),bankAccountId:_bankAcct.id,type:_isWithdraw?'deposit':'withdrawal',amount:amt,prevBalance:_bankPrev,balAfter:_bankBals[_bankAcct.id],note:`Auto: ${type} ${_isWithdraw?'from':'to'} ${bkName(id)}`,date:new Date().toISOString().slice(0,10),createdAt:new Date().toISOString()});
-      ss(K.bankTxns,_bankTxns);
-    }
-  }
   renderBalances();
   toast(`${type==='deposit'?'Deposit':'Withdrawal'} saved`);
 }
@@ -2819,7 +2569,7 @@ function deleteTxn(txnId,bookieId){
   let runBal=0;
   bkTxns.forEach(t=>{
     if(t.type==='deposit')runBal=Math.round((runBal+t.amount)*100)/100;
-    else if(t.type==='withdrawal'||t.type==='withdraw')runBal=Math.round((runBal-t.amount)*100)/100;
+    else if(t.type==='withdrawal')runBal=Math.round((runBal-t.amount)*100)/100;
     else if(t.type==='adjust')runBal=t.amount;
     t.balAfter=runBal;
   });
@@ -2871,6 +2621,525 @@ if('serviceWorker' in navigator){
     navigator.serviceWorker.register('/sw.js').catch(()=>{});
   });
 }
+</script>
+
+<script>
+// ─── AI COACH (Supabase-backed) ─────────────────────────────────────────────
+const AI_SYSTEM = `You are an AI matched betting coach built specifically for this coaching program. Your job is to teach students, answer their questions, and guide them through the strategy exactly as the coach would — clearly, practically, and in plain language. Explain everything like you're talking to someone who has never gambled before in their life. No jargon without explanation.
+
+Your coaching philosophy: trust the process and trust the EV. You are creating value. This is not gambling — it's systematically extracting profit from bookie promotions. Students need to think long-term and stay mentally strong. One bad day means nothing. Zoom out.
+
+When you don't know the answer or it's outside your knowledge, say so clearly and tell the student to ask their coach directly. Never make something up.
+
+---
+
+THE STRATEGY — CORE PRINCIPLES
+
+This is a no-lay matched betting system. Students do NOT use Betfair to hedge (lay) their bets. The promos themselves are the protection — money back promos mean if the horse runs 2nd or 3rd, the stake is returned as a bonus bet. That IS the hedge. No Betfair account is needed to run this strategy.
+
+The 8 bookmakers used: TAB, Sportsbet, Unibet, Bet365, Booki.com, Nextbet, Swiftbet, Dabble.
+
+How money is made:
+1. Promo bets — back horses where the bookie is offering a money back, boost, or free hit. When value is there and the promo fires, bonus bets are generated.
+2. Bonus bet turnover — convert those bonus bets to cash at approximately 80% of face value using the formula below.
+3. Non-promo bets — placed strategically to look like a normal bettor to the bookies and extend account life. Also have positive EV when placed correctly.
+4. Sport promos — free hits, Megaboosts, weekly tokens on NRL/AFL sent directly by the coach.
+
+Recommended starting bankroll: approximately $2,500. This depends on the student's situation but gives enough flexibility to stake correctly across all bookies and absorb variance early on.
+
+Staking rule: 1% of bankroll per bet. Always. No exceptions. This is the single most important rule for staying in control, especially in the first two weeks. Students who bet too big early and have a bad day are the ones who panic and make emotional decisions.
+
+---
+
+WHAT BSP IS AND WHY IT MATTERS
+
+Betfair is a betting exchange — unlike a normal bookie, it's a marketplace where people bet against each other. It works like a stock market. The BSP (Betfair Starting Price) is the final price the market agrees on at race start. It is the closest thing to the true probability of a horse winning — it's what the horse is actually worth, set by thousands of bettors, not by the bookie.
+
+Why it matters: bookies set their own prices. Sometimes those prices are better than true odds (value), sometimes worse. By comparing the bookie price to BSP, students know whether they're getting a fair deal. For bonus bets, BSP is used in the conversion formula to confirm the odds are good enough.
+
+Students don't need a Betfair account to check prices — the lay price shown on Betfair before the race is used as the reference for promo and non-promo bets.
+
+---
+
+PROMO BET SELECTION (MONEY BACK / 2ND-3RD PROMOS)
+
+Rule: the bookie price must be within 5% of the Betfair lay price. Averaging 95%+ of lay price is considered good. Sometimes the price will move after placing — that's fine, just be happy with the price at the time of placement.
+
+Horse selection: any horse as long as the price is right. For promo bets, focus on horses where the bookie price is close to the lay price. You are not picking winners — you are picking value. The horse doesn't matter. The price does.
+
+For free hits: the rule is more relaxed — stake comes back regardless of result so downside is zero. Any reasonable price works.
+
+For price boosts and Megaboosts: take any boost that puts the bookie price above BSP. The EV is built in — always take genuine boosts.
+
+---
+
+BONUS BET TURNOVER (THE CONVERSION FORMULA)
+
+When a money back promo fires, the stake is returned as a bonus bet. A bonus bet is NOT the same as cash — if it wins, you get the profit only. The stake is not returned. This is why a separate formula is needed.
+
+Formula: (bookie odds - 1) divided by BSP must be 0.80 or higher.
+Target conversion rate: approximately 80% of face value across volume.
+
+Why the formula is different to normal bets: on a normal $1 bet at $8 when BSP is $10, the return is $8 (80% of $10). On a bonus bet at $8 when BSP is $10, the profit is $7 (not $8 — stake doesn't return). $7 divided by $9 (BSP profit) = 77.8%. Not 80%. The stake being absent from the return shifts the maths. Use (odds - 1) / BSP, never odds / BSP.
+
+Minimum odds for bonus bets: $7.00. Below this the conversion rate drops too far.
+Sweet spot: $7–$15. High enough to convert well, not so high that wins are rare.
+
+BSP reference table for 80% conversion:
+- BSP $7.50 → minimum bookie $7.00: (7-1)/7.50 = 0.80 ✓
+- BSP $10.00 → minimum bookie $9.00: (9-1)/10 = 0.80 ✓
+- BSP $15.00 → minimum bookie $13.00: (13-1)/15 = 0.80 ✓
+- BSP $20.00 → minimum bookie $17.00: (17-1)/20 = 0.80 ✓
+
+Where to place bonus bets: horse racing ONLY. Not sport. Not multis. BSP exists for horses and gives a reliable reference. Sport markets don't have BSP and have wider spreads. Multis compound the stake-not-returned problem across multiple legs.
+
+When to convert: aim to convert within the week, ideally by Sunday afternoon if the bonus came from Saturday. Saturday bonus bets can often be converted same-day or Sunday. Don't let them pile up — unconverted bonus bets sitting in a bookie account are worth $0.
+
+---
+
+NON-PROMO BETS — WHY THEY MATTER
+
+Non-promo bets are mainly for account protection. They make a student look like a normal punter to the bookie, which extends account life and keeps promos coming. The real money is in promos and bonus bet turnover.
+
+They also have positive EV when placed correctly — so they aren't dead money.
+
+Selection: any horse where the bookie price is within 5% of the Betfair lay price. The horse doesn't matter. Price does. Don't force non-promos when there's no value — wait for the right price.
+
+Non-promo to promo ratios (to protect accounts):
+- TAB: approximately 1 non-promo for every 3 promo bets
+- Sportsbet: approximately 1 non-promo for every 3 promo bets
+- Other main bookies (Unibet, Bet365, etc.): approximately 1 non-promo for every 2 promo bets
+- Small bookies (Booki.com, Nextbet, Swiftbet, Dabble): can push closer to 1:2 or even 2:3 non-promo to promo — higher ratios on smaller bookies
+
+These ratios matter because bookies limit and ban accounts that only take promo bets. Getting limited means losing access to promos. Students need to maximise the life of their accounts before thinking about scaling.
+
+---
+
+BOOKIE-BY-BOOKIE GUIDE
+
+TAB:
+- Saturday: 18 x 2nd/3rd money back tokens. 3-leg fail insurance. Bonus boosts on selected races.
+- Also has boosted runners — check for these.
+- Non-promo ratio: 1:3. TAB is one of the most beginner-friendly. Most students already have an account.
+- Opt-in: TAB tokens are usually auto-loaded but check the promo page.
+
+Sportsbet:
+- Saturday: 8 x money back tokens. Periodic mid-week specials.
+- Weekly NRL/AFL free hit. Multi-leg insurance promos.
+- Non-promo ratio: 1:3. Also very beginner-friendly.
+
+Unibet:
+- Saturday: 8 x tokens. Check promo page weekly for racing specials.
+- Regular sport promos and weekly specials each round.
+- Non-promo ratio: approximately 1:2.
+
+Bet365:
+- Boosted odds on EVERY Australian race — check daily before any racing day.
+- Megaboosts on selected races — significantly enhanced odds, near-guaranteed EV. Never miss these.
+- Weekly NRL/AFL free hit. Daily boosts on selected sport markets.
+- Bet365 is one of the most aggressive bookies for limiting — non-promo ratio is important here (~1:2).
+- IMPORTANT: There is an advanced Bet365 strategy that involves cash-out timing and Betfair price movements. This is unlocked at a higher coaching tier and requires capital, strong mental discipline, and a full understanding of Betfair price fluctuations. If students ask about it, tell them it exists and they need to ask their coach about accessing it.
+
+Booki.com:
+- Money backs across multiple races EVERY DAY — this is the daily habit, takes 5 minutes.
+- Token promos stacked frequently.
+- Non-promo ratio: 1:2 to 2:3 — Booki.com is a smaller bookie so slightly higher non-promo ratio is fine.
+- Check promo page every morning. It's a daily task, not just Saturdays.
+
+Nextbet:
+- Recurring promos unlocked with consistent activity — students need to stay active to keep promos coming.
+- Check promo page each week.
+
+Swiftbet:
+- Money back on every race at 2 nominated tracks each Wednesday and Saturday.
+- Students need to identify which 2 tracks each week — check the Swiftbet promo page.
+
+Dabble:
+- 3 real cash 2nd/3rd money backs per week: 1 on Wednesday, 2 on Saturday.
+- These pay CASH, not bonus bets — no turnover required. Log correctly.
+
+---
+
+THE WEEKLY ROUTINE
+
+Saturday (the priority — don't miss it):
+- Check every bookie's promo page before racing starts. Promos change week to week.
+- Identify races where the bookie price is close to the Betfair lay price (within 5%).
+- Place and log each promo bet as you go — don't batch them up at the end.
+- Stack multiple bookies on the same race when possible (e.g. TAB + Sportsbet + Unibet all on the same horse = 3x money backs from one good race).
+- After racing: any bonus bets that fired → aim to convert by Sunday afternoon.
+- Non-promo bets: Saturday and Sunday are good days for these.
+
+Wednesday:
+- As matched betting matures, fewer promos run mid-week but they still exist.
+- Priority: Booki.com, Dabble (1 cash back race), TAB boosted runners, Swiftbet (2 nominated tracks).
+- Check all bookie promo pages — mid-week specials pop up anywhere.
+
+Monday–Friday:
+- Booki.com daily is the main habit. 5 minutes max.
+- Non-promo bets can be placed any day racing is on — Wed to Fri work well.
+- A couple of non-promos across the week is fine.
+
+Perfect week looks like: Saturday promos done → bonus bets converted by Sunday afternoon → non-promos spread across Sat/Sun and Wed–Fri → tracker fully updated → more promo turnover than the week before.
+
+---
+
+IMPORTANT RULES STUDENTS MUST FOLLOW
+
+NEVER do any of the following — the AI will not encourage these under any circumstances:
+1. Emotional or revenge betting — if it's been a bad day, close the laptop. Never place bets to chase losses.
+2. Dumb non-promos — never place a non-promo bet that doesn't meet the price criteria just to fill the ratio. Wait for value.
+3. Bonus bets at odds under $7 — the conversion rate drops below acceptable levels.
+4. Bonus bets on sport or multis — no BSP reference, harder to meet the formula, worse conversion.
+5. Betting more than 1% of bankroll — ever.
+6. Making decisions based on gut feel or who they think will win — this is not about picking winners.
+7. Using Betfair to lay bets — this is a no-lay system. The promos are the protection.
+
+---
+
+VARIANCE — THE MATHS STUDENTS NEED TO UNDERSTAND
+
+Results average out over thousands of bets — not 10, not 50. Be very clear about this with students.
+
+Example: at $8 odds, there is roughly a 12.5% chance of winning each bonus bet. The chance of losing 23 bonus bets in a row is about 5% — unlikely but it happens. At $12 odds (8.3% win rate), that 5% threshold is around 34 losses in a row.
+
+This is why mental strength is non-negotiable. Students who panic after 5 or 6 consecutive losses and deviate from the process (betting more, going to lower odds, placing on sport) are the ones who lose money. The edge doesn't disappear just because results don't reflect it yet.
+
+When a student is struggling with a losing run: remind them EV is still positive if they followed the strategy. Show them the formula still works. The system hasn't changed — variance is temporary, edge is permanent when the rules are followed.
+
+Coach's mantra: "Trust the process and trust the EV. You are creating value."
+
+---
+
+COMMON SCENARIOS
+
+Student's horse ran 2nd but the promo didn't fire:
+Check the T&Cs. Some promos require opt-in before the race and if that was missed, the promo won't trigger. Some promos are for specific races only. Contact the bookie's support if opt-in was completed and it still didn't fire — sometimes it's an error on their end.
+
+Student accidentally used cash instead of bonus bet:
+Nothing can be done. Log it as a non-promo bet in the tracker and move on. The bonus bet is still available — place it correctly next time.
+
+Student placed bet on wrong horse:
+The bet stands. Log it correctly as whatever type it was. If it's a promo bet race and the wrong horse was backed, the promo may or may not fire depending on the actual horse's result. Log it and move on.
+
+Student's price blew out after placing:
+This happens. As long as the price was within 5% of lay price at the time of placement, it was the right decision. You can't control what the market does after you've clicked bet. Don't second-guess correct decisions.
+
+Bookie won't process a withdrawal:
+Make sure account verification is fully complete (ID, proof of address, etc.). Bookies often hold withdrawals on unverified accounts. Complete verification first — ideally before placing any bets.
+
+Getting limited by a bookie:
+This happens eventually, especially on smaller bookies. It's not the end — the system still works across 8 bookies. If a bookie significantly limits stakes, reduce activity there and focus on others. Maintaining the non-promo ratios is the best way to delay limiting.
+
+Scratching deductions: In Australian racing, when a horse is scratched from a race after markets have opened, remaining runners' odds are shortened and any bets already placed get a deduction applied to winnings. The deduction is proportional to the scratched horse's market price — the shorter the scratched horse's price, the larger the deduction. This is standard rule 4 deductions in Australian racing. It's not a bookie error — it's an industry-wide rule. Log the reduced payout as the actual amount received.
+
+Student asks about the result being queried or protest:
+If there's a protest after a race, payouts are held until the stewards decision. Once settled, log the final result. Bookies pay on the official result — if a horse is placed first on protest, payouts adjust accordingly.
+
+---
+
+GENERAL AUSTRALIAN RACING KNOWLEDGE
+
+Students will have general questions about racing and how things work. Core knowledge:
+- Racing in Australia runs nearly every day. Saturday is the biggest day (metro races, most volume). Wednesday is the main mid-week day.
+- BSP is only available on Betfair and is set at race start.
+- Fixed odds with bookies are locked in at the price you took — they don't change after placement.
+- Starting price (SP) at bookies is different to BSP — SP is the bookie's own price at start time, BSP is Betfair's. Always reference Betfair BSP for the formula.
+- Bet types: Win (horse must finish 1st), Each Way (pays on Win and a Place), Place (horse must finish in the top 2, 3, or 4 depending on field size). For this system: Win bets only unless a specific promo requires otherwise.
+- Field size: in large fields (16+ runners), place pays top 4. Smaller fields pay top 3 or top 2. Relevant for each way bets but Win-only bets aren't affected.
+- Tote vs fixed: tote odds fluctuate and are declared after the race. Fixed odds are locked in at placement. This system uses fixed odds only.
+
+---
+
+WHAT TO ESCALATE TO THE COACH
+
+If a student asks about:
+- The advanced Bet365 cash-out strategy → Tell them it exists, it requires a higher level of experience and capital, and to ask their coach directly about accessing it.
+- Using other people's accounts / scaling → This is an option but requires additional coaching. Tell them to speak to their coach.
+- Anything you're genuinely uncertain about → Try your best answer, flag that you're not 100% certain, and tell them to confirm with their coach.
+
+The coach wants 90% of questions handled by this AI. Only escalate what genuinely needs a human.
+
+---
+
+TONE AND STYLE
+
+Always explain things like you're talking to someone who has zero betting experience. Never assume they know what a term means — define it when you use it for the first time. Use dollar examples. Be specific.
+
+Be casual and straight-talking. No corporate speak. No hedging. Say it how it is.
+
+Be encouraging but firm. Support students when they're struggling but never let them bend the rules or justify bad decisions. A student saying "I just felt like the horse would win" is not a valid reason for any bet in this system.
+
+Keep answers focused and practical. Don't write essays when a few sentences will do. If they need the full detail, they can ask a follow-up.
+`;
+
+let _aiKey = null;
+let _aiAccess = false;
+let _aiMsgCount = 0; // messages since last summary update
+
+async function initAICoach() {
+  if (!_syncUser) {
+    renderAIState('signin');
+    return;
+  }
+
+  // Check access
+  const { data: accessRow } = await supa
+    .from('ai_access')
+    .select('enabled')
+    .eq('user_id', _syncUser.id)
+    .single();
+
+  if (!accessRow || !accessRow.enabled) {
+    renderAIState('noaccess');
+    return;
+  }
+  _aiAccess = true;
+
+  // Fetch API key from coach_config
+  const { data: cfgRow } = await supa
+    .from('coach_config')
+    .select('value')
+    .eq('key', 'anthropic_key')
+    .single();
+
+  if (!cfgRow) {
+    renderAIState('nokey');
+    return;
+  }
+  _aiKey = cfgRow.value;
+
+  renderAIState('active');
+  await loadAIHistory();
+}
+
+function renderAIState(state) {
+  const wrap = document.getElementById('ai-coach-inner');
+  if (!wrap) return;
+  if (state === 'signin') {
+    wrap.innerHTML = `<p style="font-size:12px;color:#94a3b8;text-align:center;padding:20px 0">Sign in to access the AI coach.</p>`;
+  } else if (state === 'noaccess') {
+    wrap.innerHTML = `<div style="text-align:center;padding:20px 0"><div style="font-size:28px;margin-bottom:10px">🔒</div><p style="font-size:13px;color:var(--tx);font-weight:600;margin-bottom:6px">AI Coach — Paid Students Only</p><p style="font-size:12px;color:#94a3b8">This feature is available to students who have purchased coaching access. Contact your coach to get started.</p></div>`;
+  } else if (state === 'nokey') {
+    wrap.innerHTML = `<p style="font-size:12px;color:#f59e0b;text-align:center;padding:20px 0">AI coach is not configured yet. Contact your coach.</p>`;
+  } else if (state === 'active') {
+    wrap.innerHTML = `
+      <p style="font-size:11px;color:#64748b;margin-bottom:12px">Ask anything about matched betting — promos, bonus bets, BSP rules, strategy. The AI knows your progress.</p>
+      <div id="ai-chat-box" style="height:320px;overflow-y:auto;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:12px;margin-bottom:10px;display:flex;flex-direction:column;gap:8px">
+        <div style="align-self:flex-start;background:var(--bg3);border-radius:8px;padding:10px 12px;max-width:90%;font-size:12px;line-height:1.5;color:var(--tx)">
+          Hey! I'm your matched betting AI coach. I can see your progress in the tracker. What do you want to know?
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="ai-chat-input" placeholder="Ask a question..." style="flex:1;font-size:13px" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAIMsg()}">
+        <button class="btn btn-p btn-sm" onclick="sendAIMsg()">Send</button>
+      </div>`;
+  }
+}
+
+async function loadAIHistory() {
+  const box = document.getElementById('ai-chat-box');
+  if (!box) return;
+
+  const { data: rows } = await supa
+    .from('ai_chat_history')
+    .select('role, content')
+    .eq('user_id', _syncUser.id)
+    .order('created_at', { ascending: true })
+    .limit(30);
+
+  if (rows && rows.length > 0) {
+    rows.forEach(r => appendAIMsg(r.role === 'user' ? 'user' : 'bot', r.content, false));
+  }
+}
+
+function appendAIMsg(role, text, save = true) {
+  const box = document.getElementById('ai-chat-box');
+  if (!box) return;
+  const isUser = role === 'user';
+  const div = document.createElement('div');
+  div.style.cssText = `align-self:${isUser ? 'flex-end' : 'flex-start'};background:${isUser ? '#2563EB' : 'var(--bg3)'};border-radius:8px;padding:10px 12px;max-width:90%;font-size:12px;line-height:1.5;color:${isUser ? '#fff' : 'var(--tx)'};white-space:pre-wrap;word-break:break-word`;
+  div.textContent = text;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+
+  if (save && _syncUser) {
+    supa.from('ai_chat_history').insert({
+      user_id: _syncUser.id,
+      role: isUser ? 'user' : 'assistant',
+      content: text,
+    }).then(() => {});
+  }
+}
+
+async function buildContextPayload() {
+  // Fetch current student summary
+  const { data: sumRow } = await supa
+    .from('ai_student_summary')
+    .select('summary')
+    .eq('user_id', _syncUser.id)
+    .single();
+  const summary = sumRow?.summary || '';
+
+  // Fetch last 15 messages for the conversation
+  const { data: recent } = await supa
+    .from('ai_chat_history')
+    .select('role, content')
+    .eq('user_id', _syncUser.id)
+    .order('created_at', { ascending: false })
+    .limit(15);
+
+  const messages = (recent || []).reverse().map(r => ({
+    role: r.role,
+    content: r.content,
+  }));
+
+  // Build live app data snapshot from localStorage
+  const bets = ls(K.bets, []);
+  const bonuses = ls(K.bonuses, []);
+  const bookies = ls(K.bookies, []);
+  const pendingBonuses = bonuses.filter(b => b.status === 'pending');
+  const completedBonuses = bonuses.filter(b => b.status === 'completed');
+  const totalPnl = bets.reduce((s, b) => s + (betPnl(b) || 0), 0)
+    + completedBonuses.reduce((s, b) => s + (bonusPnl(b) || 0), 0);
+  const convRates = completedBonuses.filter(b => b.fixedOdds && b.bsp)
+    .map(b => (b.fixedOdds - 1) / b.bsp);
+  const avgConv = convRates.length
+    ? (convRates.reduce((a, b) => a + b, 0) / convRates.length * 100).toFixed(1)
+    : null;
+
+  const snapshot = `
+STUDENT LIVE DATA (from their tracker):
+- Bookies set up: ${bookies.length > 0 ? bookies.map(b => b.name).join(', ') : 'none yet'}
+- Total bets logged: ${bets.length}
+- Total P&L: $${totalPnl.toFixed(2)}
+- Bonus bets pending (not yet converted): ${pendingBonuses.length}
+- Bonus bets completed: ${completedBonuses.length}
+- Average bonus conversion rate: ${avgConv ? avgConv + '%' : 'n/a (no completed bonus bets yet)'}
+`.trim();
+
+  const systemFull = AI_SYSTEM + '\n\n' + snapshot
+    + (summary ? '\n\nSTUDENT LEARNING SUMMARY:\n' + summary : '');
+
+  return { systemFull, messages };
+}
+
+async function maybeUpdateSummary() {
+  _aiMsgCount++;
+  if (_aiMsgCount % 5 !== 0) return; // update every 5 exchanges
+
+  const { data: recent } = await supa
+    .from('ai_chat_history')
+    .select('role, content')
+    .eq('user_id', _syncUser.id)
+    .order('created_at', { ascending: false })
+    .limit(30);
+
+  const { data: sumRow } = await supa
+    .from('ai_student_summary')
+    .select('summary')
+    .eq('user_id', _syncUser.id)
+    .single();
+
+  const existing = sumRow?.summary || '';
+  const history = (recent || []).reverse()
+    .map(r => `${r.role === 'user' ? 'Student' : 'Coach AI'}: ${r.content}`)
+    .join('\n');
+
+  const summaryPrompt = `You are maintaining a learning profile for a matched betting student. Based on the conversation below and the existing summary, write an updated summary (under 200 words) covering: which concepts they understand well, what they're still learning or confused about, their current stage in the process, and any preferences in how they like things explained.
+
+Existing summary:
+${existing || '(none yet)'}
+
+Recent conversation:
+${history}
+
+Write the updated summary only — no preamble.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': _aiKey,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 300,
+        messages: [{ role: 'user', content: summaryPrompt }],
+      }),
+    });
+    const data = await res.json();
+    if (!data.error) {
+      const newSummary = data.content[0].text;
+      await supa.from('ai_student_summary').upsert({
+        user_id: _syncUser.id,
+        summary: newSummary,
+        updated_at: new Date().toISOString(),
+      });
+    }
+  } catch (e) { /* silent — summary update is non-critical */ }
+}
+
+async function sendAIMsg() {
+  const input = document.getElementById('ai-chat-input');
+  const msg = input?.value.trim();
+  if (!msg || !_aiKey) return;
+
+  input.value = '';
+  input.disabled = true;
+  appendAIMsg('user', msg);
+
+  const box = document.getElementById('ai-chat-box');
+  const typing = document.createElement('div');
+  typing.style.cssText = 'align-self:flex-start;background:var(--bg3);border-radius:8px;padding:10px 12px;font-size:12px;color:#64748b';
+  typing.textContent = 'Thinking…';
+  box.appendChild(typing);
+  box.scrollTop = box.scrollHeight;
+
+  try {
+    const { systemFull, messages } = await buildContextPayload();
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': _aiKey,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1024,
+        system: systemFull,
+        messages,
+      }),
+    });
+    const data = await res.json();
+    typing.remove();
+    if (data.error) {
+      appendAIMsg('bot', 'Error: ' + data.error.message);
+    } else {
+      appendAIMsg('bot', data.content[0].text);
+      maybeUpdateSummary(); // async, non-blocking
+    }
+  } catch (e) {
+    typing.remove();
+    appendAIMsg('bot', 'Could not reach the AI. Check your internet connection.');
+  }
+
+  if (input) { input.disabled = false; input.focus(); }
+}
+
+// Hook into RENDERS map so initAICoach fires when Settings tab is opened
+document.addEventListener('DOMContentLoaded', () => {
+  if (typeof RENDERS !== 'undefined') {
+    const prev = RENDERS.settings;
+    RENDERS.settings = function() { prev && prev(); initAICoach(); };
+  }
+  if (document.getElementById('tab-settings')?.classList.contains('active')) initAICoach();
+});
 </script>
 </body>
 </html>
