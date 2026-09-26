@@ -1186,7 +1186,7 @@ function _attachLogFieldNav(){/* inline onkeydown handlers in HTML now handle fi
 function toggleNotes(){const w=document.getElementById('notes-wrap');w.style.display=w.style.display==='none'?'block':'none'}
 
 function saveBet(){
-  if(!navigator.onLine){toast('No internet connection — bet not logged','warn');return;}
+  if(!navigator.onLine){toast('No internet — bet not logged','warn');return;}
   const date=document.getElementById('f-date').value;
   const bookieName=document.getElementById('f-bookie').value.trim();
   const allBk=ls(K.bookies,[]);
@@ -1252,6 +1252,7 @@ function selEditR(id,r){
   });
 }
 function saveEditedBet(id){
+  if(!navigator.onLine){toast('No internet — changes not saved','warn');return;}
   const bets=ls(K.bets,[]);const b=bets.find(x=>x.id===id);if(!b)return;
   const bookies=ls(K.bookies,[]).filter(x=>x.active);const promos=ls(K.promos,[]);
   const date=document.getElementById(`ed-date-${id}`)?.value;
@@ -1277,6 +1278,7 @@ function saveEditedBet(id){
   renderTodayBets();renderPendingBets();
 }
 function deleteBet(id){
+  if(!navigator.onLine){toast('No internet — cannot delete','warn');return;}
   if(!confirm('Delete this bet?'))return;
   const bet=ls(K.bets,[]).find(b=>b.id===id);
   applyBetPnlToBalance(bet,-1);
@@ -1470,6 +1472,7 @@ function saveBatchBets(){
   clearBatch();renderTodayBets();renderPendingBets();
 }
 function settleBet(id,result,bspStr){
+  if(!navigator.onLine){toast('No internet — result not saved','warn');return;}
   const bets=ls(K.bets,[]);const b=bets.find(x=>x.id===id);if(!b)return;
   const bspFromParam=bspStr?parseFloat(bspStr):null;
   const bspFromEl=document.getElementById('sbsp-'+id)?.value?parseFloat(document.getElementById('sbsp-'+id).value):null;
@@ -1573,6 +1576,7 @@ function resolveBonus(id,result){
 }
 
 function deleteBonus(id,amount){
+  if(!navigator.onLine){toast('No internet — cannot delete','warn');return;}
   const bsp=parseFloat(prompt(`Enter BSP to calculate EV loss (bonus: ${fmt$(amount)})\nLeave blank to just delete with no EV impact:`));
   if(!confirm('Delete this bonus?'))return;
   const bonuses=ls(K.bonuses,[]);
@@ -1606,11 +1610,13 @@ function updateBonusEV(id){
   if(el)el.textContent=(odds&&bsp)?((odds-1)/bsp*100).toFixed(1)+'%':'';
 }
 function editCompletedBonus(id){
+  if(!navigator.onLine){toast('No internet — cannot edit','warn');return;}
   const bonuses=ls(K.bonuses,[]);const b=bonuses.find(x=>x.id===id);if(!b)return;
   b.result='Pending';b.fixedOdds=null;b.bsp=null;
   ss(K.bonuses,bonuses);renderBonuses();renderDashboard();toast('Bonus reset to pending');
 }
 function deleteCompletedBonus(id){
+  if(!navigator.onLine){toast('No internet — cannot delete','warn');return;}
   if(!confirm('Delete this bonus record?'))return;
   ss(K.bonuses,ls(K.bonuses,[]).filter(b=>b.id!==id));
   renderBonuses();renderDashboard();toast('Deleted');
