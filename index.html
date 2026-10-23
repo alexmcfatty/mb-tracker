@@ -914,17 +914,15 @@ function scheduleSync(){
   clearTimeout(_syncTimer);
   _syncTimer=setTimeout(()=>supaSync(),2000);
 }
-
 function setupRealtimeSync(){
-  // realtime channel not in this build; sync handled by scheduleSync
+  // realtime not used in this build — disconnect to suppress SDK connection errors
+  try{supa.realtime.disconnect();}catch(e){}
 }
 
 // Date utility helpers (used by date-range filter presets)
 function startOf(d){const r=new Date(d);r.setHours(0,0,0,0);return r;}
 function endOf(d){const r=new Date(d);r.setHours(23,59,59,999);return r;}
 function fmtDS(d){return d?d.toLocaleDateString('en-AU',{day:'2-digit',month:'short'}):'';}
-
-
 
 
 function updateAuthUI(user){
@@ -1329,6 +1327,7 @@ function _attachLogFieldNav(){/* inline onkeydown handlers in HTML now handle fi
 function toggleNotes(){const w=document.getElementById('notes-wrap');w.style.display=w.style.display==='none'?'block':'none'}
 
 function saveBet(){
+  if(!_syncUser){toast('Sign in to log bets','warn');return;}
   if(!navigator.onLine){toast('No internet — bet not logged','warn');return;}
   const date=document.getElementById('f-date').value;
   const bookieName=document.getElementById('f-bookie').value.trim();
@@ -1395,6 +1394,7 @@ function selEditR(id,r){
   });
 }
 function saveEditedBet(id){
+  if(!_syncUser){toast('Sign in to save changes','warn');return;}
   if(!navigator.onLine){toast('No internet — changes not saved','warn');return;}
   const bets=ls(K.bets,[]);const b=bets.find(x=>x.id===id);if(!b)return;
   const bookies=ls(K.bookies,[]).filter(x=>x.active);const promos=ls(K.promos,[]);
@@ -1421,6 +1421,7 @@ function saveEditedBet(id){
   renderTodayBets();renderPendingBets();
 }
 function deleteBet(id){
+  if(!_syncUser){toast('Sign in to delete bets','warn');return;}
   if(!navigator.onLine){toast('No internet — cannot delete','warn');return;}
   if(!confirm('Delete this bet?'))return;
   const bets=ls(K.bets,[]);
@@ -1620,6 +1621,7 @@ function saveBatchBets(){
   clearBatch();renderTodayBets();renderPendingBets();
 }
 function settleBet(id,result,bspStr){
+  if(!_syncUser){toast('Sign in to log results','warn');return;}
   if(!navigator.onLine){toast('No internet — result not saved','warn');return;}
   const bets=ls(K.bets,[]);const b=bets.find(x=>x.id===id);if(!b)return;
   const bspFromParam=bspStr?parseFloat(bspStr):null;
