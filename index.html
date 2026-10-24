@@ -851,6 +851,7 @@ function _allData(){const d={};Object.entries(K).forEach(([k,v])=>{const val=loc
 // ── MERGE helper: apply remote data into local, tombstones win ──────────────
 function mergeRemoteData(d){
   const MERGE_KEYS=new Set(['bets','bonuses','txns','bankTxns']);
+  const SETTINGS_KEYS=new Set(['settings']);
   let changed=false;
   Object.entries(K).forEach(([k,storageKey])=>{
     if(d[k]===undefined)return;
@@ -872,6 +873,15 @@ function mergeRemoteData(d){
       const next=JSON.stringify([...merged].sort((a,b)=>(a.id||'').localeCompare(b.id||'')));
       if(prev!==next)changed=true;
       localStorage.setItem(storageKey,JSON.stringify(merged));
+    }else if(SETTINGS_KEYS.has(k)){
+      // Settings: local always wins — merge remote keys that don't exist locally
+      const local=ls(storageKey,{});
+      const remote=d[k]||{};
+      const merged=Object.assign({},remote,local);
+      const next=JSON.stringify(merged);
+      const prev=localStorage.getItem(storageKey);
+      if(prev!==next)changed=true;
+      localStorage.setItem(storageKey,next);
     }else{
       const prev=localStorage.getItem(storageKey);
       const next=JSON.stringify(d[k]);
@@ -915,14 +925,14 @@ function scheduleSync(){
   _syncTimer=setTimeout(()=>supaSync(),2000);
 }
 function setupRealtimeSync(){
-  // realtime not used in this build — disconnect to suppress SDK connection errors
   try{supa.realtime.disconnect();}catch(e){}
 }
 
-// Date utility helpers (used by date-range filter presets)
+// Date utility helpers
 function startOf(d){const r=new Date(d);r.setHours(0,0,0,0);return r;}
 function endOf(d){const r=new Date(d);r.setHours(23,59,59,999);return r;}
 function fmtDS(d){return d?d.toLocaleDateString('en-AU',{day:'2-digit',month:'short'}):'';}
+
 
 
 function updateAuthUI(user){
