@@ -356,7 +356,7 @@ select option{background:var(--sel-opt)}
         <div id="calc-log-form" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid #e2e8f0">
           <div style="font-size:12px;font-weight:600;margin-bottom:8px;color:#475569">Log this lay bet</div>
           <div class="form-grid" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr));margin-bottom:8px">
-            <div class="fg"><label class="lbl">Bookie</label><select id="calc-bookie" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid #cbd5e1;border-radius:6px"></select></div>
+            <div class="fg"><label class="lbl">Bookie</label><input type="text" id="calc-bookie" placeholder="Type bookie name…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" list="calc-bookie-list" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid #cbd5e1;border-radius:6px"><datalist id="calc-bookie-list"></datalist></div>
             <div class="fg"><label class="lbl">Date</label><input type="date" id="calc-date" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid #cbd5e1;border-radius:6px"></div>
             <div class="fg"><label class="lbl">Notes</label><input type="text" id="calc-notes" placeholder="Optional" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid #cbd5e1;border-radius:6px"></div>
           </div>
@@ -755,10 +755,6 @@ const DEF_NPT=['horses','trotters','dogs','rocketboost','HKR','Degen','H2H','Pri
 const DEF_SETTINGS={extractionRate:83,triggerRate:23,promoEvPct:8,profitOffset:0,kellyBank:0,kellyFraction:4,bonusTurnoverMethod:'lay'};
 
 // ── UTILS ─────────────────────────────────────────────────────────────────────
-
-function startOf(d){const r=new Date(d);r.setHours(0,0,0,0);return r;}
-function endOf(d){const r=new Date(d);r.setHours(23,59,59,999);return r;}
-function fmtDS(d){return d?d.toLocaleDateString('en-AU',{day:'2-digit',month:'short'}):'';}
 function uid(){return Math.random().toString(36).slice(2,9)+Date.now().toString(36)}
 function ls(k,fb){try{return JSON.parse(localStorage.getItem(k))||fb}catch{return fb}}
 function ss(k,v){localStorage.setItem(k,JSON.stringify(v));scheduleSync()}
@@ -871,12 +867,19 @@ function mergeRemoteData(d){
         if(!r)return l;
         if(!l)return r;
         if(r.deleted||l.deleted)return{...r,deleted:true,deletedAt:r.deletedAt||l.deletedAt};
-        return r;
+        // Local wins: merge remote base + local overrides so locally set fields (e.g. BSP just entered) are never overwritten by an older remote copy
+        return Object.assign({},r,Object.fromEntries(Object.entries(l).filter(([,v])=>v!=null)));
       });
       const prev=JSON.stringify([...local].sort((a,b)=>(a.id||'').localeCompare(b.id||'')));
       const next=JSON.stringify([...merged].sort((a,b)=>(a.id||'').localeCompare(b.id||'')));
       if(prev!==next)changed=true;
       localStorage.setItem(storageKey,JSON.stringify(merged));
+    }else if(SETTINGS_KEYS.has(k)){
+      const local=ls(storageKey,{});const remote=d[k]||{};
+      const merged=Object.assign({},remote,local);
+      const next=JSON.stringify(merged);const prev=localStorage.getItem(storageKey);
+      if(prev!==next)changed=true;
+      localStorage.setItem(storageKey,next);
     }else{
       const prev=localStorage.getItem(storageKey);
       const next=JSON.stringify(d[k]);
@@ -895,9 +898,12 @@ async function supaLoad(){
   if(changed)scheduleSync();
 }
 
-function setupRealtimeSync(){
+async function setupRealtimeSync(){
   try{supa.realtime.disconnect();}catch(e){}
 }
+function startOf(d){const r=new Date(d);r.setHours(0,0,0,0);return r;}
+function endOf(d){const r=new Date(d);r.setHours(23,59,59,999);return r;}
+function fmtDS(d){return d?d.toLocaleDateString('en-AU',{day:'2-digit',month:'short'}):'';}
 function scheduleSync(){
   if(_syncTimer)clearTimeout(_syncTimer);
   _syncTimer=setTimeout(()=>supaSync(),2000);
@@ -1326,10 +1332,7 @@ function toggleNotes(){const w=document.getElementById('notes-wrap');w.style.dis
 function saveBet(){
   if(!_syncUser){toast('Sign in to log bets','warn');return;}
   if(!navigator.onLine){toast('No internet — bet not logged','warn');return;}
-  // Prevent duplicate saves within 3 seconds
-  const _now=Date.now();
-  const _recent=(ls(K.bets,[])).filter(b=>b.createdAt&&(_now-new Date(b.createdAt).getTime())<3000);
-  if(_recent.length&&(()=>{const d=document.getElementById('f-date').value;const s=parseFloat(document.getElementById('f-stake').value);const o=parseFloat(document.getElementById('f-odds').value);return _recent.some(b=>b.date===d&&b.stake===s&&b.fixedOdds===o);})()) {toast('Already saved — wait a moment','warn');return;}
+  const _now=Date.now();const _recent=ls(K.bets,[]).filter(b=>b.createdAt&&(_now-new Date(b.createdAt).getTime())<3000);if(_recent.length&&_recent.some(b=>b.date===document.getElementById('f-date').value&&b.stake===parseFloat(document.getElementById('f-stake').value)&&b.fixedOdds===parseFloat(document.getElementById('f-odds').value))){toast('Already saved — wait a moment','warn');return;}
   const date=document.getElementById('f-date').value;
   const bookieName=document.getElementById('f-bookie').value.trim();
   const allBk=ls(K.bookies,[]);
@@ -2064,7 +2067,7 @@ function openCalcLogForm(){
   const form=document.getElementById('calc-log-form');
   const sel=document.getElementById('calc-bookie');
   const bookies=ls(K.bookies,[]);
-  sel.innerHTML=bookies.map(bk=>`<option value="${bk.id}">${bk.name}</option>`).join('');
+  document.getElementById('calc-bookie-list').innerHTML=bookies.map(bk=>`<option value="${bk.name}">`).join('');
   if(!sel.innerHTML){toast('Add a bookie in Settings first','warn');return;}
   document.getElementById('calc-date').value=today();
   document.getElementById('calc-log-btn-row').style.display='none';
@@ -2074,11 +2077,11 @@ function saveLogFromCalc(){
   const bonus=parseFloat(document.getElementById('calc-bonus').value);
   const back=parseFloat(document.getElementById('calc-back').value);
   const lay=parseFloat(document.getElementById('calc-lay').value);
-  const bookieId=document.getElementById('calc-bookie').value;
+  const bkName=document.getElementById('calc-bookie').value.trim();const bookieId=(ls(K.bookies,[]).find(b=>(b.alias||b.name).toLowerCase()===bkName.toLowerCase())||{}).id;
   const date=document.getElementById('calc-date').value;
   const notes=document.getElementById('calc-notes').value.trim();
   const comm=0.05;
-  if(!bonus||!back||!lay||!bookieId){toast('Fill in all calculator fields first','warn');return;}
+  if(!bonus||!back||!lay||!bookieId||!bkName){toast('Fill in all calculator fields first','warn');return;}
   const layStake=Math.round(bonus*(back-1)/(lay-comm)*100)/100;
   const bonuses=ls(K.bonuses,[]);
   bonuses.push({id:uid(),bookieId,bonusAmount:bonus,result:'Pending',createdAt:date?new Date(date).toISOString():new Date().toISOString(),notes,layStake,layOdds:lay,backOdds:back});
