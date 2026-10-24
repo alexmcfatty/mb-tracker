@@ -757,7 +757,7 @@ const DEF_SETTINGS={extractionRate:83,triggerRate:23,promoEvPct:8,profitOffset:0
 // ── UTILS ─────────────────────────────────────────────────────────────────────
 function uid(){return Math.random().toString(36).slice(2,9)+Date.now().toString(36)}
 function ls(k,fb){try{return JSON.parse(localStorage.getItem(k))||fb}catch{return fb}}
-function ss(k,v){localStorage.setItem(k,JSON.stringify(v));scheduleSync()}
+function ss(k,v){localStorage.setItem(k,JSON.stringify(v));_lastLocalChange=Date.now();scheduleSync()}
 function today(){return new Date().toISOString().split('T')[0]}
 function fmtD(s){if(!s)return'-';const d=new Date(s+'T00:00:00');return d.toLocaleDateString('en-AU',{day:'2-digit',month:'short'})}
 function fmtDt(s){if(!s)return'-';return new Date(s).toLocaleDateString('en-AU',{day:'2-digit',month:'short'})}
@@ -843,15 +843,15 @@ function activeBonuses(){return ls(K.bonuses,[]).filter(b=>b.result!=='split'&&!
 const SUPA_URL='https://ncqdxovhzjvdoruoookj.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jcWR4b3Zoemp2ZG9ydW9vb2tqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2NzY4ODUsImV4cCI6MjEwMzI1Mjg4NX0.nNL_8zCFoYCZv1lrkFLY4jAF5k1mcx-1ji8_CJ94JWI';
 const supa=supabase.createClient(SUPA_URL,SUPA_KEY);
-let _syncUser=null,_syncTimer=null,_isSyncing=false,_pendingSync=false,_realtimeCh=null;
+let _syncUser=null,_syncTimer=null,_isSyncing=false,_pendingSync=false,_realtimeCh=null,_lastLocalChange=0,_lastSyncedAt=0;
 
 function _allData(){const d={};Object.entries(K).forEach(([k,v])=>{const val=localStorage.getItem(v);if(val)try{d[k]=JSON.parse(val)}catch{}});return d}
 
 
 // ── MERGE helper: apply remote data into local, tombstones win ──────────────
 function mergeRemoteData(d){
-  const MERGE_KEYS=new Set(['bets','bonuses','txns','bankTxns']);
-  const SETTINGS_KEYS=new Set(['settings']);
+  const MERGE_KEYS=new Set(['bets','bonuses','txns','bankTxns','bookies','promos','npt','btypes','bankAccounts','adj']);
+  const SETTINGS_KEYS=new Set(['settings','agentProfile']);
   let changed=false;
   Object.entries(K).forEach(([k,storageKey])=>{
     if(d[k]===undefined)return;
@@ -881,10 +881,14 @@ function mergeRemoteData(d){
       if(prev!==next)changed=true;
       localStorage.setItem(storageKey,next);
     }else{
-      const prev=localStorage.getItem(storageKey);
-      const next=JSON.stringify(d[k]);
-      if(prev!==next)changed=true;
-      localStorage.setItem(storageKey,next);
+      // Local wins: if local data exists keep it; only load from remote when local is empty (e.g. fresh device)
+      const localVal=localStorage.getItem(storageKey);
+      if(localVal===null){
+        localStorage.setItem(storageKey,JSON.stringify(d[k]));
+        changed=true;
+      }else if(localVal!==JSON.stringify(d[k])){
+        changed=true; // local differs from remote → re-upload local to Supabase
+      }
     }
   });
   return changed;
@@ -894,8 +898,15 @@ async function supaLoad(){
   if(!_syncUser)return;
   const{data,error}=await supa.from('user_data').select('data').eq('user_id',_syncUser.id).single();
   if(error||!data||!data.data||!Object.keys(data.data).length){await supaSync();return}
-  const changed=mergeRemoteData(data.data);
-  if(changed)scheduleSync();
+  // Only merge remote data if we haven't made local changes this session
+  // This prevents a re-login event from overwriting changes the user just made
+  if(!_lastLocalChange){
+    const changed=mergeRemoteData(data.data);
+    if(changed)scheduleSync();
+  }else{
+    // Local changes exist — upload them instead of merging stale remote data
+    scheduleSync();
+  }
 }
 
 async function setupRealtimeSync(){
@@ -906,24 +917,20 @@ function endOf(d){const r=new Date(d);r.setHours(23,59,59,999);return r;}
 function fmtDS(d){return d?d.toLocaleDateString('en-AU',{day:'2-digit',month:'short'}):'';}
 function scheduleSync(){
   if(_syncTimer)clearTimeout(_syncTimer);
-  _syncTimer=setTimeout(()=>supaSync(),2000);
+  _syncTimer=setTimeout(()=>supaSync(),5000);
 }
 async function supaSync(){
   if(!_syncUser||READONLY)return;
   if(_isSyncing)return;
   _isSyncing=true;
   try{
-    // Read server state first — merge so we never blindly overwrite another device's data
-    const{data:srv}=await supa.from('user_data').select('data').eq('user_id',_syncUser.id).single();
-    if(srv?.data&&Object.keys(srv.data).length)mergeRemoteData(srv.data);
-    // Now upload the fully merged local state
     await supa.from('user_data').upsert({user_id:_syncUser.id,data:_allData(),updated_at:new Date().toISOString()});
+    _lastSyncedAt=Date.now();
     _pendingSync=false;
   }catch(e){
-    // Mark pending so we retry when app regains focus
     _pendingSync=true;
   }finally{
-    setTimeout(()=>{_isSyncing=false},1000);
+    setTimeout(()=>{_isSyncing=false},500);
   }
 }
 
@@ -3728,8 +3735,7 @@ Keep it under 400 words. Write as brief coaching notes, not a transcript. Only i
     const data=await resp.json();
     if(!data.error&&data.content?.[0]?.text){
       _studentProfile=data.content[0].text;
-      localStorage.setItem(K.agentProfile,_studentProfile);
-      scheduleSync(); // push to Supabase via existing sync
+      ss(K.agentProfile,_studentProfile); // push to Supabase + update _lastLocalChange
     }
   }catch(e){
     console.warn('Profile update failed silently:',e);
