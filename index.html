@@ -851,7 +851,7 @@ function _allData(){const d={};Object.entries(K).forEach(([k,v])=>{const val=loc
 // ── MERGE helper: apply remote data into local, tombstones win ──────────────
 function mergeRemoteData(d){
   const MERGE_KEYS=new Set(['bets','bonuses','txns','bankTxns','bookies','promos','npt','btypes','bankAccounts','adj']);
-  const SETTINGS_KEYS=new Set(['settings','agentProfile']);
+  const SETTINGS_KEYS=new Set(['settings','agentProfile','balances','bankBals']);
   let changed=false;
   Object.entries(K).forEach(([k,storageKey])=>{
     if(d[k]===undefined)return;
@@ -881,14 +881,10 @@ function mergeRemoteData(d){
       if(prev!==next)changed=true;
       localStorage.setItem(storageKey,next);
     }else{
-      // Local wins: if local data exists keep it; only load from remote when local is empty (e.g. fresh device)
-      const localVal=localStorage.getItem(storageKey);
-      if(localVal===null){
-        localStorage.setItem(storageKey,JSON.stringify(d[k]));
-        changed=true;
-      }else if(localVal!==JSON.stringify(d[k])){
-        changed=true; // local differs from remote → re-upload local to Supabase
-      }
+      const prev=localStorage.getItem(storageKey);
+      const next=JSON.stringify(d[k]);
+      if(prev!==next)changed=true;
+      localStorage.setItem(storageKey,next);
     }
   });
   return changed;
@@ -898,13 +894,11 @@ async function supaLoad(){
   if(!_syncUser)return;
   const{data,error}=await supa.from('user_data').select('data').eq('user_id',_syncUser.id).single();
   if(error||!data||!data.data||!Object.keys(data.data).length){await supaSync();return}
-  // Only merge remote data if we haven't made local changes this session
-  // This prevents a re-login event from overwriting changes the user just made
+  // Only merge remote on initial load (no local changes yet). After that, supaSync handles merging.
   if(!_lastLocalChange){
     const changed=mergeRemoteData(data.data);
     if(changed)scheduleSync();
   }else{
-    // Local changes exist — upload them instead of merging stale remote data
     scheduleSync();
   }
 }
@@ -924,6 +918,14 @@ async function supaSync(){
   if(_isSyncing)return;
   _isSyncing=true;
   try{
+    // Read remote — if another device wrote since our last upload, merge their changes in
+    const{data:srv}=await supa.from('user_data').select('data,updated_at').eq('user_id',_syncUser.id).single();
+    if(srv?.data&&srv.updated_at){
+      const remoteTs=new Date(srv.updated_at).getTime();
+      if(remoteTs>(_lastSyncedAt||0)){
+        mergeRemoteData(srv.data);
+      }
+    }
     await supa.from('user_data').upsert({user_id:_syncUser.id,data:_allData(),updated_at:new Date().toISOString()});
     _lastSyncedAt=Date.now();
     _pendingSync=false;
@@ -1532,7 +1534,7 @@ function renderPendingBets(){
     <td>${fmtD(b.date)}</td><td>${bkName(b.bookieId)}</td><td>${betType(b)}</td><td>${fmt$(b.stake)}</td><td>${b.fixedOdds||'-'}</td><td>${b.bsp||'-'}</td>
     <td class="am">${ev!=null?fmt$(ev):'-'}</td>
     <td><div class="flex gap-1 items-center">
-      <input class="inp-sm" type="number" id="sbsp-${b.id}" placeholder="BSP" step="0.01" style="width:58px">
+      <input class="inp-sm" type="number" id="sbsp-${b.id}" value="${b.bsp||''}" placeholder="BSP" step="0.01" style="width:58px" oninput="autoSaveBSP('${b.id}',this.value)">
       <button class="btn btn-sm" style="border:2px solid #22c55e;color:#22c55e;background:#22c55e15" onclick="settleBet('${b.id}','Win',document.getElementById('sbsp-${b.id}').value)">W</button>
       <button class="btn btn-sm" style="border:2px solid #ef4444;color:#ef4444;background:#ef444415" onclick="settleBet('${b.id}','Loss',document.getElementById('sbsp-${b.id}').value)">L</button>
       ${b.betCategory==='promo'?`<button class="btn btn-sm" style="border:2px solid #60a5fa;color:#60a5fa;background:#60a5fa15" onclick="settleBet('${b.id}','Bonus',document.getElementById('sbsp-${b.id}').value)">B</button>`:''}
@@ -1649,6 +1651,17 @@ function settleBet(id,result,bspStr){
   renderTodayBets();renderPendingBets();
 }
 
+
+function autoSaveBSP(id,val){
+  const v=parseFloat(val);if(!v)return;
+  const bets=ls(K.bets,[]);const b=bets.find(x=>x.id===id);
+  if(b){b.bsp=v;ss(K.bets,bets);}
+}
+function autoSaveBonus(id,field,val){
+  const v=parseFloat(val);if(!v)return;
+  const bonuses=ls(K.bonuses,[]);const b=bonuses.find(x=>x.id===id);
+  if(b){b[field==='bsp'?'bsp':'fixedOdds']=v;ss(K.bonuses,bonuses);}
+}
 function saveBSP(id){
   const v=parseFloat(document.getElementById('bsp-'+id).value);
   if(!v){toast('Enter BSP','warn');return}
@@ -1659,7 +1672,7 @@ function saveBSP(id){
 // ── BONUSES ───────────────────────────────────────────────────────────────────
 function showDMForm(){
   const bookies=ls(K.bookies,[]).filter(b=>b.active);
-  document.getElementById('dm-bookie-list').innerHTML=bookies.map(b=>`<option value="${b.alias||b.name}">`).join('');
+  document.getElementById('dm-bookie').innerHTML=bookies.map(b=>`<option value="${b.id}">${b.alias||b.name}</option>`).join('');
   if(!document.getElementById('dm-date').value)document.getElementById('dm-date').value=new Date().toISOString().slice(0,10);
   document.getElementById('dm-form').style.display='block';
 }
@@ -1856,8 +1869,8 @@ function renderPcardActions(b){
   } else {
     // NO LAY mode — identical to original app (odds + BSP + EV + Calc + Win/Loss)
     return `<div class="pinputs">
-      <input class="inp-sm" type="number" id="pb-odds-${bid}" placeholder="Odds" step="0.01" min="1.01" onkeydown="bonusFieldKey(event,'${bid}','odds')" oninput="updateBonusEV('${bid}')">
-      <input class="inp-sm" type="number" id="pb-bsp-${bid}" placeholder="BSP" step="0.01" onkeydown="bonusFieldKey(event,'${bid}','bsp')" oninput="updateBonusEV('${bid}')">
+      <input class="inp-sm" type="number" id="pb-odds-${bid}" placeholder="Odds" step="0.01" min="1.01" onkeydown="bonusFieldKey(event,'${bid}','odds')" oninput="updateBonusEV('${bid}');autoSaveBonus('${bid}','odds',this.value)">
+      <input class="inp-sm" type="number" id="pb-bsp-${bid}" value="${b.bsp||''}" placeholder="BSP" step="0.01" onkeydown="bonusFieldKey(event,'${bid}','bsp')" oninput="updateBonusEV('${bid}');autoSaveBonus('${bid}','bsp',this.value)">
       <span id="pb-ev-${bid}" style="font-size:11px;color:#22c55e;font-weight:700;align-self:center"></span>
       <button id="pb-win-${bid}" class="btn btn-s btn-sm" onclick="resolveBonus('${bid}','Win')">Win</button>
       <button id="pb-loss-${bid}" class="btn btn-d btn-sm" onclick="resolveBonus('${bid}','Loss')">Loss</button>
@@ -3735,7 +3748,7 @@ Keep it under 400 words. Write as brief coaching notes, not a transcript. Only i
     const data=await resp.json();
     if(!data.error&&data.content?.[0]?.text){
       _studentProfile=data.content[0].text;
-      ss(K.agentProfile,_studentProfile); // push to Supabase + update _lastLocalChange
+      ss(K.agentProfile,_studentProfile);
     }
   }catch(e){
     console.warn('Profile update failed silently:',e);
