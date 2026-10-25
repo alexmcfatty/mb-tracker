@@ -894,13 +894,8 @@ async function supaLoad(){
   if(!_syncUser)return;
   const{data,error}=await supa.from('user_data').select('data').eq('user_id',_syncUser.id).single();
   if(error||!data||!data.data||!Object.keys(data.data).length){await supaSync();return}
-  // Only merge remote on initial load (no local changes yet). After that, supaSync handles merging.
-  if(!_lastLocalChange){
-    const changed=mergeRemoteData(data.data);
-    if(changed)scheduleSync();
-  }else{
-    scheduleSync();
-  }
+  if(!_lastLocalChange){const changed=mergeRemoteData(data.data);if(changed)scheduleSync();}
+  else{scheduleSync();}
 }
 
 async function setupRealtimeSync(){
@@ -918,22 +913,15 @@ async function supaSync(){
   if(_isSyncing)return;
   _isSyncing=true;
   try{
-    // Read remote — if another device wrote since our last upload, merge their changes in
     const{data:srv}=await supa.from('user_data').select('data,updated_at').eq('user_id',_syncUser.id).single();
     if(srv?.data&&srv.updated_at){
       const remoteTs=new Date(srv.updated_at).getTime();
-      if(remoteTs>(_lastSyncedAt||0)){
-        mergeRemoteData(srv.data);
-      }
+      if(remoteTs>(_lastSyncedAt||0)){mergeRemoteData(srv.data);}
     }
     await supa.from('user_data').upsert({user_id:_syncUser.id,data:_allData(),updated_at:new Date().toISOString()});
-    _lastSyncedAt=Date.now();
-    _pendingSync=false;
-  }catch(e){
-    _pendingSync=true;
-  }finally{
-    setTimeout(()=>{_isSyncing=false},500);
-  }
+    _lastSyncedAt=Date.now();_pendingSync=false;
+  }catch(e){_pendingSync=true;}
+  finally{setTimeout(()=>{_isSyncing=false},500);}
 }
 
 
@@ -1869,8 +1857,8 @@ function renderPcardActions(b){
   } else {
     // NO LAY mode — identical to original app (odds + BSP + EV + Calc + Win/Loss)
     return `<div class="pinputs">
-      <input class="inp-sm" type="number" id="pb-odds-${bid}" placeholder="Odds" step="0.01" min="1.01" onkeydown="bonusFieldKey(event,'${bid}','odds')" oninput="updateBonusEV('${bid}');autoSaveBonus('${bid}','odds',this.value)">
-      <input class="inp-sm" type="number" id="pb-bsp-${bid}" value="${b.bsp||''}" placeholder="BSP" step="0.01" onkeydown="bonusFieldKey(event,'${bid}','bsp')" oninput="updateBonusEV('${bid}');autoSaveBonus('${bid}','bsp',this.value)">
+      <input class="inp-sm" type="number" id="pb-odds-${bid}" placeholder="Odds" step="0.01" min="1.01" onkeydown="bonusFieldKey(event,'${bid}','odds')" oninput="updateBonusEV('${bid}')">
+      <input class="inp-sm" type="number" id="pb-bsp-${bid}" placeholder="BSP" step="0.01" onkeydown="bonusFieldKey(event,'${bid}','bsp')" oninput="updateBonusEV('${bid}')">
       <span id="pb-ev-${bid}" style="font-size:11px;color:#22c55e;font-weight:700;align-self:center"></span>
       <button id="pb-win-${bid}" class="btn btn-s btn-sm" onclick="resolveBonus('${bid}','Win')">Win</button>
       <button id="pb-loss-${bid}" class="btn btn-d btn-sm" onclick="resolveBonus('${bid}','Loss')">Loss</button>
@@ -3685,14 +3673,15 @@ async function sendAgentMsg(){
       },
       body:JSON.stringify({
         model:'claude-sonnet-5-5',
-        max_tokens:1024,
+        max_tokens:4096,
         system:systemBlocks,
         messages
       })
     });
     const data=await resp.json();
     if(data.error)throw new Error(data.error.message);
-    const reply=data.content?.[0]?.text||'Sorry, no response.';
+    const textBlock=data.content?.find(b=>b.type==='text');
+    const reply=textBlock?.text||(data.error?'Error: '+data.error.message:'API returned no text (type: '+(data.content?.[0]?.type||'none')+', stop: '+data.stop_reason+')');
     typing.remove();
     appendAgentMsg('assistant',reply);
 
