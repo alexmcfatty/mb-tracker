@@ -3679,9 +3679,11 @@ async function sendAgentMsg(){
       })
     });
     const data=await resp.json();
-    if(data.error)throw new Error(data.error.message);
-    const textBlock=data.content?.find(b=>b.type==='text');
-    const reply=textBlock?.text||(data.error?'Error: '+data.error.message:'API returned no text (type: '+(data.content?.[0]?.type||'none')+', stop: '+data.stop_reason+')');
+    console.log('[Agent] status:',resp.status,'body:',JSON.stringify(data).slice(0,600));
+    if(!resp.ok||data.error)throw new Error(data.error?.message||'HTTP '+resp.status+' — check console');
+    const _textBlock=data.content?.find(b=>b.type==='text');
+    if(!_textBlock)throw new Error('No text in response. Types: '+(data.content?.map(b=>b.type).join(',')||'none')+' stop:'+data.stop_reason);
+    const reply=_textBlock.text;
     typing.remove();
     appendAgentMsg('assistant',reply);
 
