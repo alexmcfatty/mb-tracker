@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coach Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#0f172a;--surf:#1e293b;--bdr:#334155;--bdr2:#263348;--tx:#e2e8f0;--tx2:#cbd5e1;--tx3:#94a3b8;--tx4:#64748b;--tx5:#475569;--hover:#263348;--inp:#0f172a;--g:#22c55e;--r:#ef4444;--am:#f59e0b;--bl:#60a5fa;--pu:#a78bfa}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;font-size:14px}
+.header{background:var(--surf);border-bottom:1px solid var(--bdr);padding:14px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100}
+.logo{font-weight:700;font-size:16px;color:#3b82f6}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.btn{padding:7px 14px;border-radius:7px;border:none;cursor:pointer;font-weight:600;font-size:12px;transition:all .15s}
+.btn-p{background:#3b82f6;color:#fff}.btn-p:hover{background:#2563eb}
+.btn-s{background:var(--bdr);color:var(--tx)}.btn-s:hover{background:var(--tx5)}
+.btn-sm{padding:5px 10px;font-size:11px}
+.btn-xs{padding:3px 8px;font-size:10px;border-radius:5px}
+.content{max-width:1400px;margin:0 auto;padding:20px}
+.card{background:var(--surf);border:1px solid var(--bdr);border-radius:10px;padding:16px;margin-bottom:16px}
+.card-title{font-size:13px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px}
+/* Auth */
+#auth-section{max-width:380px;margin:80px auto;text-align:center}
+#auth-section h1{font-size:20px;font-weight:700;color:var(--tx);margin-bottom:8px}
+#auth-section p{color:var(--tx4);font-size:13px;margin-bottom:24px}
+.auth-box{background:var(--surf);border:1px solid var(--bdr);border-radius:12px;padding:24px}
+input[type=email],input[type=password]{background:var(--inp);border:1px solid var(--bdr);border-radius:6px;padding:10px 12px;color:var(--tx);font-size:13px;width:100%;margin-bottom:10px}
+input:focus{outline:none;border-color:#3b82f6}
+.auth-err{color:var(--r);font-size:12px;margin-top:6px}
+/* Student grid */
+.student-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
+.student-card{background:var(--surf);border:1px solid var(--bdr);border-radius:10px;padding:16px;cursor:pointer;transition:border-color .15s}
+.student-card:hover{border-color:#3b82f6}
+.sc-name{font-weight:700;font-size:15px;color:var(--tx);margin-bottom:2px}
+.sc-email{font-size:11px;color:var(--tx4);margin-bottom:10px}
+.sc-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.sc-stat{background:var(--inp);border-radius:6px;padding:8px 10px}
+.sc-stat-lbl{font-size:9px;color:var(--tx5);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
+.sc-stat-val{font-size:15px;font-weight:700;color:var(--tx)}
+.sc-cp{display:flex;align-items:center;justify-content:space-between}
+.cp-badge{background:#2563eb22;color:#60a5fa;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700}
+.cp-controls{display:flex;gap:6px}
+/* Detail modal */
+.modal{display:none;position:fixed;inset:0;background:#00000088;z-index:200;overflow-y:auto;padding:20px}
+.modal.open{display:flex;align-items:flex-start;justify-content:center}
+.modal-box{background:var(--surf);border:1px solid var(--bdr);border-radius:12px;width:100%;max-width:820px;padding:24px;position:relative;margin:auto}
+.modal-close{position:absolute;top:14px;right:16px;background:transparent;border:none;color:var(--tx4);font-size:18px;cursor:pointer}
+.modal-close:hover{color:var(--tx)}
+.modal-title{font-size:17px;font-weight:700;margin-bottom:4px}
+.modal-sub{font-size:12px;color:var(--tx4);margin-bottom:16px}
+.detail-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:16px}
+.dstat{background:var(--inp);border-radius:8px;padding:10px 12px}
+.dstat-lbl{font-size:9px;color:var(--tx5);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
+.dstat-val{font-size:16px;font-weight:700;color:var(--tx)}
+.section-title{font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;margin:16px 0 8px}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{text-align:left;padding:6px 8px;color:var(--tx5);font-size:9px;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--bdr)}
+td{padding:6px 8px;border-bottom:1px solid var(--bdr2);color:var(--tx2)}
+.profile-box{background:var(--inp);border-radius:8px;padding:12px;font-size:12px;color:var(--tx2);line-height:1.6;white-space:pre-wrap;max-height:160px;overflow-y:auto}
+/* Notifications */
+.notif-dot{width:8px;height:8px;background:var(--r);border-radius:50%;display:inline-block;margin-left:4px}
+.notif-list{max-height:200px;overflow-y:auto}
+.notif-item{padding:10px 0;border-bottom:1px solid var(--bdr2);font-size:12px}
+.notif-item:last-child{border-bottom:none}
+.notif-time{font-size:10px;color:var(--tx5);margin-top:2px}
+/* Toast */
+.toast{position:fixed;bottom:18px;right:18px;background:var(--surf);border:1px solid var(--bdr);border-radius:8px;padding:9px 14px;font-size:12px;color:var(--tx);z-index:9999;transform:translateY(70px);opacity:0;transition:all .22s;max-width:280px}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.ok{border-left:3px solid var(--g)}.toast.err{border-left:3px solid var(--r)}
+.g{color:var(--g)}.r{color:var(--r)}.am{color:var(--am)}.bl{color:var(--bl)}
+.empty{text-align:center;padding:28px;color:var(--tx5);font-size:12px}
+.loading{text-align:center;padding:40px;color:var(--tx4);font-size:13px}
+</style>
+</head>
+<body>
+
+<!-- AUTH SECTION -->
+<div id="auth-section">
+  <h1>Coach Dashboard</h1>
+  <p>Sign in with your coach account</p>
+  <div class="auth-box">
+    <input type="email" id="auth-email" placeholder="Email">
+    <input type="password" id="auth-pass" placeholder="Password">
+    <button class="btn btn-p" style="width:100%;padding:10px" onclick="doSignIn()">Sign In</button>
+    <div class="auth-err" id="auth-err"></div>
+  </div>
+</div>
+
+<!-- MAIN DASHBOARD -->
+<div id="main-section" style="display:none">
+  <div class="header">
+    <div class="logo">Coach Dashboard</div>
+    <div style="font-size:12px;color:var(--tx4)" id="last-refresh"></div>
+    <div class="header-right">
+      <button class="btn btn-s btn-sm" onclick="loadStudents()">↻ Refresh</button>
+      <span id="notif-btn" onclick="toggleNotifs()" style="cursor:pointer;position:relative;font-size:12px;color:var(--tx3)">
+        Notifications <span class="notif-dot" id="notif-dot" style="display:none"></span>
+      </span>
+      <button class="btn btn-s btn-sm" onclick="doSignOut()">Sign Out</button>
+    </div>
+  </div>
+
+  <!-- Notifications panel -->
+  <div id="notif-panel" style="display:none;background:var(--surf);border-bottom:1px solid var(--bdr);padding:14px 20px">
+    <div style="font-weight:700;font-size:13px;margin-bottom:10px">Recent Checkpoint Notifications</div>
+    <div class="notif-list" id="notif-list"><div class="empty">No notifications yet</div></div>
+  </div>
+
+  <div class="content">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="font-size:18px;font-weight:700">Students</div>
+      <div style="font-size:12px;color:var(--tx4)" id="student-count"></div>
+    </div>
+    <div id="students-loading" class="loading">Loading students…</div>
+    <div class="student-grid" id="student-grid"></div>
+  </div>
+</div>
+
+<!-- STUDENT DETAIL MODAL -->
+<div class="modal" id="detail-modal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeDetail()">✕</button>
+    <div class="modal-title" id="d-name"></div>
+    <div class="modal-sub" id="d-email"></div>
+
+    <div class="detail-grid" id="d-stats"></div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div class="section-title" style="margin:0">Checkpoint</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="cp-badge" id="d-cp-badge">CP 1</span>
+        <button class="btn btn-s btn-xs" onclick="adjustCheckpoint(-1)">◀ Back</button>
+        <button class="btn btn-p btn-xs" onclick="adjustCheckpoint(1)">Forward ▶</button>
+      </div>
+    </div>
+
+    <div class="section-title">Recent Bets</div>
+    <div style="overflow-x:auto">
+      <table id="d-bets-table">
+        <thead><tr><th>Date</th><th>Bookie</th><th>Type</th><th>Stake</th><th>Odds</th><th>BSP</th><th>EV</th><th>Result</th></tr></thead>
+        <tbody id="d-bets"></tbody>
+      </table>
+    </div>
+
+    <div class="section-title">Coaching Profile</div>
+    <div class="profile-box" id="d-profile">No profile yet.</div>
+
+    <div class="section-title">Deposit Matches Overview</div>
+    <div id="d-bonuses" style="font-size:12px;color:var(--tx3)">Loading…</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── SUPABASE CONFIG ──────────────────────────────────────────────
+// Replace these with your actual project values
+const SUPA_URL = 'https://ncqdxovhzjvdoruoookj.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jcWR4b3Zoemp2ZG9ydW9vb2tqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2NzY4ODUsImV4cCI6MjEwMzI1Mjg4NX0.nNL_8zCFoYCZv1lrkFLY4jAF5k1mcx-1ji8_CJ94JWI';
+const COACH_EMAIL = 'alexmcfadden226@gmail.com';
+
+const { createClient } = supabase;
+const supa = createClient(SUPA_URL, SUPA_KEY);
+
+let _user = null;
+let _students = [];
+let _detailStudent = null;
+let _notifications = [];
+let _realtimeCh = null;
+
+// ── AUTH ──────────────────────────────────────────────────────────
+async function doSignIn(){
+  const email = document.getElementById('auth-email').value.trim();
+  const pass = document.getElementById('auth-pass').value;
+  document.getElementById('auth-err').textContent = '';
+  if(email !== COACH_EMAIL){
+    document.getElementById('auth-err').textContent = 'Not authorised as coach.';
+    return;
+  }
+  const {data,error} = await supa.auth.signInWithPassword({email,password:pass});
+  if(error){document.getElementById('auth-err').textContent = error.message;return;}
+  _user = data.user;
+  showMain();
+}
+
+async function doSignOut(){
+  await supa.auth.signOut();
+  _user = null;
+  if(_realtimeCh) supa.removeChannel(_realtimeCh);
+  document.getElementById('main-section').style.display='none';
+  document.getElementById('auth-section').style.display='block';
+}
+
+// ── INIT ──────────────────────────────────────────────────────────
+supa.auth.onAuthStateChange((event,session)=>{
+  if(session?.user){
+    _user = session.user;
+    if(_user.email === COACH_EMAIL){
+      showMain();
+    } else {
+      supa.auth.signOut();
+    }
+  }
+});
+
+function showMain(){
+  document.getElementById('auth-section').style.display='none';
+  document.getElementById('main-section').style.display='block';
+  loadStudents();
+  setupRealtime();
+}
+
+// ── LOAD STUDENTS ─────────────────────────────────────────────────
+async function loadStudents(){
+  document.getElementById('students-loading').style.display='block';
+  document.getElementById('student-grid').innerHTML='';
+
+  // Get all user_data rows (coach has read access via RLS)
+  const {data,error} = await supa.from('user_data').select('user_id,data,updated_at').order('updated_at',{ascending:false});
+  if(error){
+    document.getElementById('students-loading').innerHTML='<div class="r">Error loading: '+error.message+'</div>';
+    return;
+  }
+
+  // Also get user emails from auth (requires service key — use user_id mapping workaround)
+  // We'll show what we have from data
+  _students = (data||[]).map(row=>{
+    const d = row.data||{};
+    const settings = d.settings||{};
+    const bets = d.bets||[];
+    const bonuses = d.bonuses||[];
+    const agentProfile = d.agentProfile||'';
+    return {
+      userId: row.user_id,
+      email: settings.email||row.user_id,
+      data: d,
+      settings,
+      bets,
+      bonuses,
+      agentProfile,
+      updatedAt: row.updated_at,
+      checkpoint: settings.checkpoint||1,
+    };
+  });
+
+  document.getElementById('students-loading').style.display='none';
+  document.getElementById('student-count').textContent = _students.length + ' students';
+  document.getElementById('last-refresh').textContent = 'Refreshed ' + new Date().toLocaleTimeString('en-AU');
+  renderStudentGrid();
+}
+
+function calcStats(s){
+  const bets = s.bets.filter(b=>!b.deleted);
+  const nonPending = bets.filter(b=>b.result&&b.result!=='Pending');
+  const totalStake = nonPending.reduce((a,b)=>a+(b.stake||0),0);
+  let cashPnl = 0;
+  nonPending.forEach(b=>{
+    if(b.result==='Win') cashPnl += (b.fixedOdds-1)*(b.stake||0);
+    else if(b.result==='Loss') cashPnl -= (b.stake||0);
+    else if(b.result==='Void') {} // no change
+  });
+  const bonuses = (s.bonuses||[]).filter(b=>b.result==='Win'||b.result==='Loss');
+  let bonusPnl = bonuses.reduce((a,b)=>a+(b.profit||0),0);
+  const totalPnl = cashPnl + bonusPnl;
+  // EV
+  const evBets = bets.filter(b=>b.result&&b.result!=='Pending');
+  let ev = 0;
+  evBets.forEach(b=>{
+    if(b.betCategory==='non-promo'&&b.fixedOdds&&b.bsp) ev += (b.fixedOdds/b.bsp-1)*(b.stake||0);
+    else {
+      const promos = s.data.promos||[];
+      const pr = promos.find(p=>p.id===b.promoId);
+      if(pr&&pr.ev) ev += pr.ev/100*(b.stake||0);
+    }
+  });
+  // Deposit matches
+  const depMatches = bonuses.filter(b=>b.type==='deposit-match'||b.bonusType==='deposit-match');
+  const bonusFaceVal = (s.bonuses||[]).reduce((a,b)=>a+(b.bonusAmount||0),0);
+  const extraction = bonusFaceVal>0?(bonusPnl/bonusFaceVal*100):0;
+  return {totalPnl,ev,betsCount:nonPending.length,totalStake,extraction:Math.max(0,extraction)};
+}
+
+function renderStudentGrid(){
+  const grid = document.getElementById('student-grid');
+  if(!_students.length){grid.innerHTML='<div class="empty">No students found</div>';return;}
+  grid.innerHTML = _students.map((s,i)=>{
+    const stats = calcStats(s);
+    const pnlColor = stats.totalPnl>=0?'var(--g)':'var(--r)';
+    const pnlStr = (stats.totalPnl>=0?'+':'')+stats.totalPnl.toFixed(0);
+    return `<div class="student-card" onclick="openDetail(${i})">
+      <div class="sc-name">${s.email}</div>
+      <div class="sc-email">Last active: ${s.updatedAt?new Date(s.updatedAt).toLocaleDateString('en-AU'):'unknown'}</div>
+      <div class="sc-stats">
+        <div class="sc-stat">
+          <div class="sc-stat-lbl">P&L</div>
+          <div class="sc-stat-val" style="color:${pnlColor}">$${pnlStr}</div>
+        </div>
+        <div class="sc-stat">
+          <div class="sc-stat-lbl">EV</div>
+          <div class="sc-stat-val" style="color:var(--bl)">$${stats.ev.toFixed(0)}</div>
+        </div>
+        <div class="sc-stat">
+          <div class="sc-stat-lbl">Bets</div>
+          <div class="sc-stat-val">${stats.betsCount}</div>
+        </div>
+      </div>
+      <div class="sc-cp">
+        <span class="cp-badge">CP ${s.checkpoint}</span>
+        <span style="font-size:10px;color:var(--tx5)">Extraction: ${stats.extraction.toFixed(0)}%</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── STUDENT DETAIL ─────────────────────────────────────────────────
+function openDetail(idx){
+  _detailStudent = _students[idx];
+  const s = _detailStudent;
+  const stats = calcStats(s);
+
+  document.getElementById('d-name').textContent = s.email;
+  document.getElementById('d-email').textContent = 'User ID: '+s.userId;
+  document.getElementById('d-cp-badge').textContent = 'CP '+s.checkpoint;
+
+  // Stats grid
+  const bookies = s.data.bookies||[];
+  const activeBkCount = bookies.filter(b=>b.active).length;
+  const pnlColor = stats.totalPnl>=0?'var(--g)':'var(--r)';
+  document.getElementById('d-stats').innerHTML = [
+    {lbl:'Total P&L',val:'$'+(stats.totalPnl>=0?'+':'')+stats.totalPnl.toFixed(2),col:pnlColor},
+    {lbl:'Total EV',val:'$'+stats.ev.toFixed(2),col:'var(--bl)'},
+    {lbl:'Bets Placed',val:stats.betsCount,col:'var(--tx)'},
+    {lbl:'Turnover',val:'$'+stats.totalStake.toFixed(0),col:'var(--tx)'},
+    {lbl:'Extraction',val:stats.extraction.toFixed(1)+'%',col:stats.extraction>=75?'var(--g)':'var(--am)'},
+    {lbl:'Active Bookies',val:activeBkCount,col:'var(--tx)'},
+    {lbl:'Checkpoint',val:'CP '+s.checkpoint,col:'var(--pu)'},
+  ].map(x=>`<div class="dstat"><div class="dstat-lbl">${x.lbl}</div><div class="dstat-val" style="color:${x.col}">${x.val}</div></div>`).join('');
+
+  // Recent bets (last 20)
+  const bets = (s.bets||[]).filter(b=>!b.deleted).sort((a,b)=>new Date(b.date||0)-new Date(a.date||0)).slice(0,20);
+  const bkMap = Object.fromEntries((s.data.bookies||[]).map(b=>[b.id,b.name]));
+  const prMap = Object.fromEntries((s.data.promos||[]).map(p=>[p.id,p.name]));
+  document.getElementById('d-bets').innerHTML = bets.length?bets.map(b=>{
+    const pnl = b.result==='Win'?(b.fixedOdds-1)*(b.stake||0):b.result==='Loss'?-(b.stake||0):0;
+    const pnlCol = pnl>0?'var(--g)':pnl<0?'var(--r)':'var(--tx4)';
+    const ev = b.betCategory==='non-promo'&&b.fixedOdds&&b.bsp?(b.fixedOdds/b.bsp-1)*(b.stake||0):null;
+    return `<tr>
+      <td>${b.date||'—'}</td>
+      <td>${bkMap[b.bookieId]||'?'}</td>
+      <td>${b.betCategory==='non-promo'?'Non-promo':(prMap[b.promoId]||'Promo')}</td>
+      <td>$${(b.stake||0).toFixed(0)}</td>
+      <td>${b.fixedOdds||'—'}</td>
+      <td>${b.bsp||'—'}</td>
+      <td style="color:var(--bl)">${ev!=null?'$'+ev.toFixed(2):'—'}</td>
+      <td style="color:${pnlCol}">${b.result||'Pending'}</td>
+    </tr>`;
+  }).join(''):'<tr><td colspan="8" style="text-align:center;color:var(--tx5)">No bets yet</td></tr>';
+
+  // Profile
+  document.getElementById('d-profile').textContent = s.agentProfile||'No coaching profile yet.';
+
+  // Bonuses summary
+  const bonuses = s.bonuses||[];
+  const laid = bonuses.filter(b=>b.layStake);
+  const depM = bonuses.filter(b=>{const t=b.bonusType||'';return t.toLowerCase().includes('deposit')||t.toLowerCase().includes('match');});
+  document.getElementById('d-bonuses').innerHTML = `
+    <span style="color:var(--tx3)">Total bonuses: <b>${bonuses.length}</b></span> &nbsp;|&nbsp;
+    <span style="color:var(--tx3)">Laid: <b>${laid.length}</b></span> &nbsp;|&nbsp;
+    <span style="color:var(--tx3)">Deposit matches: <b>${depM.length}</b></span>
+  `;
+
+  document.getElementById('detail-modal').classList.add('open');
+}
+
+function closeDetail(){
+  document.getElementById('detail-modal').classList.remove('open');
+  _detailStudent = null;
+}
+
+// ── CHECKPOINT ADJUST ─────────────────────────────────────────────
+async function adjustCheckpoint(delta){
+  if(!_detailStudent)return;
+  const s = _detailStudent;
+  const newCp = Math.max(1, (s.checkpoint||1) + delta);
+  if(newCp === s.checkpoint)return;
+
+  // Update in Supabase
+  const newData = {...(s.data||{})};
+  newData.settings = {...(newData.settings||{}), checkpoint: newCp};
+
+  const {error} = await supa.from('user_data').update({data: newData, updated_at: new Date().toISOString()}).eq('user_id', s.userId);
+  if(error){toast('Error: '+error.message,'err');return;}
+
+  s.checkpoint = newCp;
+  s.settings.checkpoint = newCp;
+  s.data.settings = newData.settings;
+
+  document.getElementById('d-cp-badge').textContent = 'CP '+newCp;
+  toast((delta>0?'Moved forward to':'Moved back to')+' CP '+newCp,'ok');
+  renderStudentGrid();
+}
+
+// ── REALTIME ──────────────────────────────────────────────────────
+function setupRealtime(){
+  try{supa.realtime.disconnect();}catch(e){}
+  _realtimeCh = supa.channel('coach-watch')
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'user_data'},(payload)=>{
+      handleRealtimeUpdate(payload);
+    })
+    .subscribe();
+}
+
+function handleRealtimeUpdate(payload){
+  const newRow = payload.new;
+  const oldRow = payload.old;
+  if(!newRow)return;
+
+  const newCp = newRow.data?.settings?.checkpoint||1;
+  const oldStudent = _students.find(s=>s.userId===newRow.user_id);
+  const oldCp = oldStudent?.checkpoint||1;
+
+  if(newCp > oldCp){
+    // Checkpoint advanced!
+    const notif = {
+      userId: newRow.user_id,
+      email: oldStudent?.email||newRow.user_id,
+      from: oldCp,
+      to: newCp,
+      time: new Date().toLocaleString('en-AU'),
+    };
+    _notifications.unshift(notif);
+    showNotifDot();
+    toast('🎓 '+notif.email+' advanced to CP '+newCp,'ok');
+    renderNotifList();
+  }
+
+  // Update local student data
+  if(oldStudent){
+    oldStudent.data = newRow.data||{};
+    oldStudent.bets = oldStudent.data.bets||[];
+    oldStudent.bonuses = oldStudent.data.bonuses||[];
+    oldStudent.settings = oldStudent.data.settings||{};
+    oldStudent.agentProfile = oldStudent.data.agentProfile||'';
+    oldStudent.checkpoint = newCp;
+    oldStudent.updatedAt = newRow.updated_at;
+  } else {
+    // New student appeared
+    loadStudents();
+  }
+  renderStudentGrid();
+}
+
+// ── NOTIFICATIONS ─────────────────────────────────────────────────
+function showNotifDot(){document.getElementById('notif-dot').style.display='inline-block';}
+function toggleNotifs(){
+  const p = document.getElementById('notif-panel');
+  p.style.display = p.style.display==='none'?'block':'none';
+  document.getElementById('notif-dot').style.display='none';
+}
+function renderNotifList(){
+  const el = document.getElementById('notif-list');
+  if(!_notifications.length){el.innerHTML='<div class="empty">No notifications yet</div>';return;}
+  el.innerHTML = _notifications.slice(0,20).map(n=>`
+    <div class="notif-item">
+      <div>🎓 <b>${n.email}</b> advanced from CP ${n.from} → CP ${n.to}</div>
+      <div class="notif-time">${n.time}</div>
+    </div>
+  `).join('');
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────
+let _toastT;
+function toast(msg,type='ok'){
+  const el=document.getElementById('toast');
+  el.textContent=msg;
+  el.className='toast show '+(type==='err'?'err':'ok');
+  clearTimeout(_toastT);
+  _toastT=setTimeout(()=>el.classList.remove('show'),3500);
+}
+
+// Close modal on backdrop click
+document.getElementById('detail-modal').addEventListener('click',function(e){
+  if(e.target===this)closeDetail();
+});
+</script>
+</body>
+</html>
