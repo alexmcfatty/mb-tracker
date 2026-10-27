@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Coach Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <style>
 :root{--bg:#0f172a;--surf:#1e293b;--bdr:#334155;--bdr2:#263348;--tx:#e2e8f0;--tx2:#cbd5e1;--tx3:#94a3b8;--tx4:#64748b;--tx5:#475569;--inp:#0f172a;--g:#22c55e;--r:#ef4444;--am:#f59e0b;--bl:#60a5fa;--pu:#a78bfa}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -24,34 +25,77 @@ body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSyst
 input[type=email],input[type=password]{background:var(--inp);border:1px solid var(--bdr);border-radius:6px;padding:10px 12px;color:var(--tx);font-size:13px;width:100%;margin-bottom:10px}
 input:focus{outline:none;border-color:#3b82f6}
 .auth-err{color:var(--r);font-size:12px;margin-top:6px;min-height:18px}
-.sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+.sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
 .sc{background:var(--surf);border:1px solid var(--bdr);border-radius:10px;padding:16px;cursor:pointer;transition:border-color .15s}
 .sc:hover{border-color:#3b82f6}
 .sc-name{font-weight:700;font-size:14px;color:var(--tx);margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sc-sub{font-size:10px;color:var(--tx5);margin-bottom:10px}
-.sc-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
-.ss{background:var(--inp);border-radius:6px;padding:8px 10px}
-.ss-lbl{font-size:9px;color:var(--tx5);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
-.ss-val{font-size:15px;font-weight:700}
+.sc-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px}
+.ss{background:var(--inp);border-radius:6px;padding:7px 8px}
+.ss-lbl{font-size:8px;color:var(--tx5);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
+.ss-val{font-size:13px;font-weight:700}
 .sc-foot{display:flex;align-items:center;justify-content:space-between}
 .cp-badge{background:#2563eb22;color:#60a5fa;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700}
-.modal{display:none;position:fixed;inset:0;background:#00000099;z-index:200;overflow-y:auto;padding:20px}
+.sc-flags{margin-top:8px;display:flex;flex-wrap:wrap;gap:4px}
+.flag-chip{font-size:9px;font-weight:600;padding:2px 7px;border-radius:10px;background:#ef444420;color:#ef4444}
+.flag-chip.warn{background:#f59e0b20;color:#f59e0b}
+.modal{display:none;position:fixed;inset:0;background:#00000099;z-index:200;overflow-y:auto;padding:16px}
 .modal.open{display:flex;align-items:flex-start;justify-content:center}
-.mbox{background:var(--surf);border:1px solid var(--bdr);border-radius:12px;width:100%;max-width:860px;padding:24px;position:relative;margin:auto}
+.mbox{background:var(--surf);border:1px solid var(--bdr);border-radius:12px;width:100%;max-width:980px;padding:22px;position:relative;margin:auto}
 .mclose{position:absolute;top:14px;right:16px;background:transparent;border:none;color:var(--tx4);font-size:20px;cursor:pointer;line-height:1}
 .mclose:hover{color:var(--tx)}
 .mtitle{font-size:17px;font-weight:700;margin-bottom:2px}
-.msub{font-size:12px;color:var(--tx4);margin-bottom:16px}
-.dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:16px}
+.msub{font-size:12px;color:var(--tx4);margin-bottom:14px}
+.dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-bottom:14px}
 .ds{background:var(--inp);border-radius:8px;padding:10px 12px}
 .ds-lbl{font-size:9px;color:var(--tx5);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
-.ds-val{font-size:16px;font-weight:700}
-.stitle{font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;margin:16px 0 8px}
-.cp-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.ds-val{font-size:15px;font-weight:700}
+.ds-sub{font-size:9px;color:var(--tx5);margin-top:2px}
+.stitle{font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;margin:14px 0 7px}
+.tabs{display:flex;gap:4px;margin-bottom:14px;border-bottom:1px solid var(--bdr);flex-wrap:wrap}
+.tab{padding:7px 14px;font-size:12px;font-weight:600;color:var(--tx4);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab.active{color:var(--bl);border-bottom-color:var(--bl)}
+.tab:hover:not(.active){color:var(--tx)}
+.tabpane{display:none}.tabpane.active{display:block}
+.cp-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 table{width:100%;border-collapse:collapse;font-size:11px}
 th{text-align:left;padding:6px 8px;color:var(--tx5);font-size:9px;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--bdr)}
 td{padding:6px 8px;border-bottom:1px solid var(--bdr2);color:var(--tx2)}
-.profbox{background:var(--inp);border-radius:8px;padding:12px;font-size:12px;color:var(--tx2);line-height:1.6;white-space:pre-wrap;max-height:180px;overflow-y:auto}
+tr:last-child td{border-bottom:none}
+.tnum{text-align:right}
+.debug-box{background:#0a1020;border:1px solid var(--bdr2);border-radius:6px;padding:10px;font-size:10px;color:var(--tx4);font-family:monospace;white-space:pre;overflow-x:auto;max-height:200px;overflow-y:auto}
+canvas{max-height:220px}
+.bet-count{font-size:11px;color:var(--tx5);margin-bottom:8px}
+/* Red flags */
+.flag-list{display:flex;flex-direction:column;gap:8px}
+.flag-item{display:flex;align-items:flex-start;gap:10px;background:var(--inp);border-radius:8px;padding:10px 12px;border-left:3px solid var(--r);position:relative;transition:opacity .2s}
+.flag-item.warn{border-left-color:var(--am)}
+.flag-item.ok{border-left-color:var(--g)}
+.flag-item.resolved{opacity:.35;border-left-color:var(--tx5)!important}
+.flag-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+.flag-body{flex:1;min-width:0}
+.flag-title{font-size:12px;font-weight:700;margin-bottom:2px}
+.flag-item.warn .flag-title{color:var(--am)}
+.flag-item:not(.warn):not(.ok):not(.resolved) .flag-title{color:var(--r)}
+.flag-item.ok .flag-title{color:var(--g)}
+.flag-item.resolved .flag-title{color:var(--tx5)!important}
+.flag-desc{font-size:11px;color:var(--tx4);line-height:1.5}
+.flag-actions{display:flex;align-items:center;gap:6px;margin-top:6px}
+.flag-resolve-btn{background:none;border:1px solid var(--bdr);border-radius:5px;color:var(--tx4);font-size:10px;font-weight:600;padding:2px 8px;cursor:pointer;transition:all .15s}
+.flag-resolve-btn:hover{border-color:var(--g);color:var(--g)}
+.flag-item.resolved .flag-resolve-btn{border-color:var(--bdr2);color:var(--tx5)}
+.flag-item.resolved .flag-resolve-btn:hover{border-color:var(--am);color:var(--am)}
+.flag-resolved-label{font-size:10px;color:var(--tx5);font-style:italic}
+/* Agent chat */
+.agent-chat{display:flex;flex-direction:column;gap:6px;max-height:420px;overflow-y:auto;padding:4px 0}
+.agent-msg{display:flex;gap:8px;align-items:flex-start}
+.agent-msg.user{flex-direction:row-reverse}
+.agent-bubble{max-width:80%;padding:9px 12px;border-radius:12px;font-size:12px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+.agent-msg.user .agent-bubble{background:#2563eb;color:#fff;border-radius:12px 12px 3px 12px}
+.agent-msg.assistant .agent-bubble{background:var(--bdr2);color:var(--tx2);border-radius:12px 12px 12px 3px}
+.agent-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--tx5);margin-bottom:2px;flex-shrink:0;padding-top:11px;min-width:32px}
+.agent-label.user-lbl{text-align:right}
+.agent-empty{font-size:12px;color:var(--tx5);padding:16px;text-align:center;background:var(--inp);border-radius:8px}
 .ndot{width:8px;height:8px;background:var(--r);border-radius:50%;display:inline-block;margin-left:4px;vertical-align:middle}
 #npanel{display:none;background:var(--surf);border-bottom:1px solid var(--bdr);padding:14px 20px}
 .nitem{padding:10px 0;border-bottom:1px solid var(--bdr2);font-size:12px}
@@ -61,7 +105,7 @@ td{padding:6px 8px;border-bottom:1px solid var(--bdr2);color:var(--tx2)}
 .toast.show{transform:translateY(0);opacity:1}
 .tok{border-left:3px solid var(--g)}.terr{border-left:3px solid var(--r)}
 .g{color:var(--g)}.r{color:var(--r)}.am{color:var(--am)}.bl{color:var(--bl)}.pu{color:var(--pu)}
-.empty{text-align:center;padding:28px;color:var(--tx5);font-size:12px}
+.empty{text-align:center;padding:20px;color:var(--tx5);font-size:12px}
 </style>
 </head>
 <body>
@@ -83,18 +127,14 @@ td{padding:6px 8px;border-bottom:1px solid var(--bdr2);color:var(--tx2)}
     <div style="font-size:11px;color:var(--tx5)" id="lrefresh"></div>
     <div class="hright">
       <button class="btn btn-s btn-sm" onclick="loadStudents()">↻ Refresh</button>
-      <span onclick="toggleNotifs()" style="cursor:pointer;font-size:12px;color:var(--tx3)">
-        Notifications <span class="ndot" id="ndot" style="display:none"></span>
-      </span>
+      <span onclick="toggleNotifs()" style="cursor:pointer;font-size:12px;color:var(--tx3)">Notifications <span class="ndot" id="ndot" style="display:none"></span></span>
       <button class="btn btn-s btn-sm" onclick="doSignOut()">Sign Out</button>
     </div>
   </div>
-
   <div id="npanel">
     <div style="font-weight:700;font-size:13px;margin-bottom:10px">Checkpoint Notifications</div>
     <div id="nlist" style="max-height:200px;overflow-y:auto"><div class="empty">No notifications yet</div></div>
   </div>
-
   <div class="content">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <div style="font-size:18px;font-weight:700">Students</div>
@@ -105,26 +145,125 @@ td{padding:6px 8px;border-bottom:1px solid var(--bdr2);color:var(--tx2)}
   </div>
 </div>
 
+<!-- Detail Modal -->
 <div class="modal" id="dmodal">
   <div class="mbox">
     <button class="mclose" onclick="closeDetail()">✕</button>
     <div class="mtitle" id="d-name"></div>
     <div class="msub" id="d-email"></div>
-    <div class="dgrid" id="d-stats"></div>
     <div class="cp-row">
-      <div class="stitle" style="margin:0">Checkpoint</div>
       <div style="display:flex;align-items:center;gap:8px">
         <span class="cp-badge" id="d-cp">CP 1</span>
         <button class="btn btn-s btn-xs" onclick="adjCP(-1)">◀ Back</button>
         <button class="btn btn-p btn-xs" onclick="adjCP(1)">Forward ▶</button>
       </div>
+      <div style="font-size:11px;color:var(--tx5)" id="d-lastseen"></div>
     </div>
-    <div class="stitle">Recent Bets (last 20)</div>
-    <div style="overflow-x:auto"><table><thead><tr><th>Date</th><th>Bookie</th><th>Type</th><th>Stake</th><th>Odds</th><th>BSP</th><th>EV%</th><th>Result</th><th>P&L</th></tr></thead><tbody id="d-bets"></tbody></table></div>
-    <div class="stitle">Coaching Profile</div>
-    <div class="profbox" id="d-prof">No profile yet.</div>
-    <div class="stitle">Bonuses</div>
-    <div id="d-bon" style="font-size:12px;color:var(--tx3)"></div>
+    <div class="dgrid" id="d-stats"></div>
+
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('overview')">Overview</div>
+      <div class="tab" onclick="switchTab('promo')">Promo Bets</div>
+      <div class="tab" onclick="switchTab('np')">Non-Promo Bets</div>
+      <div class="tab" onclick="switchTab('bonuses')">Bonus History</div>
+      <div class="tab" onclick="switchTab('bookies')">By Bookie</div>
+      <div class="tab" onclick="switchTab('monthly')">Monthly</div>
+      <div class="tab" onclick="switchTab('bypromo')">By Promo Type</div>
+      <div class="tab" onclick="switchTab('bynp')">By NP Type</div>
+      <div class="tab" onclick="switchTab('profile')">Profile</div>
+      <div class="tab" onclick="switchTab('debug')">Debug</div>
+    </div>
+
+    <div class="tabpane active" id="tab-overview">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div>
+          <div class="stitle">EV Breakdown</div>
+          <table><thead><tr><th>Type</th><th class="tnum">Bets</th><th class="tnum">EV ($)</th><th class="tnum">EV/Bet</th></tr></thead><tbody id="d-ev-breakdown"></tbody></table>
+        </div>
+        <div>
+          <div class="stitle">P&L Breakdown</div>
+          <table><thead><tr><th>Category</th><th class="tnum">Amount</th></tr></thead><tbody id="d-pnl-breakdown"></tbody></table>
+        </div>
+      </div>
+      <div class="stitle">Pending</div>
+      <div id="d-pending" style="font-size:12px;color:var(--tx3)"></div>
+      <div class="stitle">Monthly P&L Chart</div>
+      <canvas id="d-chart"></canvas>
+    </div>
+
+    <div class="tabpane" id="tab-promo">
+      <div class="stitle">Promo Bets — All History</div>
+      <div class="bet-count" id="promo-count"></div>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>Date</th><th>Bookie</th><th>Promo</th><th class="tnum">Stake</th><th class="tnum">Odds</th><th class="tnum">BSP</th><th class="tnum">EV%</th><th>Result</th><th class="tnum">P&L</th></tr></thead>
+        <tbody id="d-promo-bets"></tbody>
+      </table></div>
+    </div>
+
+    <div class="tabpane" id="tab-np">
+      <div class="stitle">Non-Promo Bets — All History</div>
+      <div class="bet-count" id="np-count"></div>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>Date</th><th>Bookie</th><th>Type</th><th class="tnum">Stake</th><th class="tnum">Odds</th><th class="tnum">BSP</th><th class="tnum">EV%</th><th>Result</th><th class="tnum">P&L</th></tr></thead>
+        <tbody id="d-np-bets"></tbody>
+      </table></div>
+    </div>
+
+    <div class="tabpane" id="tab-bonuses">
+      <div class="stitle">Bonus History — All</div>
+      <div class="bet-count" id="bonus-count"></div>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>Date</th><th>Bookie</th><th class="tnum">Face</th><th class="tnum">Lay Stake</th><th class="tnum">Lay Odds</th><th class="tnum">Fixed Odds</th><th>Result</th><th class="tnum">P&L</th></tr></thead>
+        <tbody id="d-bonus-table"></tbody>
+      </table></div>
+    </div>
+
+    <div class="tabpane" id="tab-bookies">
+      <div class="stitle">P&L by Bookie</div>
+      <table><thead><tr><th>Bookie</th><th class="tnum">Bets</th><th class="tnum">Turnover</th><th class="tnum">Cash P&L</th><th class="tnum">Bonus P&L</th><th class="tnum">Total</th><th>Status</th></tr></thead><tbody id="d-bookies"></tbody></table>
+    </div>
+
+    <div class="tabpane" id="tab-monthly">
+      <div class="stitle">Month-by-Month</div>
+      <table><thead><tr><th>Month</th><th class="tnum">Bets</th><th class="tnum">Turnover</th><th class="tnum">Cash P&L</th><th class="tnum">Bonus P&L</th><th class="tnum">EV</th><th class="tnum">Cumulative</th></tr></thead><tbody id="d-monthly"></tbody></table>
+    </div>
+
+    <div class="tabpane" id="tab-bypromo">
+      <div class="stitle">Performance by Promo Type</div>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>Promo Type</th><th class="tnum">Bets</th><th class="tnum">W/L/B</th><th class="tnum">Turnover</th><th class="tnum">Avg Odds</th><th class="tnum">Bonus Face</th><th class="tnum">Cash P&amp;L</th><th class="tnum">Bonus P&amp;L</th><th class="tnum">Net%</th><th class="tnum">EV</th><th class="tnum">Profit</th></tr></thead>
+        <tbody id="d-bypromo"></tbody>
+      </table></div>
+    </div>
+
+    <div class="tabpane" id="tab-bynp">
+      <div class="stitle">Performance by Non-Promo Bet Type</div>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>Type</th><th class="tnum">Bets</th><th class="tnum">W/L</th><th class="tnum">Turnover</th><th class="tnum">Avg Odds</th><th class="tnum">Cash P&amp;L</th><th class="tnum">Total EV</th><th class="tnum">Avg EV%</th><th class="tnum">EV Coverage</th><th class="tnum">Net%</th></tr></thead>
+        <tbody id="d-bynp"></tbody>
+      </table></div>
+    </div>
+
+    <div class="tabpane" id="tab-profile">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;margin-top:14px">
+        <div class="stitle" style="margin:0">⚠️ Red Flags &amp; Coaching Insights</div>
+        <button class="btn btn-s btn-xs" onclick="clearAllResolved()" style="font-size:9px">Reset all resolved</button>
+      </div>
+      <div class="flag-list" id="d-flags"></div>
+
+      <div class="stitle" style="margin-top:18px">💬 Agent Conversation History
+        <span id="d-agent-count" style="font-weight:400;color:var(--tx5);text-transform:none;letter-spacing:0;font-size:10px;margin-left:6px"></span>
+      </div>
+      <div class="agent-chat" id="d-agent-chat"></div>
+
+      <div class="stitle" style="margin-top:16px">Settings Snapshot</div>
+      <div class="debug-box" id="d-settings-snap"></div>
+    </div>
+
+    <div class="tabpane" id="tab-debug">
+      <div class="stitle">Raw Calculation Debug</div>
+      <div class="debug-box" id="d-debug"></div>
+    </div>
   </div>
 </div>
 
@@ -133,19 +272,45 @@ td{padding:6px 8px;border-bottom:1px solid var(--bdr2);color:var(--tx2)}
 <script>
 const SUPA_URL='https://ncqdxovhzjvdoruoookj.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jcWR4b3Zoemp2ZG9ydW9vb2tqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2NzY4ODUsImV4cCI6MjEwMzI1Mjg4NX0.nNL_8zCFoYCZv1lrkFLY4jAF5k1mcx-1ji8_CJ94JWI';
-const COACH_EMAIL='alexmcfadden226@gmail.com';
 const {createClient}=supabase;
 const supa=createClient(SUPA_URL,SUPA_KEY);
 
-let _user=null,_students=[],_detail=null,_notifs=[],_ch=null,_rtActive=false;
+async function isCoach(email){
+  const{data,error}=await supa.from('coach_users').select('email').eq('email',email).maybeSingle();
+  return!error&&!!data;
+}
+
+const PROMO_EV_SUGGESTIONS={'2nd 3rd back':12,'money back 2nd 3rd':12,'2nd 3rd':12,'2nd back':5,'money back 2nd':5,'double winnings':25,'25% bonus boost':5,'bonus boost':5,'dogs boost':3,'horse boost':3,'trots boost':3,'sports boost':3,'3 leg 1 fail':25,'free hit':60,'2 leg free hit':55,'365 megaboost':30,'megaboost':30,'money back':12,'boost':3,'insurance':8,'reload':8,'sign up':8,'bonus bet':8,'free bet':8};
+function suggestPromoEV(name){const n=(name||'').toLowerCase().trim();if(PROMO_EV_SUGGESTIONS[n]!=null)return PROMO_EV_SUGGESTIONS[n];let best=null,bestLen=0;for(const[k,v]of Object.entries(PROMO_EV_SUGGESTIONS)){if(n.includes(k)&&k.length>bestLen){best=v;bestLen=k.length;}}return best;}
+
+let _user=null,_students=[],_detail=null,_notifs=[],_ch=null,_rtActive=false,_dChart=null;
+
+// ── RESOLVED FLAGS (persisted per student in localStorage) ─────────────────
+function _resolvedKey(userId){return'coach_resolved_'+userId;}
+function getResolved(userId){try{return new Set(JSON.parse(localStorage.getItem(_resolvedKey(userId))||'[]'));}catch{return new Set();}}
+function saveResolved(userId,set){localStorage.setItem(_resolvedKey(userId),JSON.stringify([...set]));}
+function toggleResolved(userId,flagKey){
+  const s=getResolved(userId);
+  s.has(flagKey)?s.delete(flagKey):s.add(flagKey);
+  saveResolved(userId,s);
+  renderFlags(_detail);
+  renderGrid();
+}
+function clearAllResolved(){
+  if(!_detail)return;
+  localStorage.removeItem(_resolvedKey(_detail.userId));
+  renderFlags(_detail);
+  renderGrid();
+  toast('All resolved flags cleared','ok');
+}
 
 async function doSignIn(){
-  const email=document.getElementById('ae').value.trim();
-  const pass=document.getElementById('ap').value;
+  const email=document.getElementById('ae').value.trim(),pass=document.getElementById('ap').value;
   document.getElementById('aerr').textContent='';
-  if(email!==COACH_EMAIL){document.getElementById('aerr').textContent='Not authorised as coach.';return;}
-  const {data,error}=await supa.auth.signInWithPassword({email,password:pass});
+  const{data,error}=await supa.auth.signInWithPassword({email,password:pass});
   if(error){document.getElementById('aerr').textContent=error.message;return;}
+  const coach=await isCoach(data.user.email);
+  if(!coach){await supa.auth.signOut();document.getElementById('aerr').textContent='Not authorised as coach.';return;}
   _user=data.user;showMain();
 }
 async function doSignOut(){
@@ -154,29 +319,19 @@ async function doSignOut(){
   document.getElementById('main').style.display='none';
   document.getElementById('auth-wrap').style.display='block';
 }
-supa.auth.onAuthStateChange((event,session)=>{
-  if(session?.user&&session.user.email===COACH_EMAIL){
-    if(!_user){_user=session.user;showMain();}
-  }
-});
-function showMain(){
-  document.getElementById('auth-wrap').style.display='none';
-  document.getElementById('main').style.display='block';
-  loadStudents();
-  setupRealtime();
-}
+supa.auth.onAuthStateChange(async(event,session)=>{if(session?.user&&!_user){const coach=await isCoach(session.user.email);if(coach){_user=session.user;showMain();}}});
+function showMain(){document.getElementById('auth-wrap').style.display='none';document.getElementById('main').style.display='block';loadStudents();setupRealtime();}
 
 async function loadStudents(){
-  document.getElementById('sloading').style.display='block';
-  document.getElementById('sgrid').innerHTML='';
-
-  // Fetch emails via secure RPC
+  document.getElementById('sloading').style.display='block';document.getElementById('sgrid').innerHTML='';
   const emailMap={};
-  const {data:emails,error:eErr}=await supa.rpc('get_student_emails');
-  if(eErr) console.warn('Email RPC error:',eErr.message);
+  const{data:emails,error:eErr}=await supa.rpc('get_student_emails');
+  if(eErr)console.warn('Email RPC:',eErr.message);
   (emails||[]).forEach(r=>{emailMap[r.user_id]=r.email;});
-
-  const {data,error}=await supa.from('user_data').select('user_id,data,updated_at').order('updated_at',{ascending:false});
+  // fetch coach email list so we can exclude them from the student grid
+  const{data:coachRows}=await supa.from('coach_users').select('email');
+  const coachEmails=new Set((coachRows||[]).map(r=>r.email.toLowerCase()));
+  const{data,error}=await supa.from('user_data').select('user_id,data,updated_at').order('updated_at',{ascending:false});
   if(error){document.getElementById('sloading').innerHTML='<div style="color:var(--r)">Error: '+error.message+'</div>';return;}
   _students=(data||[]).map(row=>buildStudent(row,emailMap[row.user_id]));
   document.getElementById('sloading').style.display='none';
@@ -185,68 +340,277 @@ async function loadStudents(){
   renderGrid();
 }
 
+// ── FORMULAS ───────────────────────────────────────────────────────────────
+function _betPnl(b){
+  if(b.result==='Win')return(b.fixedOdds-1)*b.stake;
+  if(b.result==='Loss')return b.betCategory==='bonus'?0:-b.stake;
+  if(b.result==='Bonus')return-b.stake;
+  return 0;
+}
+function _bonPnl(b){
+  const comm=0.10;
+  if(b.layStake&&b.layOdds){
+    if(b.result==='Win'&&b.fixedOdds)return Math.round(((b.fixedOdds-1)*b.bonusAmount-b.layStake*(b.layOdds-1))*100)/100;
+    if(b.result==='Loss')return Math.round(b.layStake*(1-comm)*100)/100;
+    return 0;
+  }
+  if(b.result==='Win'&&b.fixedOdds)return(b.fixedOdds-1)*b.bonusAmount;
+  return 0;
+}
+function _betEV(b,promos,settings){
+  if(b.betCategory==='non-promo'){if(b.fixedOdds&&b.bsp)return(b.fixedOdds/b.bsp-1)*b.stake;return null;}
+  const pr=promos.find(p=>p.id===b.promoId);
+  if(pr&&pr.evMode==='formula'){if(b.fixedOdds&&b.bsp)return(b.fixedOdds/b.bsp-1)*b.stake;return null;}
+  const evPct=pr?.ev!=null&&pr.ev!==''?pr.ev:(suggestPromoEV(pr?.name)||(settings?.promoEvPct??8));
+  return(evPct/100)*b.stake;
+}
+
+// ── RED FLAGS ──────────────────────────────────────────────────────────────
+function computeFlags(s){
+  const st=s.stats,flags=[];
+  const now=new Date();
+
+  if(st.extraction===null){
+    flags.push({sev:'warn',icon:'💰',title:'No bonus extraction data yet',desc:'No resolved bonuses found. Make sure the student is logging bonus bets and marking results.'});
+  } else if(st.extraction<60){
+    flags.push({sev:'red',icon:'💰',title:`Extraction rate critically low: ${st.extraction.toFixed(1)}%`,desc:`Losing too much value when converting bonuses (target ≥70%). Check lay stake calc, Betfair commission, and odds selection.`});
+  } else if(st.extraction<70){
+    flags.push({sev:'warn',icon:'💰',title:`Extraction rate below target: ${st.extraction.toFixed(1)}%`,desc:`Slightly under the 70% target. May be using suboptimal lay odds or underestimating commission.`});
+  }
+
+  const npBets=s.bets.filter(b=>!b.deleted&&b.betCategory==='non-promo'&&b.result!=='Void');
+  const npMissingBSP=npBets.filter(b=>!b.bsp||!b.fixedOdds).length;
+  if(npBets.length>0&&npMissingBSP/npBets.length>0.4){
+    flags.push({sev:'warn',icon:'📊',title:`${npMissingBSP}/${npBets.length} non-promo bets missing BSP`,desc:`Without BSP, non-promo EV shows as $0. Remind the student to log BSP after each race.`});
+  }
+
+  const prBets=s.bets.filter(b=>!b.deleted&&b.betCategory!=='non-promo'&&b.result!=='Void');
+  const prMissingExplicit=prBets.filter(b=>{const pr=s.promos.find(p=>p.id===b.promoId);return!pr||(!pr.ev&&pr.evMode!=='formula');}).length;
+  if(prBets.length>0&&prMissingExplicit/prBets.length>0.5){
+    flags.push({sev:'warn',icon:'🎯',title:`${prMissingExplicit} promo bets using estimated EV%`,desc:`More than half of promo bets have no EV% set. EV is estimated via name lookup or the global default — ask student to set rates per promo type.`});
+  }
+
+  const lastBet=s.bets.filter(b=>b.date).sort((a,b)=>new Date(b.date)-new Date(a.date))[0];
+  if(lastBet){
+    const daysSince=Math.floor((now-new Date(lastBet.date))/86400000);
+    if(daysSince>30)flags.push({sev:'red',icon:'🕐',title:`Inactive for ${daysSince} days`,desc:`No bets logged in over a month. Student may have dropped off. Worth following up.`});
+    else if(daysSince>14)flags.push({sev:'warn',icon:'🕐',title:`No bets in ${daysSince} days`,desc:`Student has been quiet. Could be a natural lull or disengagement.`});
+  } else {
+    flags.push({sev:'warn',icon:'🕐',title:'No bets logged yet',desc:'Student has no bet history — may not have started, or not logging bets.'});
+  }
+
+  const mon=s.monthly;
+  if(mon.length>=6){
+    const recent=mon.slice(-3).reduce((s,m)=>s+m.total,0);
+    const prior=mon.slice(-6,-3).reduce((s,m)=>s+m.total,0);
+    if(recent<0&&recent<prior*0.5)flags.push({sev:'red',icon:'📉',title:`P&L declining: ${fmt$0(recent)} last 3 months`,desc:`Recent performance significantly worse than prior 3 months (${fmt$0(prior)}). Check bet sizing, bookie health, extraction rate.`});
+    else if(recent<0)flags.push({sev:'warn',icon:'📉',title:`Negative P&L in last 3 months: ${fmt$0(recent)}`,desc:`Recent P&L in the red. Could be variance — worth monitoring.`});
+  }
+
+  const pending=s.bets.filter(b=>b.result==='Pending').length;
+  const settled=s.bets.filter(b=>b.result&&b.result!=='Pending'&&b.result!=='Void').length;
+  if(pending>10&&settled>0&&pending/settled>0.3)flags.push({sev:'warn',icon:'⏳',title:`${pending} unresolved pending bets`,desc:`High number of pending bets suggests the student isn't regularly logging results. P&L and EV may be incomplete.`});
+
+  if(s.bookies.filter(b=>b.active).length<3&&settled>20)flags.push({sev:'warn',icon:'📋',title:`Only ${s.bookies.filter(b=>b.active).length} active bookies`,desc:`Limited bookies — could indicate gubbing or early stage. Check if they're opening new accounts.`});
+
+  const badBookies=s.bookieBreakdown.filter(b=>b.cashPnl+b.bonPnl<-200);
+  if(badBookies.length)flags.push({sev:'warn',icon:'🔴',title:`${badBookies.length} bookie${badBookies.length>1?'s':''} significantly in the red`,desc:`${badBookies.map(b=>`${b.name} (${fmt$0(b.cashPnl+b.bonPnl)})`).join(', ')} — check if still getting value there.`});
+
+  if(!s.settings.kellyBank||s.settings.kellyBank<=0)flags.push({sev:'warn',icon:'⚙️',title:'No Kelly bank set',desc:'Without a bank size, bet sizing can\'t be calibrated. Ask student to enter their starting bank in Settings.'});
+
+  const agentHist=s.agentHistory||[];
+  if(agentHist.length>0){
+    const userMsgs=agentHist.filter(m=>m.role==='user').map(m=>(m.content||'').toLowerCase());
+    const hits=userMsgs.filter(m=>['confused','don\'t understand','not sure','lost','struggling','losing','can\'t figure','what do i do','going wrong','wrong','help me','not working','worried','stressed','bad run','losing run'].some(k=>m.includes(k)));
+    if(hits.length>=2)flags.push({sev:'warn',icon:'💬',title:`Agent chat may show student struggling (${hits.length} messages)`,desc:`Student used language suggesting confusion or distress in AI coach chat. Check Agent Conversations below.`});
+  }
+
+  if(!flags.length)flags.push({sev:'ok',icon:'✅',title:'No major issues detected',desc:`Extraction rate, activity, EV data, and P&L trend all look good.`});
+
+  // Assign a stable key to each flag for resolved tracking
+  flags.forEach((f,i)=>{f.key=f.icon+'_'+f.title.slice(0,40);});
+  return flags;
+}
+
+function renderFlags(s){
+  if(!s)return;
+  const resolved=getResolved(s.userId);
+  const unresolved=s.flags.filter(f=>!resolved.has(f.key));
+  const resolvedFlags=s.flags.filter(f=>resolved.has(f.key));
+  const all=[...unresolved,...resolvedFlags];
+
+  document.getElementById('d-flags').innerHTML=all.map(f=>{
+    const isRes=resolved.has(f.key);
+    const btnLabel=isRes?'↩ Undo':'✓ Mark resolved';
+    return`<div class="flag-item ${f.sev==='warn'?'warn':f.sev==='ok'?'ok':''} ${isRes?'resolved':''}">
+      <div class="flag-icon">${f.icon}</div>
+      <div class="flag-body">
+        <div class="flag-title">${isRes?'<s>':'' }${f.title}${isRes?'</s>':''}</div>
+        <div class="flag-desc">${f.desc}</div>
+        <div class="flag-actions">
+          <button class="flag-resolve-btn" onclick="toggleResolved('${s.userId}','${f.key.replace(/'/g,"\\'")}')">${btnLabel}</button>
+          ${isRes?'<span class="flag-resolved-label">Resolved</span>':''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 function buildStudent(row,authEmail){
   const d=row.data||{};
   const settings=d.settings||{};
   const bets=(d.bets||[]).filter(b=>!b.deleted);
-  const bonuses=d.bonuses||[];
+  const bonuses=(d.bonuses||[]).filter(b=>b.result!=='split'&&!b.deleted);
   const bookies=d.bookies||[];
   const promos=d.promos||[];
+  const agentHistory=d.agentHistory||[];
   const email=authEmail||settings.email||null;
   const displayName=email||row.user_id.slice(0,8)+'…';
   const checkpoint=settings.checkpoint||1;
 
-  let cashPnl=0;
-  bets.forEach(b=>{
-    if(b.result==='Win') cashPnl+=(b.fixedOdds-1)*(b.stake||0);
-    else if(b.result==='Loss') cashPnl-=(b.stake||0);
-    else if(b.result==='Bonus') cashPnl-=(b.stake||0);
-  });
-  const resolvedBonuses=bonuses.filter(b=>b.result==='Win'||b.result==='Loss');
-  const bonusPnl=resolvedBonuses.reduce((a,b)=>a+(parseFloat(b.profit)||0),0);
-  const totalPnl=cashPnl+bonusPnl;
+  const betP=bets.reduce((s,b)=>s+_betPnl(b),0);
+  const completed=bonuses.filter(b=>b.result!=='Pending');
+  const bonP=completed.reduce((s,b)=>s+_bonPnl(b),0);
+  const adj=(d.adj||[]).reduce((s,a)=>s+(parseFloat(a.amount)||0),0);
+  const totalPnl=betP+bonP+adj+(settings.profitOffset||0);
 
-  let ev=0;
-  const settled=bets.filter(b=>b.result&&b.result!=='Pending');
-  settled.forEach(b=>{
-    if(b.betCategory==='non-promo'&&b.fixedOdds&&b.bsp) ev+=(b.fixedOdds/b.bsp-1)*(b.stake||0);
-    else{const pr=promos.find(p=>p.id===b.promoId);if(pr?.ev)ev+=pr.ev/100*(b.stake||0);}
-  });
+  const nonVoid=bets.filter(b=>b.result!=='Void');
+  const totalEV=nonVoid.reduce((s,b)=>{const v=_betEV(b,promos,settings);return s+(v||0);},0);
+  const npBets=nonVoid.filter(b=>b.betCategory==='non-promo');
+  const prBets=nonVoid.filter(b=>b.betCategory!=='non-promo');
+  const npEV=npBets.reduce((s,b)=>{const v=_betEV(b,promos,settings);return s+(v||0);},0);
+  const prEV=prBets.reduce((s,b)=>{const v=_betEV(b,promos,settings);return s+(v||0);},0);
+  const npWithBSP=npBets.filter(b=>b.fixedOdds&&b.bsp).length;
 
+  const btoBase=completed.filter(b=>b.result!=='Cleared');
+  const bonFaceForExt=btoBase.reduce((s,b)=>s+(parseFloat(b.bonusAmount)||0),0);
+  const bonPforExt=btoBase.reduce((s,b)=>s+_bonPnl(b),0);
+  const extraction=bonFaceForExt>0?(bonPforExt/bonFaceForExt*100):null;
   const bonusFace=bonuses.reduce((a,b)=>a+(parseFloat(b.bonusAmount)||0),0);
-  const extraction=bonusFace>0?(bonusPnl/bonusFace*100):null;
-  const promoCount=settled.filter(b=>b.betCategory!=='non-promo').length;
-  const npCount=settled.filter(b=>b.betCategory==='non-promo').length;
-  const turnover=settled.reduce((a,b)=>a+(b.stake||0),0);
 
-  return{userId:row.user_id,email,displayName,updatedAt:row.updated_at,data:d,settings,bets,bonuses,bookies,promos,checkpoint,
-    stats:{totalPnl,bonusPnl,cashPnl,ev,extraction,promoCount,npCount,turnover,betsCount:settled.length,bonusFace,resolvedBonuses:resolvedBonuses.length}};
+  const settled=nonVoid.filter(b=>b.result&&b.result!=='Pending');
+  const pending=bets.filter(b=>b.result==='Pending');
+  const pendingBonuses=bonuses.filter(b=>b.result==='Pending');
+  const pendingBonusCash=pendingBonuses.reduce((s,b)=>s+(parseFloat(b.bonusAmount)||0),0);
+  const turnover=settled.reduce((a,b)=>a+(b.stake||0),0);
+  const activeBk=bookies.filter(b=>b.active).length;
+
+  const monthly=buildMonthly(bets,bonuses,promos,d.adj||[],settings);
+  const bookieBreakdown=buildBookieBreakdown(bets,bonuses,bookies);
+
+  const statsObj={totalPnl,betP,bonP,adj,totalEV,npEV,prEV,extraction,bonusFace,bonFaceForExt,
+    settledCount:settled.length,turnover,activeBk,
+    pendingCount:pending.length,pendingBonuses:pendingBonuses.length,pendingBonusCash,
+    npWithBSP,npBetsTotal:npBets.length,prBetsTotal:prBets.length,
+  };
+
+  const studentObj={userId:row.user_id,email,displayName,updatedAt:row.updated_at,data:d,settings,bets,bonuses,bookies,promos,agentHistory,checkpoint,stats:statsObj,monthly,bookieBreakdown};
+  studentObj.flags=computeFlags(studentObj);
+  return studentObj;
 }
+
+function buildMonthly(bets,bonuses,promos,adj,settings){
+  const dates=bets.map(b=>b.date).filter(Boolean).concat(bonuses.map(b=>b.createdAt).filter(Boolean));
+  if(!dates.length)return[];
+  const min=new Date(Math.min(...dates.map(d=>new Date(d))));
+  const now=new Date();let cur=new Date(min.getFullYear(),min.getMonth(),1);
+  const rows=[];let cum=0;
+  while(cur<=now){
+    const y=cur.getFullYear(),m=cur.getMonth();
+    const mb=bets.filter(b=>{if(!b.date)return false;const d=new Date(b.date);return d.getFullYear()===y&&d.getMonth()===m});
+    const mn=bonuses.filter(b=>{if(!b.createdAt)return false;const d=new Date(b.createdAt);return d.getFullYear()===y&&d.getMonth()===m&&b.result!=='Pending'});
+    const ma=(adj||[]).filter(a=>{if(!a.date)return false;const d=new Date(a.date+'T00:00:00');return d.getFullYear()===y&&d.getMonth()===m});
+    const cashP=mb.reduce((s,b)=>s+_betPnl(b),0);
+    const bonP=mn.reduce((s,b)=>s+_bonPnl(b),0);
+    const adjP=ma.reduce((s,a)=>s+(parseFloat(a.amount)||0),0);
+    const ev=mb.filter(b=>b.result!=='Void').reduce((s,b)=>{const v=_betEV(b,promos,settings);return s+(v||0);},0);
+    const turnover=mb.filter(b=>b.result!=='Void'&&b.result!=='Pending').reduce((s,b)=>s+(b.stake||0),0);
+    const total=cashP+bonP+adjP;cum+=total;
+    const lbl=cur.toLocaleDateString('en-AU',{month:'short',year:'numeric'});
+    if(mb.length||mn.length||adjP)rows.push({lbl,bets:mb.length,turnover,cashP,bonP,total,ev,cum});
+    cur=new Date(y,m+1,1);
+  }
+  return rows;
+}
+
+function buildBookieBreakdown(bets,bonuses,bookies){
+  const map={};
+  const bkName=id=>{const b=bookies.find(x=>x.id===id);return b?.name||b?.alias||id?.slice(0,8)||'?';};
+  bets.filter(b=>!b.deleted&&b.result&&b.result!=='Pending'&&b.result!=='Void').forEach(b=>{
+    const n=bkName(b.bookieId);
+    if(!map[n])map[n]={name:n,bets:0,turnover:0,cashPnl:0,bonPnl:0,active:!!bookies.find(x=>(x.name===n||x.alias===n)&&x.active)};
+    map[n].bets++;map[n].turnover+=b.stake||0;map[n].cashPnl+=_betPnl(b);
+  });
+  bonuses.filter(b=>!b.deleted&&b.result!=='Pending'&&b.result!=='split').forEach(b=>{
+    const n=bkName(b.bookieId);
+    if(!map[n])map[n]={name:n,bets:0,turnover:0,cashPnl:0,bonPnl:0,active:false};
+    map[n].bonPnl+=_bonPnl(b);
+  });
+  return Object.values(map).sort((a,b)=>(b.cashPnl+b.bonPnl)-(a.cashPnl+a.bonPnl));
+}
+
+const fmt$=v=>{const abs=Math.abs(v).toLocaleString('en-AU',{minimumFractionDigits:2,maximumFractionDigits:2});return(v>=0?'+$':'-$')+abs;};
+const fmt$0=v=>{const abs=Math.abs(v).toLocaleString('en-AU',{maximumFractionDigits:0});return(v>=0?'+$':'-$')+abs;};
+const fmtK=v=>v.toLocaleString('en-AU',{maximumFractionDigits:0});
+const fmtC=v=>v>=0?'var(--g)':'var(--r)';
+const fmtP=v=>v.toFixed(1)+'%';
 
 function renderGrid(){
   const grid=document.getElementById('sgrid');
   if(!_students.length){grid.innerHTML='<div class="empty">No students found</div>';return;}
   grid.innerHTML=_students.map((s,i)=>{
     const st=s.stats;
-    const pnlC=st.totalPnl>=0?'var(--g)':'var(--r)';
-    const pnlStr=(st.totalPnl>=0?'+':'')+st.totalPnl.toFixed(0);
-    const evStr=(st.ev>=0?'+':'')+st.ev.toFixed(0);
-    const lastActive=s.updatedAt?new Date(s.updatedAt).toLocaleDateString('en-AU'):'unknown';
-    const extStr=st.extraction!=null?st.extraction.toFixed(0)+'%':'—';
-    const extC=st.extraction!=null&&st.extraction>=75?'var(--g)':'var(--am)';
+    const lastActive=s.updatedAt?new Date(s.updatedAt).toLocaleDateString('en-AU'):'—';
+    const extStr=st.extraction!=null?fmtP(st.extraction):'—';
+    const extC=st.extraction!=null&&st.extraction>=70?'var(--g)':'var(--am)';
+    const resolved=getResolved(s.userId);
+    const unresolvedRed=s.flags.filter(f=>f.sev==='red'&&!resolved.has(f.key));
+    const unresolvedWarn=s.flags.filter(f=>f.sev==='warn'&&!resolved.has(f.key));
+    const flagChips=unresolvedRed.map(f=>`<span class="flag-chip">${f.icon} ${f.title.split(':')[0].split('(')[0].trim()}</span>`).join('')
+      +unresolvedWarn.slice(0,2).map(f=>`<span class="flag-chip warn">${f.icon} ${f.title.split(':')[0].split('(')[0].trim()}</span>`).join('');
+    const resolvedCount=[...resolved].filter(k=>s.flags.some(f=>f.key===k)).length;
+    const hasAgentChat=s.agentHistory&&s.agentHistory.length>0;
     return`<div class="sc" onclick="openDetail(${i})">
-      <div class="sc-name">${s.displayName}</div>
-      <div class="sc-sub">Last active: ${lastActive} · ${st.betsCount} bets</div>
+      <div class="sc-name">${s.displayName}${hasAgentChat?` <span style="font-size:9px;color:var(--pu);font-weight:600">💬 ${s.agentHistory.filter(m=>m.role==='user').length}q</span>`:''}</div>
+      <div class="sc-sub">Last active: ${lastActive} · CP ${s.checkpoint}${resolvedCount?` · <span style="color:var(--g)">${resolvedCount} resolved</span>`:''}</div>
       <div class="sc-stats">
-        <div class="ss"><div class="ss-lbl">P&amp;L</div><div class="ss-val" style="color:${pnlC}">$${pnlStr}</div></div>
-        <div class="ss"><div class="ss-lbl">EV</div><div class="ss-val bl">$${evStr}</div></div>
-        <div class="ss"><div class="ss-lbl">Extraction</div><div class="ss-val" style="color:${extC}">${extStr}</div></div>
+        <div class="ss"><div class="ss-lbl">P&amp;L</div><div class="ss-val" style="color:${fmtC(st.totalPnl)}">${fmt$0(st.totalPnl)}</div></div>
+        <div class="ss"><div class="ss-lbl">EV (est)</div><div class="ss-val bl">${fmt$0(st.totalEV)}</div></div>
+        <div class="ss"><div class="ss-lbl">Extract</div><div class="ss-val" style="color:${extC}">${extStr}</div></div>
+        <div class="ss"><div class="ss-lbl">Bets</div><div class="ss-val">${st.settledCount}</div></div>
       </div>
       <div class="sc-foot">
         <span class="cp-badge">CP ${s.checkpoint}</span>
-        <span style="font-size:10px;color:var(--tx5)">NP ratio: ${st.promoCount?(st.npCount/st.promoCount*100).toFixed(0)+'%':'—'}</span>
+        <span style="font-size:10px;color:var(--tx5)">${st.pendingCount} pending · ${st.activeBk} bookies</span>
       </div>
+      ${flagChips?`<div class="sc-flags">${flagChips}</div>`:''}
     </div>`;
+  }).join('');
+}
+
+function switchTab(name){
+  const names=['overview','promo','np','bonuses','bookies','monthly','bypromo','bynp','profile','debug'];
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',names[i]===name));
+  document.querySelectorAll('.tabpane').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+}
+
+function renderBetRows(bets,promos,bookies){
+  const bkMap=Object.fromEntries(bookies.map(b=>[b.id,b.name||b.alias||'?']));
+  const prMap=Object.fromEntries(promos.map(p=>[p.id,p.name||'Promo']));
+  const sorted=[...bets].sort((a,b)=>new Date(b.date||b.createdAt||0)-new Date(a.date||a.createdAt||0));
+  if(!sorted.length)return'<tr><td colspan="9" class="empty">No bets</td></tr>';
+  return sorted.map(b=>{
+    const pnl=_betPnl(b);
+    const evVal=_betEV(b,promos,null);
+    const evPct=evVal!==null?(evVal/(b.stake||1)*100).toFixed(1)+'%':'—';
+    return`<tr>
+      <td>${b.date||'—'}</td><td>${bkMap[b.bookieId]||'?'}</td>
+      <td>${b.betCategory==='non-promo'?b.nonPromoType||'NP':(prMap[b.promoId]||'Promo')}</td>
+      <td class="tnum">$${(b.stake||0).toFixed(0)}</td><td class="tnum">${b.fixedOdds||'—'}</td><td class="tnum">${b.bsp||'—'}</td>
+      <td class="tnum" style="color:var(--bl)">${evPct}</td><td>${b.result}</td>
+      <td class="tnum" style="color:${fmtC(pnl)}">${pnl!==0?fmt$(pnl):'—'}</td>
+    </tr>`;
   }).join('');
 }
 
@@ -254,57 +618,242 @@ function openDetail(idx){
   _detail=_students[idx];
   const s=_detail,st=s.stats;
   document.getElementById('d-name').textContent=s.displayName;
-  document.getElementById('d-email').textContent=s.email?'Email: '+s.email:'User ID: '+s.userId;
+  document.getElementById('d-email').textContent=(s.email?'Email: '+s.email:'ID: '+s.userId);
   document.getElementById('d-cp').textContent='CP '+s.checkpoint;
+  document.getElementById('d-lastseen').textContent=s.updatedAt?'Last sync: '+new Date(s.updatedAt).toLocaleString('en-AU'):'';
 
-  const pnlC=st.totalPnl>=0?'var(--g)':'var(--r)';
-  const activeBk=s.bookies.filter(b=>b.active).length;
   document.getElementById('d-stats').innerHTML=[
-    {lbl:'Total P&L',val:'$'+(st.totalPnl>=0?'+':'')+st.totalPnl.toFixed(2),c:pnlC},
-    {lbl:'Cash P&L',val:'$'+(st.cashPnl>=0?'+':'')+st.cashPnl.toFixed(2),c:st.cashPnl>=0?'var(--g)':'var(--r)'},
-    {lbl:'Bonus P&L',val:'$'+(st.bonusPnl>=0?'+':'')+st.bonusPnl.toFixed(2),c:st.bonusPnl>=0?'var(--g)':'var(--r)'},
-    {lbl:'Total EV',val:'$'+st.ev.toFixed(2),c:'var(--bl)'},
-    {lbl:'Extraction',val:st.extraction!=null?st.extraction.toFixed(1)+'%':'—',c:st.extraction!=null&&st.extraction>=75?'var(--g)':'var(--am)'},
-    {lbl:'Turnover',val:'$'+st.turnover.toFixed(0),c:'var(--tx)'},
-    {lbl:'Bets',val:st.betsCount,c:'var(--tx)'},
-    {lbl:'Active Bookies',val:activeBk,c:'var(--tx)'},
-    {lbl:'Checkpoint',val:'CP '+s.checkpoint,c:'var(--pu)'},
-  ].map(x=>`<div class="ds"><div class="ds-lbl">${x.lbl}</div><div class="ds-val" style="color:${x.c}">${x.val}</div></div>`).join('');
+    {lbl:'Total P&L',val:fmt$(st.totalPnl),sub:'Cash+Bonus+Adj',c:fmtC(st.totalPnl)},
+    {lbl:'Cash P&L',val:fmt$(st.betP),sub:st.settledCount+' settled bets',c:fmtC(st.betP)},
+    {lbl:'Bonus P&L',val:fmt$(st.bonP),sub:s.bonuses.filter(b=>b.result!=='Pending').length+' resolved',c:fmtC(st.bonP)},
+    {lbl:'Adjustments',val:fmt$(st.adj),sub:'Manual adj',c:st.adj!==0?fmtC(st.adj):'var(--tx4)'},
+    {lbl:'Total EV',val:fmt$(st.totalEV),sub:'Promo fallback applied',c:'var(--bl)'},
+    {lbl:'NP EV',val:fmt$(st.npEV),sub:st.npWithBSP+'/'+st.npBetsTotal+' have BSP',c:'var(--bl)'},
+    {lbl:'Promo EV',val:fmt$(st.prEV),sub:st.prBetsTotal+' promo bets',c:'var(--bl)'},
+    {lbl:'Extraction',val:st.extraction!=null?fmtP(st.extraction):'—',sub:st.bonFaceForExt>0?'$'+fmtK(st.bonFaceForExt)+' face':'No data',c:st.extraction!=null&&st.extraction>=70?'var(--g)':'var(--am)'},
+    {lbl:'Bonus Face',val:'$'+fmtK(st.bonusFace),sub:s.bonuses.length+' total bonuses',c:'var(--tx)'},
+    {lbl:'Pending Bets',val:st.pendingCount,sub:'Awaiting result',c:st.pendingCount>0?'var(--am)':'var(--tx)'},
+    {lbl:'Bonus Cash',val:'$'+fmtK(st.pendingBonusCash),sub:st.pendingBonuses+' pending bonuses',c:st.pendingBonusCash>0?'var(--g)':'var(--tx)'},
+    {lbl:'Turnover',val:'$'+fmtK(st.turnover),sub:'Settled bets',c:'var(--tx)'},
+    {lbl:'Active Bookies',val:st.activeBk,sub:'of '+s.bookies.length+' total',c:'var(--tx)'},
+    {lbl:'Checkpoint',val:'CP '+s.checkpoint,sub:'',c:'var(--pu)'},
+  ].map(x=>`<div class="ds"><div class="ds-lbl">${x.lbl}</div><div class="ds-val" style="color:${x.c}">${x.val}</div><div class="ds-sub">${x.sub}</div></div>`).join('');
+
+  document.getElementById('d-ev-breakdown').innerHTML=[
+    {t:'Non-Promo (BSP)',count:st.npBetsTotal,ev:st.npEV,note:st.npWithBSP+' have BSP'},
+    {t:'Promo (est.)',count:st.prBetsTotal,ev:st.prEV,note:'per-type or global fallback'},
+    {t:'Total',count:st.npBetsTotal+st.prBetsTotal,ev:st.totalEV,note:''},
+  ].map(r=>`<tr><td>${r.t}${r.note?` <span style="color:var(--tx5);font-size:9px">(${r.note})</span>`:''}</td>
+    <td class="tnum">${r.count}</td><td class="tnum" style="color:var(--bl)">${fmt$(r.ev)}</td>
+    <td class="tnum" style="color:var(--tx4)">${r.count?fmt$(r.ev/r.count):'—'}</td></tr>`).join('');
+
+  document.getElementById('d-pnl-breakdown').innerHTML=[
+    {t:'Cash bets',v:st.betP},{t:'Bonuses',v:st.bonP},{t:'Adjustments',v:st.adj},
+    {t:'Profit offset',v:s.settings.profitOffset||0},{t:'TOTAL',v:st.totalPnl},
+  ].map(r=>`<tr><td>${r.t}</td><td class="tnum" style="color:${fmtC(r.v)};font-weight:${r.t==='TOTAL'?700:400}">${fmt$(r.v)}</td></tr>`).join('');
+
+  const pb=s.bets.filter(b=>b.result==='Pending');
+  document.getElementById('d-pending').innerHTML=pb.length
+    ?`${pb.length} pending bets · Stake: $${fmtK(pb.reduce((s,b)=>s+(b.stake||0),0))} · ${st.pendingBonuses} pending bonuses worth $${fmtK(st.pendingBonusCash)}`
+    :'No pending bets';
+
+  if(_dChart){_dChart.destroy();_dChart=null;}
+  if(s.monthly.length){
+    _dChart=new Chart(document.getElementById('d-chart'),{
+      type:'bar',
+      data:{labels:s.monthly.map(m=>m.lbl),datasets:[
+        {label:'Monthly P&L',data:s.monthly.map(m=>m.total),backgroundColor:s.monthly.map(m=>m.total>=0?'#22c55e55':'#ef444455'),borderColor:s.monthly.map(m=>m.total>=0?'#22c55e':'#ef4444'),borderWidth:1},
+        {label:'EV',data:s.monthly.map(m=>m.ev),type:'line',borderColor:'#60a5fa',backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:.3},
+      ]},
+      options:{responsive:true,plugins:{legend:{labels:{color:'#94a3b8',font:{size:11}}}},scales:{x:{ticks:{color:'#64748b',font:{size:10}}},y:{ticks:{color:'#64748b',font:{size:10}},grid:{color:'#1e293b'}}}}
+    });
+  }
+
+  const promoBets=s.bets.filter(b=>b.betCategory!=='non-promo');
+  document.getElementById('promo-count').textContent=promoBets.length+' total · '+promoBets.filter(b=>b.result&&b.result!=='Pending').length+' settled · '+promoBets.filter(b=>b.result==='Pending').length+' pending';
+  document.getElementById('d-promo-bets').innerHTML=renderBetRows(promoBets,s.promos,s.bookies);
+
+  const npBetsTab=s.bets.filter(b=>b.betCategory==='non-promo');
+  document.getElementById('np-count').textContent=npBetsTab.length+' total · '+npBetsTab.filter(b=>b.result&&b.result!=='Pending').length+' settled · '+npBetsTab.filter(b=>b.result==='Pending').length+' pending';
+  document.getElementById('d-np-bets').innerHTML=renderBetRows(npBetsTab,s.promos,s.bookies);
 
   const bkMap=Object.fromEntries(s.bookies.map(b=>[b.id,b.name||b.alias||'?']));
-  const prMap=Object.fromEntries(s.promos.map(p=>[p.id,p.name||'Promo']));
-  const recent=s.bets.filter(b=>b.result&&b.result!=='Pending').sort((a,b)=>new Date(b.date||b.createdAt||0)-new Date(a.date||a.createdAt||0)).slice(0,20);
-  document.getElementById('d-bets').innerHTML=recent.length?recent.map(b=>{
-    let pnl=0;
-    if(b.result==='Win')pnl=(b.fixedOdds-1)*(b.stake||0);
-    else if(b.result==='Loss')pnl=-(b.stake||0);
-    const pnlC=pnl>0?'var(--g)':pnl<0?'var(--r)':'var(--tx5)';
-    let evPct='—';
-    if(b.fixedOdds&&b.bsp)evPct=((b.fixedOdds/b.bsp-1)*100).toFixed(1)+'%';
-    else{const pr=s.promos.find(p=>p.id===b.promoId);if(pr?.ev)evPct=pr.ev+'%';}
-    return`<tr>
-      <td>${b.date||'—'}</td><td>${bkMap[b.bookieId]||'?'}</td>
-      <td>${b.betCategory==='non-promo'?'Non-promo':(prMap[b.promoId]||'Promo')}</td>
-      <td>$${(b.stake||0).toFixed(0)}</td><td>${b.fixedOdds||'—'}</td><td>${b.bsp||'—'}</td>
-      <td>${evPct}</td><td>${b.result}</td>
-      <td style="color:${pnlC}">${pnl!==0?'$'+(pnl>=0?'+':'')+pnl.toFixed(2):'—'}</td>
-    </tr>`;
-  }).join(''):'<tr><td colspan="9" style="text-align:center;color:var(--tx5)">No settled bets</td></tr>';
+  const sortedBon=[...s.bonuses].sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
+  document.getElementById('bonus-count').textContent=sortedBon.length+' total · '+sortedBon.filter(b=>b.result!=='Pending').length+' resolved · '+sortedBon.filter(b=>b.result==='Pending').length+' pending';
+  document.getElementById('d-bonus-table').innerHTML=sortedBon.length?sortedBon.map(b=>{
+    const pnl=_bonPnl(b);
+    return`<tr><td>${b.createdAt?b.createdAt.slice(0,10):'—'}</td><td>${bkMap[b.bookieId]||'?'}</td>
+      <td class="tnum">$${(b.bonusAmount||0).toLocaleString('en-AU',{maximumFractionDigits:0})}</td>
+      <td class="tnum">${b.layStake?'$'+b.layStake:'—'}</td><td class="tnum">${b.layOdds||'—'}</td><td class="tnum">${b.fixedOdds||'—'}</td>
+      <td>${b.result}</td><td class="tnum" style="color:${fmtC(pnl)}">${b.result!=='Pending'?fmt$(pnl):'—'}</td></tr>`;
+  }).join(''):'<tr><td colspan="8" class="empty">No bonuses</td></tr>';
 
-  document.getElementById('d-prof').textContent=s.settings?.agentProfile||s.data?.agentProfile||'No coaching profile yet.';
-  document.getElementById('d-bon').innerHTML=`Total bonuses: <b>${s.bonuses.length}</b> &nbsp;|&nbsp; Laid: <b>${s.bonuses.filter(b=>b.layStake).length}</b> &nbsp;|&nbsp; Resolved: <b>${st.resolvedBonuses}</b> &nbsp;|&nbsp; Face value: <b>$${st.bonusFace.toFixed(0)}</b> &nbsp;|&nbsp; Bonus P&L: <b style="color:${st.bonusPnl>=0?'var(--g)':'var(--r)'}">$${st.bonusPnl.toFixed(2)}</b>`;
+  document.getElementById('d-bookies').innerHTML=s.bookieBreakdown.length?s.bookieBreakdown.map(b=>{
+    const tot=b.cashPnl+b.bonPnl;
+    return`<tr><td>${b.name}</td><td class="tnum">${b.bets}</td><td class="tnum">$${fmtK(b.turnover)}</td>
+      <td class="tnum" style="color:${fmtC(b.cashPnl)}">${fmt$(b.cashPnl)}</td>
+      <td class="tnum" style="color:${fmtC(b.bonPnl)}">${fmt$(b.bonPnl)}</td>
+      <td class="tnum" style="color:${fmtC(tot)};font-weight:700">${fmt$(tot)}</td>
+      <td><span style="color:${b.active?'var(--g)':'var(--tx5)'}">●</span> ${b.active?'Active':'Inactive'}</td></tr>`;
+  }).join(''):'<tr><td colspan="7" class="empty">No data</td></tr>';
+
+  document.getElementById('d-monthly').innerHTML=s.monthly.length?s.monthly.map(m=>`<tr>
+    <td>${m.lbl}</td><td class="tnum">${m.bets}</td><td class="tnum">$${fmtK(m.turnover)}</td>
+    <td class="tnum" style="color:${fmtC(m.cashP)}">${fmt$(m.cashP)}</td>
+    <td class="tnum" style="color:${fmtC(m.bonP)}">${fmt$(m.bonP)}</td>
+    <td class="tnum" style="color:var(--bl)">${fmt$(m.ev)}</td>
+    <td class="tnum" style="color:${fmtC(m.cum)};font-weight:700">${fmt$(m.cum)}</td>
+  </tr>`).join(''):'<tr><td colspan="7" class="empty">No monthly data</td></tr>';
+
+  // ── By Promo Type — exact match to index renderPromoData() ──────────────────
+  const promoMap=Object.fromEntries(s.promos.map(p=>[p.id,p.name||'Unnamed']));
+  // Global extraction rate (same as index globalExtR)
+  const _allBon=s.bonuses; // already filtered: not split, not deleted
+  const _allCompleted=_allBon.filter(b=>b.result!=='Pending');
+  const globalBonFaceAll=_allCompleted.reduce((a,b)=>a+(parseFloat(b.bonusAmount)||0),0);
+  const globalBonPAll=_allCompleted.reduce((a,b)=>a+_bonPnl(b),0);
+  const globalExtR=globalBonFaceAll>0?(globalBonPAll/globalBonFaceAll*100):(s.settings?.extractionRate??83);
+
+  const promoRows=s.promos.map(pr=>{
+    const pb=s.bets.filter(b=>!b.deleted&&b.promoId===pr.id&&b.result!=='Void');
+    if(!pb.length)return null;
+    const turnover=pb.reduce((a,b)=>a+(b.stake||0),0);
+    const avgOdds=pb.filter(b=>b.fixedOdds).reduce((a,b)=>a+b.fixedOdds,0)/(pb.filter(b=>b.fixedOdds).length||1);
+    const wins=pb.filter(b=>b.result==='Win').length;
+    const losses=pb.filter(b=>b.result==='Loss').length;
+    const triggers=pb.filter(b=>b.result==='Bonus');
+    const trigR=pb.length?triggers.length/pb.length*100:0;
+    const cashP=pb.reduce((a,b)=>a+_betPnl(b),0);
+    // bonus face = sum of triggered bet STAKES (matches index exactly)
+    const bonFace=triggers.reduce((a,b)=>a+(b.stake||0),0);
+    const bonP=bonFace*(globalExtR/100);
+    const total=cashP+bonP;
+    const netPct=turnover?total/turnover*100:0;
+    // EV = promo's set EV% × turnover (matches index expP calculation)
+    const expP=(pr.ev?pr.ev/100:0)*turnover;
+    return{name:pr.name,bets:pb.length,wins,losses,turnover,avgOdds,triggers:triggers.length,trigR,bonFace,cashP,bonP,total,netPct,expP};
+  }).filter(Boolean).sort((a,b)=>b.bets-a.bets);
+
+  const _sum=(rows,k)=>rows.reduce((a,r)=>a+(r[k]||0),0);
+  const tot={bets:_sum(promoRows,'bets'),wins:_sum(promoRows,'wins'),losses:_sum(promoRows,'losses'),triggers:_sum(promoRows,'triggers'),turnover:_sum(promoRows,'turnover'),cashP:_sum(promoRows,'cashP'),bonP:_sum(promoRows,'bonP'),total:_sum(promoRows,'total'),bonFace:_sum(promoRows,'bonFace'),expP:_sum(promoRows,'expP')};
+  const totNetPct=tot.turnover?tot.total/tot.turnover*100:0;
+
+  document.getElementById('d-bypromo').innerHTML=promoRows.length?promoRows.map(r=>`<tr>
+    <td style="font-weight:600">${r.name}</td>
+    <td class="tnum">${r.bets}</td>
+    <td class="tnum"><span class="g">${r.wins}W</span> <span class="r">${r.losses}L</span> <span class="bl">${r.triggers}B</span></td>
+    <td class="tnum">$${fmtK(r.turnover)}</td>
+    <td class="tnum">${r.avgOdds?r.avgOdds.toFixed(2):'—'}</td>
+    <td class="tnum" style="color:var(--pu)">${r.bonFace?fmt$(r.bonFace):'—'}</td>
+    <td class="tnum" style="color:${fmtC(r.cashP)}">${fmt$(r.cashP)}</td>
+    <td class="tnum" style="color:${fmtC(r.bonP)}">${fmt$(r.bonP)}</td>
+    <td class="tnum" style="color:${fmtC(r.netPct)}">${fmtP(r.netPct)}</td>
+    <td class="tnum" style="color:var(--am)">${r.expP?fmt$(r.expP):'—'}</td>
+    <td class="tnum" style="color:${fmtC(r.total)};font-weight:700">${fmt$(r.total)}</td>
+  </tr>`).join('')+`<tr style="font-weight:700;border-top:1px solid var(--bdr);color:var(--tx)">
+    <td>Total</td><td class="tnum">${tot.bets}</td>
+    <td class="tnum"><span class="g">${tot.wins}W</span> <span class="r">${tot.losses}L</span> <span class="bl">${tot.triggers}B</span></td>
+    <td class="tnum">$${fmtK(tot.turnover)}</td><td>—</td>
+    <td class="tnum" style="color:var(--pu)">${fmt$(tot.bonFace)}</td>
+    <td class="tnum" style="color:${fmtC(tot.cashP)}">${fmt$(tot.cashP)}</td>
+    <td class="tnum" style="color:${fmtC(tot.bonP)}">${fmt$(tot.bonP)}</td>
+    <td class="tnum" style="color:${fmtC(totNetPct)}">${fmtP(totNetPct)}</td>
+    <td class="tnum" style="color:var(--am)">${fmt$(tot.expP)}</td>
+    <td class="tnum" style="color:${fmtC(tot.total)};font-weight:700">${fmt$(tot.total)}</td>
+  </tr>`:'<tr><td colspan="11" class="empty">No promo bets</td></tr>';
+
+  // ── By NP Type — exact match to index renderNonPromoData() ──────────────────
+  const npBets=s.bets.filter(b=>!b.deleted&&b.betCategory==='non-promo'&&b.result!=='Void');
+  const npTypes=[...new Set(npBets.map(b=>b.nonPromoType||'Other'))];
+  const npRows=npTypes.map(type=>{
+    const pb=npBets.filter(b=>(b.nonPromoType||'Other')===type);
+    const turnover=pb.reduce((a,b)=>a+(b.stake||0),0);
+    const vOdds=pb.filter(b=>b.fixedOdds);
+    const avgOdds=vOdds.length?vOdds.reduce((a,b)=>a+b.fixedOdds,0)/vOdds.length:0;
+    const wins=pb.filter(b=>b.result==='Win').length;
+    const losses=pb.filter(b=>b.result==='Loss').length;
+    const cashP=pb.reduce((a,b)=>a+_betPnl(b),0);
+    const evBets=pb.filter(b=>b.fixedOdds&&b.bsp);
+    const totalEV=evBets.reduce((a,b)=>a+(b.fixedOdds/b.bsp-1)*b.stake,0);
+    const avgEVPct=evBets.length?evBets.reduce((a,b)=>a+(b.fixedOdds/b.bsp-1)*100,0)/evBets.length:null;
+    const netPct=turnover?cashP/turnover*100:0;
+    return{type,bets:pb.length,wins,losses,turnover,avgOdds,cashP,totalEV,avgEVPct,netPct,evCoverage:evBets.length};
+  }).sort((a,b)=>b.bets-a.bets);
+  const npTot={bets:_sum(npRows,'bets'),wins:_sum(npRows,'wins'),losses:_sum(npRows,'losses'),turnover:_sum(npRows,'turnover'),cashP:_sum(npRows,'cashP'),totalEV:_sum(npRows,'totalEV')};
+  const npTotNetPct=npTot.turnover?npTot.cashP/npTot.turnover*100:0;
+  document.getElementById('d-bynp').innerHTML=npRows.length?npRows.map(r=>`<tr>
+    <td style="font-weight:600">${r.type}</td>
+    <td class="tnum">${r.bets}</td>
+    <td class="tnum"><span class="g">${r.wins}W</span> / <span class="r">${r.losses}L</span></td>
+    <td class="tnum">$${fmtK(r.turnover)}</td>
+    <td class="tnum">${r.avgOdds?r.avgOdds.toFixed(2):'—'}</td>
+    <td class="tnum" style="color:${fmtC(r.cashP)}">${fmt$(r.cashP)}</td>
+    <td class="tnum" style="color:var(--am)">${r.totalEV?fmt$(r.totalEV):'—'}</td>
+    <td class="tnum" style="color:var(--am)">${r.avgEVPct!=null?fmtP(r.avgEVPct):'—'}</td>
+    <td class="tnum" style="color:var(--tx4)">${r.evCoverage}/${r.bets}</td>
+    <td class="tnum" style="color:${fmtC(r.netPct)}">${fmtP(r.netPct)}</td>
+  </tr>`).join('')+`<tr style="font-weight:700;border-top:1px solid var(--bdr);color:var(--tx)">
+    <td>Total</td><td class="tnum">${npTot.bets}</td>
+    <td class="tnum"><span class="g">${npTot.wins}W</span> / <span class="r">${npTot.losses}L</span></td>
+    <td class="tnum">$${fmtK(npTot.turnover)}</td><td>—</td>
+    <td class="tnum" style="color:${fmtC(npTot.cashP)}">${fmt$(npTot.cashP)}</td>
+    <td class="tnum" style="color:var(--am)">${fmt$(npTot.totalEV)}</td>
+    <td>—</td><td>—</td>
+    <td class="tnum" style="color:${fmtC(npTotNetPct)}">${fmtP(npTotNetPct)}</td>
+  </tr>`:'<tr><td colspan="10" class="empty">No non-promo bets</td></tr>';
+
+  // Profile — flags (rendered via renderFlags so toggle works)
+  renderFlags(s);
+
+  // Profile — agent chat
+  const ah=s.agentHistory||[];
+  document.getElementById('d-agent-count').textContent=ah.length?`${ah.filter(m=>m.role==='user').length} questions · ${ah.length} messages total`:'No conversations yet';
+  document.getElementById('d-agent-chat').innerHTML=ah.length?ah.map(m=>{
+    const isUser=m.role==='user';
+    const txt=(m.content||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return`<div class="agent-msg ${isUser?'user':'assistant'}">
+      <div class="agent-label ${isUser?'user-lbl':''}">${isUser?'You':'AI'}</div>
+      <div class="agent-bubble">${txt}</div>
+    </div>`;
+  }).join(''):'<div class="agent-empty">This student hasn\'t used the AI coach yet, or their conversation hasn\'t synced.</div>';
+  setTimeout(()=>{const c=document.getElementById('d-agent-chat');if(c)c.scrollTop=c.scrollHeight;},50);
+
+  document.getElementById('d-settings-snap').textContent=JSON.stringify({
+    checkpoint:s.settings.checkpoint,extractionRate:s.settings.extractionRate,
+    triggerRate:s.settings.triggerRate,promoEvPct:s.settings.promoEvPct,
+    profitOffset:s.settings.profitOffset,kellyBank:s.settings.kellyBank,
+    kellyFraction:s.settings.kellyFraction,
+  },null,2);
+
+  const prMissingEV=s.bets.filter(b=>b.betCategory!=='non-promo'&&b.result!=='Void'&&b.result!=='Pending').filter(b=>{const pr=s.promos.find(p=>p.id===b.promoId);return !pr||(!pr.ev&&pr.evMode!=='formula');}).length;
+  const npMissingBSP=s.bets.filter(b=>b.betCategory==='non-promo'&&b.result!=='Void'&&b.result!=='Pending').filter(b=>!b.bsp).length;
+  document.getElementById('d-debug').textContent=JSON.stringify({
+    totalBets:s.bets.length,settled:s.bets.filter(b=>!b.deleted&&b.result&&b.result!=='Pending'&&b.result!=='Void').length,
+    pending:s.bets.filter(b=>!b.deleted&&b.result==='Pending').length,
+    agentMessages:ah.length,agentUserMessages:ah.filter(m=>m.role==='user').length,
+    npMissingBSP,promoMissingExplicitEV:prMissingEV,
+    bonusesTotal:s.bonuses.length,bonusesResolved:s.bonuses.filter(b=>b.result!=='Pending').length,
+    calcBreakdown:{betP:st.betP.toFixed(2),bonP:st.bonP.toFixed(2),adj:st.adj.toFixed(2),total:st.totalPnl.toFixed(2)},
+    evBreakdown:{npEV:st.npEV.toFixed(2),prEV:st.prEV.toFixed(2),totalEV:st.totalEV.toFixed(2)},
+  },null,2);
+
   document.getElementById('dmodal').classList.add('open');
+  switchTab('overview');
 }
-function closeDetail(){document.getElementById('dmodal').classList.remove('open');_detail=null;}
+
+function closeDetail(){
+  document.getElementById('dmodal').classList.remove('open');
+  _detail=null;
+  if(_dChart){_dChart.destroy();_dChart=null;}
+}
 
 async function adjCP(delta){
   if(!_detail)return;
-  const s=_detail;
-  const newCp=Math.max(1,(s.checkpoint||1)+delta);
+  const s=_detail,newCp=Math.max(1,(s.checkpoint||1)+delta);
   if(newCp===s.checkpoint)return;
   const newData={...(s.data||{})};
   newData.settings={...(newData.settings||{}),checkpoint:newCp};
-  const {error}=await supa.from('user_data').update({data:newData,updated_at:new Date().toISOString()}).eq('user_id',s.userId);
+  const{error}=await supa.from('user_data').update({data:newData,updated_at:new Date().toISOString()}).eq('user_id',s.userId);
   if(error){toast('Error: '+error.message,'err');return;}
   s.checkpoint=newCp;s.settings.checkpoint=newCp;s.data.settings=newData.settings;
   document.getElementById('d-cp').textContent='CP '+newCp;
@@ -314,38 +863,35 @@ async function adjCP(delta){
 
 function setupRealtime(){
   if(_rtActive)return;_rtActive=true;
-  _ch=supa.channel('coach-rt')
-    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'user_data'},payload=>{
-      const row=payload.new;if(!row)return;
-      const existing=_students.find(s=>s.userId===row.user_id);
-      const oldCp=existing?.checkpoint||1;
-      const updated=buildStudent(row,existing?.email||null);
-      if(existing){_students[_students.indexOf(existing)]=updated;updated.email=updated.email||existing.email;}
-      else{_students.unshift(updated);}
-      if(updated.checkpoint>oldCp){
-        const n={name:updated.displayName,from:oldCp,to:updated.checkpoint,time:new Date().toLocaleString('en-AU')};
-        _notifs.unshift(n);
-        document.getElementById('ndot').style.display='inline-block';
-        toast('🎓 '+n.name+' advanced to CP '+n.to,'ok');
-        renderNotifs();
-      }
-      renderGrid();
-    }).subscribe();
+  _ch=supa.channel('coach-rt').on('postgres_changes',{event:'UPDATE',schema:'public',table:'user_data'},payload=>{
+    const row=payload.new;if(!row)return;
+    const existing=_students.find(s=>s.userId===row.user_id);
+    const oldCp=existing?.checkpoint||1;
+    const updated=buildStudent(row,existing?.email||null);
+    if(existing){_students[_students.indexOf(existing)]=updated;if(!updated.email)updated.email=existing.email;}
+    else _students.unshift(updated);
+    if(updated.checkpoint>oldCp){
+      const n={name:updated.displayName,from:oldCp,to:updated.checkpoint,time:new Date().toLocaleString('en-AU')};
+      _notifs.unshift(n);document.getElementById('ndot').style.display='inline-block';
+      toast('🎓 '+n.name+' advanced to CP '+n.to,'ok');renderNotifs();
+    }
+    renderGrid();
+  }).subscribe();
 }
+
 function renderNotifs(){
   const el=document.getElementById('nlist');
   if(!_notifs.length){el.innerHTML='<div class="empty">No notifications yet</div>';return;}
   el.innerHTML=_notifs.slice(0,20).map(n=>`<div class="nitem"><div>🎓 <b>${n.name}</b> advanced CP ${n.from} → CP ${n.to}</div><div class="ntime">${n.time}</div></div>`).join('');
 }
 function toggleNotifs(){
-  const p=document.getElementById('npanel');
-  p.style.display=p.style.display==='none'?'block':'none';
+  const p=document.getElementById('npanel');p.style.display=p.style.display==='none'?'block':'none';
   document.getElementById('ndot').style.display='none';
 }
 let _tt;
 function toast(msg,type='ok'){
-  const el=document.getElementById('toast');
-  el.textContent=msg;el.className='toast show '+(type==='err'?'terr':'tok');
+  const el=document.getElementById('toast');el.textContent=msg;
+  el.className='toast show '+(type==='err'?'terr':'tok');
   clearTimeout(_tt);_tt=setTimeout(()=>el.classList.remove('show'),3500);
 }
 document.getElementById('dmodal').addEventListener('click',function(e){if(e.target===this)closeDetail();});

@@ -360,7 +360,7 @@ select option{background:var(--sel-opt)}
             <div class="fg"><label class="lbl">Date</label><input type="date" id="calc-date" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid #cbd5e1;border-radius:6px"></div>
             <div class="fg"><label class="lbl">Notes</label><input type="text" id="calc-notes" placeholder="Optional" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid #cbd5e1;border-radius:6px"></div>
           </div>
-          <div style="font-size:11px;color:#64748b;margin-bottom:8px">⚠️ Remember 5% Betfair commission is already factored into the locked return above.</div>
+          <div style="font-size:11px;color:#64748b;margin-bottom:8px">⚠️ Remember 10% Betfair commission is already factored into the locked return above.</div>
           <div class="flex gap-2">
             <button class="btn btn-p btn-sm" onclick="saveLogFromCalc()">Save Lay Bet</button>
             <button class="btn btn-s btn-sm" onclick="document.getElementById('calc-log-form').style.display='none'">Cancel</button>
@@ -747,10 +747,54 @@ select option{background:var(--sel-opt)}
 
 <script>
 // ── CONSTANTS ────────────────────────────────────────────────────────────────
-const K={bets:'mb_bets',bonuses:'mb_bonuses',bookies:'mb_bookies',promos:'mb_promos',npt:'mb_npt',adj:'mb_adj',settings:'mb_settings',btypes:'mb_btypes',balances:'mb_balances',txns:'mb_txns',bankAccounts:'mb_bank_accounts',bankTxns:'mb_bank_txns',bankBals:'mb_bank_bals',agentProfile:'mb_agent_profile'};
+const K={bets:'mb_bets',bonuses:'mb_bonuses',bookies:'mb_bookies',promos:'mb_promos',npt:'mb_npt',adj:'mb_adj',settings:'mb_settings',btypes:'mb_btypes',balances:'mb_balances',txns:'mb_txns',bankAccounts:'mb_bank_accounts',bankTxns:'mb_bank_txns',bankBals:'mb_bank_bals',agentProfile:'mb_agent_profile',agentHistory:'mb_agent_history'};
 const DEF_BONUS_TYPES=['Horses','Dogs','Trots','Sports'];
 const DEF_BOOKIES=[{n:'TAB',a:'TAB'},{n:'Sportsbet',a:'SB'},{n:'Bet365',a:'365'},{n:'Neds',a:'Neds'},{n:'Ladbrokes',a:'Lads'},{n:'Unibet',a:'UB'},{n:'BlueBet',a:'BB'},{n:'Pointsbet',a:'PB'}].map(b=>({id:uid(),name:b.n,alias:b.a,active:true}));
-const DEF_PROMOS=['2nd 3rd Back','2nd Back','Double Winnings','25% Bonus Boost','Dogs Boost','Horse Boost','Trots Boost','Sports Boost','3 Leg 1 Fail','Free Hit','2 Leg Free Hit','365 Megaboost'].map(n=>({id:uid(),name:n}));
+// Suggested EV% by promo name — used when a promo has no explicit EV set by the user
+const PROMO_EV_SUGGESTIONS={
+  '2nd 3rd back':12,'money back 2nd 3rd':12,'2nd 3rd':12,
+  '2nd back':5,'money back 2nd':5,
+  'double winnings':25,
+  '25% bonus boost':5,'bonus boost':5,
+  'dogs boost':3,'dog boost':3,
+  'horse boost':3,'horses boost':3,
+  'trots boost':3,'trot boost':3,
+  'sports boost':3,'sport boost':3,
+  '3 leg 1 fail':25,'3 leg one fail':25,'3 leg multi':25,
+  'free hit':60,
+  '2 leg free hit':55,'two leg free hit':55,
+  '365 megaboost':30,'megaboost':30,
+  // generic fallbacks by keyword
+  'money back':12,'bet back':8,'cash back':8,'cashback':8,
+  'bonus bet':8,'free bet':8,'sign up':8,'signup':8,'welcome':8,
+  'boost':3,'odds boost':3,'price boost':3,
+  'insurance':8,'profit boost':8,'reload':8,'refund':8,
+};
+function suggestPromoEV(name){
+  const n=(name||'').toLowerCase().trim();
+  // Exact match first
+  if(PROMO_EV_SUGGESTIONS[n]!=null)return PROMO_EV_SUGGESTIONS[n];
+  // Then partial keyword match (longest key wins)
+  let best=null,bestLen=0;
+  for(const [k,v] of Object.entries(PROMO_EV_SUGGESTIONS)){
+    if(n.includes(k)&&k.length>bestLen){best=v;bestLen=k.length;}
+  }
+  return best;
+}
+const DEF_PROMOS=[
+  {name:'2nd 3rd Back',ev:12},
+  {name:'2nd Back',ev:5},
+  {name:'Double Winnings',ev:25},
+  {name:'25% Bonus Boost',ev:5},
+  {name:'Dogs Boost',ev:3},
+  {name:'Horse Boost',ev:3},
+  {name:'Trots Boost',ev:3},
+  {name:'Sports Boost',ev:3},
+  {name:'3 Leg 1 Fail',ev:25},
+  {name:'Free Hit',ev:60},
+  {name:'2 Leg Free Hit',ev:55},
+  {name:'365 Megaboost',ev:30},
+].map(p=>({id:uid(),name:p.name,ev:p.ev}));
 const DEF_NPT=['horses','trotters','dogs','rocketboost','HKR','Degen','H2H','Price Comparison','Bet365 multiboost','Pinnacle EV Multi','Pinnacle EV','Top 4 multi','Betfair EV','Tab -1','First team scorer','NZ Gallop','2 Way Dutch'].map(n=>({id:uid(),name:n}));
 const DEF_SETTINGS={extractionRate:83,triggerRate:23,promoEvPct:8,profitOffset:0,kellyBank:0,kellyFraction:4,bonusTurnoverMethod:'lay',checkpoint:1};
 
@@ -777,12 +821,15 @@ function applyBetPnlToBalance(bet,mult){
   bals[bet.bookieId]=Math.round(((bals[bet.bookieId]||0)+pnl*mult)*100)/100;
   ss(K.balances,bals);
 }
+// Pre-built EV% suggestions by promo name keyword (case-insensitive match)
 function betEV(b,cfg){
   const c=cfg||ls(K.settings,DEF_SETTINGS);
   if(b.betCategory==='non-promo'){if(b.fixedOdds&&b.bsp)return(b.fixedOdds/b.bsp-1)*b.stake;return null}
   const pr=ls(K.promos,[]).find(p=>p.id===b.promoId);
   if(pr&&pr.evMode==='formula'){if(b.fixedOdds&&b.bsp)return(b.fixedOdds/b.bsp-1)*b.stake;return null}
-  return(pr&&pr.ev?pr.ev/100:0)*b.stake;
+  // Priority: 1) user-set EV% on this promo, 2) name-based suggestion, 3) global promoEvPct
+  const evPct=pr?.ev!=null&&pr.ev!==''?pr.ev:(suggestPromoEV(pr?.name)||c.promoEvPct||8);
+  return(evPct/100)*b.stake;
 }
 function kellyAdjBank(){
   const cfg=ls(K.settings,DEF_SETTINGS);
@@ -827,7 +874,7 @@ function updateKellyDisplay(){
 }
 function betType(b){if(b.betCategory==='non-promo')return b.nonPromoType||'Non-Promo';return prName(b.promoId)}
 function bonusPnl(b){
-  const comm=0.05;
+  const comm=0.10;
   if(b.layStake&&b.layOdds){
     // lay-aware P&L
     if(b.result==='Win'&&b.fixedOdds) return Math.round(((b.fixedOdds-1)*b.bonusAmount - b.layStake*(b.layOdds-1))*100)/100;
@@ -962,6 +1009,11 @@ async function supaSignOut(){if(_realtimeCh){supa.removeChannel(_realtimeCh);_re
 supa.auth.onAuthStateChange(async(event,session)=>{
   _syncUser=session?.user||null;
   updateAuthUI(_syncUser);
+  // Store email in settings so coach dashboard can identify student
+  if(_syncUser?.email){
+    const _s=ls(K.settings,DEF_SETTINGS);
+    if(_s.email!==_syncUser.email){_s.email=_syncUser.email;ss(K.settings,_s);}
+  }
   if(event==='USER_UPDATED'){
     document.getElementById('invite-modal').classList.remove('open');
     toast('Account activated — welcome!','ok');
@@ -1762,13 +1814,13 @@ function calcInlineLay(id){
   if(!outEl)return;
   if(!layOdds||layOdds<=1){outEl.innerHTML='';return}
   // Auto-fill stake from odds if stake field is empty or event came from odds fields
-  const autoStake=backOdds?Math.round(b.bonusAmount*(backOdds-1)/(layOdds-0.05)*100)/100:0;
+  const autoStake=backOdds?Math.round(b.bonusAmount*(backOdds-1)/(layOdds-0.10)*100)/100:0;
   if(stakeEl&&!stakeEl.value&&autoStake)stakeEl.value=autoStake;
   const layStake=parseFloat(stakeEl?.value)||autoStake;
   if(!layStake){outEl.innerHTML='';return}
   const liability=Math.round(layStake*(layOdds-1)*100)/100;
-  const convPct=backOdds?Math.round((backOdds-1)*0.95/(layOdds-0.05)*1000)/10:null;
-  const convStr=convPct!==null?(convPct<75?' <span style="color:#f59e0b">⚠️ '+convPct+'%</span>':' <span style="color:#22c55e">✓ '+convPct+'%</span>'):'';
+  const convPct=backOdds?Math.round((backOdds-1)*0.90/(layOdds-0.10)*1000)/10:null;
+  const convStr=convPct!==null?(convPct<70?' <span style="color:#f59e0b">⚠️ '+convPct+'%</span>':' <span style="color:#22c55e">✓ '+convPct+'%</span>'):'';
   outEl.innerHTML=`Lay <strong>${fmt$(layStake)}</strong> | Liab <strong>${fmt$(liability)}</strong>${convStr}`;
 }
 function saveInlineLay(id){
@@ -1776,8 +1828,8 @@ function saveInlineLay(id){
   const layOdds=parseFloat(document.getElementById('lf-lodds-'+id)?.value)||0;
   const layStake=parseFloat(document.getElementById('lf-lstake-'+id)?.value)||0;
   if(!backOdds||!layOdds||!layStake){toast('Enter back & lay odds','warn');return}
-  const convPct=(backOdds-1)*0.95/(layOdds-0.05)*100;
-  if(convPct<75){if(!confirm('Conversion is below 75% — save anyway?'))return}
+  const convPct=(backOdds-1)*0.90/(layOdds-0.10)*100;
+  if(convPct<70){if(!confirm('Conversion is below 70% — save anyway?'))return}
   const bonuses=ls(K.bonuses,[]);
   const b=bonuses.find(x=>x.id===id);
   if(b){b.layOdds=layOdds;b.layStake=layStake;b.backOdds=backOdds;ss(K.bonuses,bonuses);
@@ -1791,8 +1843,8 @@ function resolveLayBonus(id,result){
   const layOdds=parseFloat(document.getElementById('lf-lodds-'+id)?.value)||0;
   const layStake=parseFloat(document.getElementById('lf-lstake-'+id)?.value)||0;
   if(!layOdds){toast('Enter lay odds first','warn');return}
-  const convPct=backOdds?(backOdds-1)*0.95/(layOdds-0.05)*100:0;
-  if(backOdds&&convPct<75){if(!confirm('Conversion is below 75% — log anyway?'))return}
+  const convPct=backOdds?(backOdds-1)*0.90/(layOdds-0.10)*100:0;
+  if(backOdds&&convPct<70){if(!confirm('Conversion is below 70% — log anyway?'))return}
   const bonuses=ls(K.bonuses,[]);const b=bonuses.find(x=>x.id===id);
   if(b){
     if(backOdds)b.backOdds=backOdds;
@@ -1900,13 +1952,13 @@ function calcInlineLay(id){
   if(!outEl)return;
   if(!layOdds||layOdds<=1){outEl.innerHTML='';return}
   // Auto-fill stake from odds if stake field is empty or event came from odds fields
-  const autoStake=backOdds?Math.round(b.bonusAmount*(backOdds-1)/(layOdds-0.05)*100)/100:0;
+  const autoStake=backOdds?Math.round(b.bonusAmount*(backOdds-1)/(layOdds-0.10)*100)/100:0;
   if(stakeEl&&!stakeEl.value&&autoStake)stakeEl.value=autoStake;
   const layStake=parseFloat(stakeEl?.value)||autoStake;
   if(!layStake){outEl.innerHTML='';return}
   const liability=Math.round(layStake*(layOdds-1)*100)/100;
-  const convPct=backOdds?Math.round((backOdds-1)*0.95/(layOdds-0.05)*1000)/10:null;
-  const convStr=convPct!==null?(convPct<75?' <span style="color:#f59e0b">⚠️ '+convPct+'%</span>':' <span style="color:#22c55e">✓ '+convPct+'%</span>'):'';
+  const convPct=backOdds?Math.round((backOdds-1)*0.90/(layOdds-0.10)*1000)/10:null;
+  const convStr=convPct!==null?(convPct<70?' <span style="color:#f59e0b">⚠️ '+convPct+'%</span>':' <span style="color:#22c55e">✓ '+convPct+'%</span>'):'';
   outEl.innerHTML=`Lay <strong>${fmt$(layStake)}</strong> | Liab <strong>${fmt$(liability)}</strong>${convStr}`;
 }
 function saveInlineLay(id){
@@ -1914,8 +1966,8 @@ function saveInlineLay(id){
   const layOdds=parseFloat(document.getElementById('lf-lodds-'+id)?.value)||0;
   const layStake=parseFloat(document.getElementById('lf-lstake-'+id)?.value)||0;
   if(!backOdds||!layOdds||!layStake){toast('Enter back & lay odds','warn');return}
-  const convPct=(backOdds-1)*0.95/(layOdds-0.05)*100;
-  if(convPct<75){if(!confirm('Conversion is below 75% — save anyway?'))return}
+  const convPct=(backOdds-1)*0.90/(layOdds-0.10)*100;
+  if(convPct<70){if(!confirm('Conversion is below 70% — save anyway?'))return}
   const bonuses=ls(K.bonuses,[]);
   const b=bonuses.find(x=>x.id===id);
   if(b){b.layOdds=layOdds;b.layStake=layStake;b.backOdds=backOdds;ss(K.bonuses,bonuses);
@@ -2014,7 +2066,7 @@ function calcBonus(){
   const bonus=parseFloat(document.getElementById('calc-bonus').value);
   const back=parseFloat(document.getElementById('calc-back').value);
   const lay=parseFloat(document.getElementById('calc-lay').value);
-  const comm=0.05;
+  const comm=0.10;
   const res=document.getElementById('calc-results');
   // auto-fill Betfair balance from bookie if field is empty
   const bfData=getBetfairBalance();
@@ -2070,7 +2122,7 @@ function saveLogFromCalc(){
   const bkName=document.getElementById('calc-bookie').value.trim();const bookieId=(ls(K.bookies,[]).find(b=>(b.alias||b.name).toLowerCase()===bkName.toLowerCase())||{}).id;
   const date=document.getElementById('calc-date').value;
   const notes=document.getElementById('calc-notes').value.trim();
-  const comm=0.05;
+  const comm=0.10;
   if(!bonus||!back||!lay||!bookieId||!bkName){toast('Fill in all calculator fields first','warn');return;}
   const layStake=Math.round(bonus*(back-1)/(lay-comm)*100)/100;
   const bonuses=ls(K.bonuses,[]);
@@ -2800,16 +2852,24 @@ function renderSettings(){
     <button class="btn btn-d btn-xs" onclick="removeBankAccount('${a.id}')">Remove</button>
   </div>`).join('')||'<div style="font-size:12px;color:var(--tx5);padding:6px 0">No bank accounts added yet</div>';
   renderBkList();
+  const globalEvPct=cfg.promoEvPct??8;
   document.getElementById('promos-list').innerHTML=promos.map(p=>{
     const isFormula=p.evMode==='formula';
+    const hasEV=p.ev!=null&&p.ev!=='';
+    const usingGlobal=!isFormula&&!hasEV;
+    const sugEV=suggestPromoEV(p.name);
+    const hintEV=sugEV!=null?sugEV:globalEvPct;
+    const hintSrc=sugEV!=null?'suggested for this promo type':'global default';
+    const hint=usingGlobal?`<span style="font-size:9px;color:var(--tx5);flex-basis:100%">📌 Using ${hintEV}% (${hintSrc}) — set an EV% above to override</span>`:'';
     return`<div class="srow" style="flex-wrap:wrap;gap:6px">
     <input type="text" value="${p.name}" onchange="updatePromo('${p.id}',this.value)" style="flex:1;min-width:120px">
     <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">
       <button class="btn btn-xs ${!isFormula?'btn-p':'btn-s'}" onclick="setPromoEvMode('${p.id}','fixed')" style="padding:3px 8px;font-size:10px">Fixed%</button>
       <button class="btn btn-xs ${isFormula?'btn-p':'btn-s'}" onclick="setPromoEvMode('${p.id}','formula')" style="padding:3px 8px;font-size:10px">Back/BSP</button>
     </div>
-    ${!isFormula?`<input type="number" value="${p.ev??''}" onchange="updatePromoEV('${p.id}',this.value)" step="0.1" min="0" placeholder="EV%" style="width:62px">`:'<span style="font-size:10px;color:var(--tx4);width:62px">back/BSP</span>'}
+    ${!isFormula?`<input type="number" value="${p.ev??''}" onchange="updatePromoEV('${p.id}',this.value)" step="0.1" min="0" placeholder="${globalEvPct}%" style="width:62px;${usingGlobal?'border-color:var(--tx5)':''}">`:'<span style="font-size:10px;color:var(--tx4);width:62px">back/BSP</span>'}
     <button class="btn btn-d btn-xs" onclick="removePromo('${p.id}')">✕</button>
+    ${hint}
   </div>`}).join('');
   document.getElementById('npt-list').innerHTML=npts.map(t=>`<div class="srow">
     <input type="text" value="${t.name}" onchange="updateNPT('${t.id}',this.value)" style="width:205px">
@@ -2848,7 +2908,7 @@ function removePromo(id){
   if(!confirm(msg))return;
   ss(K.promos,ls(K.promos,[]).filter(p=>p.id!==id));renderSettings();toast('Removed');
 }
-function addPromo(){const n=document.getElementById('new-promo-name').value.trim();if(!n){toast('Enter name','warn');return}const pr=ls(K.promos,[]);pr.push({id:uid(),name:n});ss(K.promos,pr);document.getElementById('new-promo-name').value='';renderSettings();toast('Promo added')}
+function addPromo(){const n=document.getElementById('new-promo-name').value.trim();if(!n){toast('Enter name','warn');return}const pr=ls(K.promos,[]);const sugEV=suggestPromoEV(n);const newP={id:uid(),name:n};if(sugEV!=null)newP.ev=sugEV;pr.push(newP);ss(K.promos,pr);document.getElementById('new-promo-name').value='';renderSettings();toast(sugEV!=null?`Promo added — suggested EV ${sugEV}% (edit below if needed)`:'Promo added — set EV% below');}
 function addNPT(){const n=document.getElementById('new-npt-name').value.trim();if(!n){toast('Enter name','warn');return}const t=ls(K.npt,[]);t.push({id:uid(),name:n});ss(K.npt,t);document.getElementById('new-npt-name').value='';renderSettings();toast('Type added')}
 function updateNPT(id,v){const t=ls(K.npt,[]);const x=t.find(n=>n.id===id);if(x){x.name=v;ss(K.npt,t);updateNPTDatalist()}}
 function removeNPT(id){if(!confirm('Remove?'))return;ss(K.npt,ls(K.npt,[]).filter(t=>t.id!==id));renderSettings();toast('Removed')}
