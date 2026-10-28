@@ -774,17 +774,23 @@ function activeBonuses(){return ls(K.bonuses,[]).filter(b=>b.result!=='split')}
 const SUPA_URL='https://ncqdxovhzjvdoruoookj.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jcWR4b3Zoemp2ZG9ydW9vb2tqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2NzY4ODUsImV4cCI6MjEwMzI1Mjg4NX0.nNL_8zCFoYCZv1lrkFLY4jAF5k1mcx-1ji8_CJ94JWI';
 const supa=supabase.createClient(SUPA_URL,SUPA_KEY);
-let _syncUser=null,_syncTimer=null,_isSyncing=false,_realtimeCh=null;
+let _syncUser=null,_syncTimer=null,_isSyncing=false,_isLoading=false,_syncPending=false,_realtimeCh=null;
 
 function _allData(){const d={};Object.entries(K).forEach(([k,v])=>{const val=localStorage.getItem(v);if(val)try{d[k]=JSON.parse(val)}catch{}});return d}
 
 async function supaSync(){
-  if(!_syncUser||READONLY)return;
+  // Guard: don't run if already syncing OR if a load is in progress (stale localStorage)
+  if(!_syncUser||READONLY||_isSyncing||_isLoading)return;
   _isSyncing=true;
   await supa.from('user_data').upsert({user_id:_syncUser.id,data:_allData(),updated_at:new Date().toISOString()});
   setTimeout(()=>{_isSyncing=false},2000);
 }
-function scheduleSync(){clearTimeout(_syncTimer);_syncTimer=setTimeout(supaSync,2500)}
+function scheduleSync(){
+  clearTimeout(_syncTimer);
+  // If a load is in progress, defer the sync until after it completes
+  if(_isLoading){_syncPending=true;return;}
+  _syncTimer=setTimeout(supaSync,2500);
+}
 
 function setupRealtimeSync(){
   if(_realtimeCh){supa.removeChannel(_realtimeCh);_realtimeCh=null;}
@@ -803,10 +809,23 @@ function setupRealtimeSync(){
 
 async function supaLoad(){
   if(!_syncUser)return;
+  _isLoading=true;_syncPending=false;
   const{data,error}=await supa.from('user_data').select('data').eq('user_id',_syncUser.id).single();
-  if(error||!data||!data.data||!Object.keys(data.data).length){await supaSync();return}
+  if(error){
+    // Network/server error — do NOT push local data; it could be stale and overwrite good remote data
+    _isLoading=false;
+    if(_syncPending){_syncPending=false;scheduleSync();}
+    return;
+  }
+  if(!data||!data.data||!Object.keys(data.data).length){
+    // Genuinely no data on server (new user) — safe to push local initial data
+    _isLoading=false;
+    await supaSync();
+    return;
+  }
   const d=data.data;
   // Merge transactional arrays by ID so bets logged on one device aren't wiped by another device syncing
+  // Remote always wins for existing records — this device's localStorage may be stale
   const MERGE_KEYS=new Set(['bets','bonuses','txns','bankTxns']);
   let didMerge=false;
   Object.entries(K).forEach(([k,storageKey])=>{
@@ -822,7 +841,9 @@ async function supaLoad(){
       localStorage.setItem(storageKey,JSON.stringify(d[k]));
     }
   });
-  if(didMerge)scheduleSync();
+  _isLoading=false;
+  // If a sync was requested while we were loading, or we added local-only records, push now
+  if(didMerge||_syncPending){_syncPending=false;scheduleSync();}
 }
 
 function updateAuthUI(user){
