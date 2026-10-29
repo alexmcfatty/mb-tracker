@@ -696,6 +696,7 @@ const DEF_SETTINGS={extractionRate:83,triggerRate:23,promoEvPct:8,profitOffset:0
 
 // ── UTILS ─────────────────────────────────────────────────────────────────────
 function uid(){return Math.random().toString(36).slice(2,9)+Date.now().toString(36)}
+function now(){return new Date().toISOString()}
 function ls(k,fb){try{return JSON.parse(localStorage.getItem(k))||fb}catch{return fb}}
 function ss(k,v){localStorage.setItem(k,JSON.stringify(v));scheduleSync()}
 function today(){return new Date().toISOString().split('T')[0]}
@@ -727,7 +728,7 @@ function betEV(b,cfg){
 function kellyAdjBank(){
   const cfg=ls(K.settings,DEF_SETTINGS);
   const fixed=cfg.kellyBank||0;
-  const npPnl=ls(K.bets,[]).filter(b=>b.betCategory==='non-promo').reduce((s,b)=>s+betPnl(b),0);
+  const npPnl=ls(K.bets,[]).filter(b=>b.betCategory==='non-promo'&&!b.deleted).reduce((s,b)=>s+betPnl(b),0);
   return fixed+npPnl;
 }
 function calcKellyStake(backOdds,bsp){
@@ -768,7 +769,7 @@ function updateKellyDisplay(){
 function betType(b){if(b.betCategory==='non-promo')return b.nonPromoType||'Non-Promo';return prName(b.promoId)}
 function bonusPnl(b){if(b.result==='Win'&&b.fixedOdds)return(b.fixedOdds-1)*b.bonusAmount;return 0}
 // active bonuses = not split
-function activeBonuses(){return ls(K.bonuses,[]).filter(b=>b.result!=='split')}
+function activeBonuses(){return ls(K.bonuses,[]).filter(b=>b.result!=='split'&&!b.deleted)}
 
 // ── SUPABASE ──────────────────────────────────────────────────────────────────
 const SUPA_URL='https://ncqdxovhzjvdoruoookj.supabase.co';
@@ -779,7 +780,6 @@ let _syncUser=null,_syncTimer=null,_isSyncing=false,_isLoading=false,_syncPendin
 function _allData(){const d={};Object.entries(K).forEach(([k,v])=>{const val=localStorage.getItem(v);if(val)try{d[k]=JSON.parse(val)}catch{}});return d}
 
 async function supaSync(){
-  // Guard: don't run if already syncing OR if a load is in progress (stale localStorage)
   if(!_syncUser||READONLY||_isSyncing||_isLoading)return;
   _isSyncing=true;
   await supa.from('user_data').upsert({user_id:_syncUser.id,data:_allData(),updated_at:new Date().toISOString()});
@@ -787,7 +787,6 @@ async function supaSync(){
 }
 function scheduleSync(){
   clearTimeout(_syncTimer);
-  // If a load is in progress, defer the sync until after it completes
   if(_isLoading){_syncPending=true;return;}
   _syncTimer=setTimeout(supaSync,2500);
 }
@@ -812,20 +811,16 @@ async function supaLoad(){
   _isLoading=true;_syncPending=false;
   const{data,error}=await supa.from('user_data').select('data').eq('user_id',_syncUser.id).single();
   if(error){
-    // Network/server error — do NOT push local data; it could be stale and overwrite good remote data
     _isLoading=false;
     if(_syncPending){_syncPending=false;scheduleSync();}
     return;
   }
   if(!data||!data.data||!Object.keys(data.data).length){
-    // Genuinely no data on server (new user) — safe to push local initial data
     _isLoading=false;
     await supaSync();
     return;
   }
   const d=data.data;
-  // Merge transactional arrays by ID so bets logged on one device aren't wiped by another device syncing
-  // Remote always wins for existing records — this device's localStorage may be stale
   const MERGE_KEYS=new Set(['bets','bonuses','txns','bankTxns']);
   let didMerge=false;
   Object.entries(K).forEach(([k,storageKey])=>{
@@ -833,16 +828,23 @@ async function supaLoad(){
     if(MERGE_KEYS.has(k)&&Array.isArray(d[k])){
       const remote=d[k];
       const local=ls(storageKey,[]);
+      const merged=remote.map(r=>{
+        const lv=local.find(l=>l.id===r.id);
+        if(!lv)return r;
+        if(lv.updatedAt&&r.updatedAt&&new Date(lv.updatedAt)>new Date(r.updatedAt))return lv;
+        return r;
+      });
       const remoteIds=new Set(remote.map(x=>x.id));
-      const localOnly=local.filter(x=>x.id&&!remoteIds.has(x.id));
+      const localOnly=local.filter(x=>x.id&&!remoteIds.has(x.id)&&!x.deleted);
       if(localOnly.length)didMerge=true;
-      localStorage.setItem(storageKey,JSON.stringify([...remote,...localOnly]));
+      const localWon=remote.some(r=>{const lv=local.find(l=>l.id===r.id);return lv&&lv.updatedAt&&r.updatedAt&&new Date(lv.updatedAt)>new Date(r.updatedAt);});
+      if(localWon)didMerge=true;
+      localStorage.setItem(storageKey,JSON.stringify([...merged,...localOnly]));
     }else{
       localStorage.setItem(storageKey,JSON.stringify(d[k]));
     }
   });
   _isLoading=false;
-  // If a sync was requested while we were loading, or we added local-only records, push now
   if(didMerge||_syncPending){_syncPending=false;scheduleSync();}
 }
 
@@ -975,7 +977,7 @@ function renderChart2(){
 }
 function setChart2(mode){window._chart2Mode=mode;renderChart2();}
 function renderDashboard(){
-  const bets=ls(K.bets,[]),bonuses=activeBonuses(),cfg=ls(K.settings,DEF_SETTINGS);
+  const bets=ls(K.bets,[]).filter(b=>!b.deleted),bonuses=activeBonuses(),cfg=ls(K.settings,DEF_SETTINGS);
   const hasData=bets.length>0||bonuses.length>0;
   document.getElementById('onboarding').style.display=hasData?'none':'block';
   document.getElementById('dashboard-main').style.display=hasData?'block':'none';
@@ -1057,7 +1059,8 @@ function renderDashboard(){
   window._roll30=days30.map(ds=>{
     const db=bets.filter(b=>b.date===ds);
     const db2=bonuses.filter(b=>b.createdAt&&b.createdAt.startsWith(ds)&&b.result!=='Pending');
-    const profit=db.reduce((s,b)=>s+betPnl(b),0)+db2.reduce((s,b)=>s+bonusPnl(b),0);
+    const adjD=ls(K.adj,[]).filter(a=>a.date===ds).reduce((s,a)=>s+a.amount,0);
+    const profit=db.reduce((s,b)=>s+betPnl(b),0)+db2.reduce((s,b)=>s+bonusPnl(b),0)+adjD;
     const lbl=new Date(ds+'T00:00:00Z').toLocaleDateString('en-AU',{day:'2-digit',month:'short'});
     return{lbl,profit,ev:dayEV(db)};
   });
@@ -1261,7 +1264,7 @@ function saveBet(){
   if(betCat==='non-promo'&&!bsp&&(selResult||'Pending')!=='Pending'){toast('BSP is required for non-promo bets','warn');document.getElementById('f-bsp')?.focus();return}
   if(!date||!bookieId||!stake||!fixedOdds){toast(bookieId?'Fill date, stake and odds':'Bookie not found — check spelling','warn');return}
   const result=selResult||'Pending';
-  const bet={id:uid(),date,bookieId,promoId,nonPromoType,betCategory:betCat,stake,fixedOdds,bsp,result,notes,createdAt:new Date().toISOString()};
+  const bet={id:uid(),date,bookieId,promoId,nonPromoType,betCategory:betCat,stake,fixedOdds,bsp,result,notes,createdAt:now(),updatedAt:now()};
   const bets=ls(K.bets,[]);bets.push(bet);ss(K.bets,bets);
   applyBetPnlToBalance(bet,1);
   if(result==='Bonus'&&betCat==='promo'){
@@ -1325,7 +1328,7 @@ function saveEditedBet(id){
   if(typeVal){if(b.betCategory==='promo'){const pr=promos.find(p=>p.name.toLowerCase()===typeVal.toLowerCase());if(pr)b.promoId=pr.id;}else b.nonPromoType=typeVal;}
   const prevResult=b.result;
   const oldSnap={...b};
-  if(stake)b.stake=stake;b.fixedOdds=odds;b.bsp=bsp;b.result=result;
+  if(stake)b.stake=stake;b.fixedOdds=odds;b.bsp=bsp;b.result=result;b.updatedAt=now();
   ss(K.bets,bets);
   applyBetPnlToBalance(oldSnap,-1);applyBetPnlToBalance(b,1);
   if(result==='Bonus'&&prevResult!=='Bonus'&&b.betCategory==='promo'){
@@ -1338,14 +1341,14 @@ function saveEditedBet(id){
 function deleteBet(id){
   if(!navigator.onLine){toast('No internet — cannot delete','warn');return;}
   if(!confirm('Delete this bet?'))return;
-  const bet=ls(K.bets,[]).find(b=>b.id===id);
+  const bets=ls(K.bets,[]);const bet=bets.find(b=>b.id===id);if(!bet)return;
   applyBetPnlToBalance(bet,-1);
-  ss(K.bets,ls(K.bets,[]).filter(b=>b.id!==id));
-  // remove any bonus triggered by this bet
+  bet.deleted=true;bet.updatedAt=now();
+  ss(K.bets,bets);
   if(bet?.result==='Bonus'){
-    const before=ls(K.bonuses,[]).length;
-    ss(K.bonuses,ls(K.bonuses,[]).filter(b=>b.parentBetId!==id));
-    const removed=before-ls(K.bonuses,[]).length;
+    const bonuses=ls(K.bonuses,[]);let removed=0;
+    bonuses.forEach(b=>{if(b.parentBetId===id&&!b.deleted){b.deleted=true;b.updatedAt=now();removed++;}});
+    ss(K.bonuses,bonuses);
     toast(removed?'Bet + bonus deleted':'Bet deleted');
   }else toast('Bet deleted');
   renderTodayBets();renderPendingBets();renderDashboard();
@@ -1391,7 +1394,7 @@ function setHistPreset(p,btn){
 }
 function renderTodayBets(){
   const _bq=(document.getElementById('bet-search')?.value||'').trim().toLowerCase();
-  let allBets=ls(K.bets,[]).filter(b=>b.betCategory===betCat);
+  let allBets=ls(K.bets,[]).filter(b=>b.betCategory===betCat&&!b.deleted);
   if(_bq){allBets=allBets.filter(b=>[bkName(b.bookieId),betType(b),b.result,b.date,b.notes||''].join(' ').toLowerCase().includes(_bq));}
   // apply history filter
   if(_histPreset==='custom'){
@@ -1420,7 +1423,7 @@ function renderTodayBets(){
 function renderPendingBets(){
   const el=document.getElementById('pending-bets-list');if(!el)return;
   const _bq=(document.getElementById('bet-search')?.value||'').trim().toLowerCase();
-  let bets=ls(K.bets,[]).filter(b=>b.result==='Pending'&&b.betCategory===betCat).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  let bets=ls(K.bets,[]).filter(b=>b.result==='Pending'&&b.betCategory===betCat&&!b.deleted).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
   if(_bq){bets=bets.filter(b=>[bkName(b.bookieId),betType(b),b.date,b.notes||''].join(' ').toLowerCase().includes(_bq));}
   if(!bets.length){el.innerHTML='<div class="empty">No pending bets</div>';return}
   const cfg=ls(K.settings,DEF_SETTINGS);
@@ -1535,11 +1538,11 @@ function settleBet(id,result,bspStr){
   const bspFromParam=bspStr?parseFloat(bspStr):null;
   const bspFromEl=document.getElementById('sbsp-'+id)?.value?parseFloat(document.getElementById('sbsp-'+id).value):null;
   const bsp=bspFromParam||bspFromEl||b.bsp||null;
-  b.result=result;if(bsp)b.bsp=bsp;
+  b.result=result;if(bsp)b.bsp=bsp;b.updatedAt=now();
   ss(K.bets,bets);
   applyBetPnlToBalance(b,1);
   if(result==='Bonus'&&b.betCategory==='promo'){
-    const bonus={id:uid(),parentBetId:b.id,bookieId:b.bookieId,bonusAmount:b.stake,fixedOdds:null,bsp:null,result:'Pending',sourceType:'promo',bonusType:'Horses',createdAt:new Date().toISOString()};
+    const bonus={id:uid(),parentBetId:b.id,bookieId:b.bookieId,bonusAmount:b.stake,fixedOdds:null,bsp:null,result:'Pending',sourceType:'promo',bonusType:'Horses',createdAt:now(),updatedAt:now()};
     const bonuses=ls(K.bonuses,[]);bonuses.push(bonus);ss(K.bonuses,bonuses);
     toast('Bonus triggered!','info');
   }else toast(`Settled: ${result}`);
@@ -1550,7 +1553,7 @@ function saveBSP(id){
   const v=parseFloat(document.getElementById('bsp-'+id).value);
   if(!v){toast('Enter BSP','warn');return}
   const bets=ls(K.bets,[]);const b=bets.find(x=>x.id===id);
-  if(b){b.bsp=v;ss(K.bets,bets);toast('BSP saved');renderTodayBets()}
+  if(b){b.bsp=v;b.updatedAt=now();ss(K.bets,bets);toast('BSP saved');renderTodayBets()}
 }
 
 // ── BONUSES ───────────────────────────────────────────────────────────────────
@@ -1569,7 +1572,7 @@ function addDepositMatch(){
   const dateVal=document.getElementById('dm-date').value||new Date().toISOString().slice(0,10);
   if(!bookieId||!amount){toast('Enter bookie and amount','warn');return}
   const createdAt=dateVal+'T'+new Date().toISOString().slice(11);
-  const bonus={id:uid(),parentBetId:null,bookieId,bonusAmount:amount,fixedOdds:null,bsp:null,result:'Pending',sourceType:'deposit_match',bonusType:'Horses',notes,date:dateVal,createdAt};
+  const bonus={id:uid(),parentBetId:null,bookieId,bonusAmount:amount,fixedOdds:null,bsp:null,result:'Pending',sourceType:'deposit_match',bonusType:'Horses',notes,date:dateVal,createdAt,updatedAt:now()};
   const bonuses=ls(K.bonuses,[]);bonuses.push(bonus);ss(K.bonuses,bonuses);
   document.getElementById('dm-amount').value='';document.getElementById('dm-notes').value='';document.getElementById('dm-date').value='';
   hideDMForm();toast('Deposit match added','info');renderBonuses();
@@ -1629,7 +1632,7 @@ function resolveBonus(id,result){
   const bsp=parseFloat(document.getElementById('pb-bsp-'+id).value)||null;
   if(result==='Win'&&!odds){toast('Enter odds for win','warn');return}
   const bonuses=ls(K.bonuses,[]);const b=bonuses.find(x=>x.id===id);
-  if(b){b.result=result;b.fixedOdds=odds;b.bsp=bsp;ss(K.bonuses,bonuses);
+  if(b){b.result=result;b.fixedOdds=odds;b.bsp=bsp;b.updatedAt=now();ss(K.bonuses,bonuses);
     toast(result==='Win'?`Win! ${fmt$((odds-1)*b.bonusAmount)} profit`:'Loss logged');renderBonuses()}
 }
 
@@ -1637,8 +1640,8 @@ function deleteBonus(id,amount){
   if(!navigator.onLine){toast('No internet — cannot delete','warn');return;}
   const bsp=parseFloat(prompt(`Enter BSP to calculate EV loss (bonus: ${fmt$(amount)})\nLeave blank to just delete with no EV impact:`));
   if(!confirm('Delete this bonus?'))return;
-  const bonuses=ls(K.bonuses,[]);
-  ss(K.bonuses,bonuses.filter(b=>b.id!==id));
+  const bonuses=ls(K.bonuses,[]);const bd=bonuses.find(x=>x.id===id);
+  if(bd){bd.deleted=true;bd.updatedAt=now();ss(K.bonuses,bonuses);}
   if(bsp>0){
     const evLoss=-parseFloat(amount)*(1-1/bsp);
     const adj=ls(K.adj,[]);
@@ -1670,18 +1673,19 @@ function updateBonusEV(id){
 function editCompletedBonus(id){
   if(!navigator.onLine){toast('No internet — cannot edit','warn');return;}
   const bonuses=ls(K.bonuses,[]);const b=bonuses.find(x=>x.id===id);if(!b)return;
-  b.result='Pending';b.fixedOdds=null;b.bsp=null;
+  b.result='Pending';b.fixedOdds=null;b.bsp=null;b.updatedAt=now();
   ss(K.bonuses,bonuses);renderBonuses();renderDashboard();toast('Bonus reset to pending');
 }
 function deleteCompletedBonus(id){
   if(!navigator.onLine){toast('No internet — cannot delete','warn');return;}
   if(!confirm('Delete this bonus record?'))return;
-  ss(K.bonuses,ls(K.bonuses,[]).filter(b=>b.id!==id));
+  const bonuses2=ls(K.bonuses,[]);const bdr=bonuses2.find(x=>x.id===id);
+  if(bdr){bdr.deleted=true;bdr.updatedAt=now();ss(K.bonuses,bonuses2);}
   renderBonuses();renderDashboard();toast('Deleted');
 }
 function saveBonusType(id,type){
   const bonuses=ls(K.bonuses,[]);const b=bonuses.find(x=>x.id===id);
-  if(b){b.bonusType=type;ss(K.bonuses,bonuses);}
+  if(b){b.bonusType=type;b.updatedAt=now();ss(K.bonuses,bonuses);}
 }
 function addBonusType(){
   const n=document.getElementById('new-btype-name').value.trim();
@@ -1833,7 +1837,7 @@ function toggleDataSec(id){
   if(chev)chev.textContent=_dSec[id]?'▶':'▼';
 }
 function renderData(){
-  let bets=ls(K.bets,[]),bonuses=activeBonuses(),cfg=ls(K.settings,DEF_SETTINGS);
+  let bets=ls(K.bets,[]).filter(b=>!b.deleted),bonuses=activeBonuses(),cfg=ls(K.settings,DEF_SETTINGS);
   if(drFrom||drTo){
     bets=bets.filter(b=>inRange(b.date));
     bonuses=bonuses.filter(b=>inRange(b.createdAt));
@@ -2194,11 +2198,12 @@ function addAdj(){
 }
 function removeAdj(id){if(!confirm('Remove?'))return;ss(K.adj,ls(K.adj,[]).filter(a=>a.id!==id));renderBonuses();toast('Removed')}
 function clearAllPending(){
-  const pending=ls(K.bonuses,[]).filter(b=>b.result==='Pending');
+  const bonuses=ls(K.bonuses,[]);
+  const pending=bonuses.filter(b=>b.result==='Pending'&&!b.deleted);
   if(!pending.length){toast('No pending bonuses','info');return}
   if(!confirm(`Remove ${pending.length} pending bonus${pending.length>1?'es':''}?`))return;
-  ss(K.bonuses,ls(K.bonuses,[]).filter(b=>b.result!=='Pending'));
-  renderBonuses();toast(`${pending.length} pending cleared`);
+  const t=now();pending.forEach(b=>{b.deleted=true;b.updatedAt=t;});
+  ss(K.bonuses,bonuses);renderBonuses();toast(`${pending.length} pending cleared`);
 }
 function renderAdjList(){
   const adjs=ls(K.adj,[]).slice().reverse();
@@ -2674,8 +2679,8 @@ function renderBankBalances(){
   </div>`;
 }
 
-function bookiePnl(bid){return ls(K.bets,[]).filter(b=>b.bookieId===bid).reduce((s,b)=>s+betPnl(b),0)}
-function bookieBetCount(bid){return ls(K.bets,[]).filter(b=>b.bookieId===bid).length}
+function bookiePnl(bid){return ls(K.bets,[]).filter(b=>b.bookieId===bid&&!b.deleted).reduce((s,b)=>s+betPnl(b),0)}
+function bookieBetCount(bid){return ls(K.bets,[]).filter(b=>b.bookieId===bid&&!b.deleted).length}
 
 function renderBalances(){
   const balances=ls(K.balances,{});
@@ -2688,7 +2693,7 @@ function renderBalances(){
     .filter(b=>!activeOnly||b.active)
     .filter(b=>{if(!search)return true;const tokens=((b.name||'')+' '+(b.alias||'')).toLowerCase().split(/\s+/);return tokens.some(t=>t.startsWith(search));});
 
-  const allBets=ls(K.bets,[]);
+  const allBets=ls(K.bets,[]).filter(b=>!b.deleted);
   const allBonuses=activeBonuses();
   const allPromos=ls(K.promos,[]);
   list=list.map(b=>{
@@ -3051,7 +3056,7 @@ function _renderMsg(role,text,container){
 }
 
 function _agentLiveContext(){
-  const bets=ls(K.bets,[]);
+  const bets=ls(K.bets,[]).filter(b=>!b.deleted);
   const bonuses=ls(K.bonuses,[]).filter(b=>b.result!=='split'&&!b.deleted);
   const cfg=ls(K.settings,DEF_SETTINGS);
   const bookies=ls(K.bookies,[]);
