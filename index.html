@@ -302,7 +302,7 @@ select option{background:var(--sel-opt)}
     <div class="flex items-center mb-3">
       <h2 style="margin:0">Pending Bonuses</h2>
       <div class="ml-auto flex gap-2">
-        <button class="btn btn-purple btn-sm" onclick="showDMForm()">+ Deposit Match</button>
+        <button class="btn btn-purple btn-sm" onclick="showDMForm()">+ Add Bonus</button>
         <button class="btn btn-d btn-sm" onclick="clearAllPending()">Clear All Pending</button>
       </div>
     </div>
@@ -311,12 +311,13 @@ select option{background:var(--sel-opt)}
       <button class="btn btn-s btn-xs" onclick="document.getElementById('bonus-search').value='';renderBonuses()" style="flex-shrink:0">✕</button>
     </div>
     <div id="dm-form" class="dm-form" style="display:none">
-      <h2 style="font-size:13px;margin-bottom:10px">Add Deposit Match Bonus</h2>
+      <h2 style="font-size:13px;margin-bottom:10px">Add Bonus</h2>
       <div class="form-grid" style="grid-template-columns:repeat(auto-fill,minmax(145px,1fr))">
         <div class="fg"><label class="lbl">Date</label><input type="date" id="dm-date"></div>
         <div class="fg"><label class="lbl">Bookie</label><select id="dm-bookie"></select></div>
+        <div class="fg"><label class="lbl">Bonus Type</label><select id="dm-type"><option value="deposit_match">Deposit Match</option><option value="free_hit">Free Hit Return</option><option value="money_back">Money Back Return</option><option value="other">Other</option></select></div>
         <div class="fg"><label class="lbl">Bonus Amount ($)</label><input type="number" id="dm-amount" placeholder="200" step="0.01" min="0.01"></div>
-        <div class="fg"><label class="lbl">Notes</label><input type="text" id="dm-notes" placeholder="Deposit match, welcome bonus..."></div>
+        <div class="fg"><label class="lbl">Notes</label><input type="text" id="dm-notes" placeholder="Optional notes..."></div>
       </div>
       <div class="flex gap-2">
         <button class="btn btn-p btn-sm" onclick="addDepositMatch()">Add Bonus</button>
@@ -385,6 +386,11 @@ select option{background:var(--sel-opt)}
     <div class="dsec-hdr" onclick="toggleDataSec('nonpromos')"><span id="dchev-nonpromos" class="dsec-chev">▶</span><h3>By Non-Promo Type</h3></div>
     <div id="data-nonpromos-stats"></div>
     <div id="dsec-nonpromos" style="display:none"><div class="card"><div class="tw" id="data-nonpromos"></div></div></div>
+  </div>
+  <div class="data-section">
+    <div class="dsec-hdr" onclick="toggleDataSec('bybookie')"><span id="dchev-bybookie" class="dsec-chev">▶</span><h3>By Bookie</h3></div>
+    <div id="data-bybookie-stats"></div>
+    <div id="dsec-bybookie" style="display:none"><div class="card"><div class="tw" id="data-bybookie"></div></div></div>
   </div>
   <div class="data-section">
     <div class="dsec-hdr" onclick="toggleDataSec('weekly')"><span id="dchev-weekly" class="dsec-chev">▶</span><h3>Weekly Averages</h3></div>
@@ -1327,6 +1333,7 @@ function saveEditedBet(id){
   if(bkVal){const bk=bookies.find(x=>(x.alias||x.name).toLowerCase()===bkVal.toLowerCase())||bookies.find(x=>(x.alias||x.name).toLowerCase().includes(bkVal.toLowerCase()));if(bk)b.bookieId=bk.id;}
   if(typeVal){if(b.betCategory==='promo'){const pr=promos.find(p=>p.name.toLowerCase()===typeVal.toLowerCase());if(pr)b.promoId=pr.id;}else b.nonPromoType=typeVal;}
   const prevResult=b.result;
+  if(b.betCategory==='non-promo'&&!bsp&&result!=='Pending'){toast('BSP is required before setting a result on non-promo bets','warn');document.getElementById(`ed-bsp-${id}`)?.focus();return}
   const oldSnap={...b};
   if(stake)b.stake=stake;b.fixedOdds=odds;b.bsp=bsp;b.result=result;b.updatedAt=now();
   ss(K.bets,bets);
@@ -1572,7 +1579,7 @@ function addDepositMatch(){
   const dateVal=document.getElementById('dm-date').value||new Date().toISOString().slice(0,10);
   if(!bookieId||!amount){toast('Enter bookie and amount','warn');return}
   const createdAt=dateVal+'T'+new Date().toISOString().slice(11);
-  const bonus={id:uid(),parentBetId:null,bookieId,bonusAmount:amount,fixedOdds:null,bsp:null,result:'Pending',sourceType:'deposit_match',bonusType:'Horses',notes,date:dateVal,createdAt,updatedAt:now()};
+  const dmType=document.getElementById('dm-type')?.value||'deposit_match';const bonus={id:uid(),parentBetId:null,bookieId,bonusAmount:amount,fixedOdds:null,bsp:null,result:'Pending',sourceType:dmType,bonusType:'Horses',notes,date:dateVal,createdAt,updatedAt:now()};
   const bonuses=ls(K.bonuses,[]);bonuses.push(bonus);ss(K.bonuses,bonuses);
   document.getElementById('dm-amount').value='';document.getElementById('dm-notes').value='';document.getElementById('dm-date').value='';
   hideDMForm();toast('Deposit match added','info');renderBonuses();
@@ -1615,7 +1622,7 @@ function renderBonuses(){
 
   const hel=document.getElementById('bonus-history');
   if(!completed.length){hel.innerHTML='<div class="empty">No completed bonus bets yet</div>';document.getElementById('bonus-totals').innerHTML='';const adjDate=document.getElementById('adj-date');if(adjDate&&!adjDate.value)adjDate.value=today();renderAdjList();return}
-  hel.innerHTML=`<table><thead><tr><th>Date</th><th>Type</th><th>Bookie</th><th>Bonus $</th><th>Odds</th><th>BSP</th><th>EV%</th><th>Result</th><th>Profit</th><th></th></tr></thead><tbody>${completed.map(b=>{const p=bonusPnl(b);const ev=(b.fixedOdds&&b.bsp)?((b.fixedOdds-1)/b.bsp*100).toFixed(1)+'%':'-';return`<tr><td>${fmtDt(b.createdAt)}</td><td>${b.sourceType==='deposit_match'?badge('Deposit Match'):badge('Bonus')}</td><td>${bkName(b.bookieId)}</td><td>${fmt$(b.bonusAmount)}</td><td>${b.fixedOdds||'-'}</td><td>${b.bsp||'-'}</td><td class="bl">${ev}</td><td>${badge(b.result)}</td><td class="${clr(p)}">${fmt$(p)}</td><td style="white-space:nowrap"><button class="btn btn-s btn-xs" onclick="editCompletedBonus('${b.id}')">Edit</button> <button class="btn btn-d btn-xs" onclick="deleteCompletedBonus('${b.id}')">Del</button></td></tr>`}).join('')}</tbody></table>`;
+  hel.innerHTML=`<table><thead><tr><th>Date</th><th>Type</th><th>Bookie</th><th>Bonus $</th><th>Odds</th><th>BSP</th><th>EV%</th><th>Result</th><th>Profit</th><th></th></tr></thead><tbody>${completed.map(b=>{const p=bonusPnl(b);const ev=(b.fixedOdds&&b.bsp)?((b.fixedOdds-1)/b.bsp*100).toFixed(1)+'%':'-';return`<tr><td>${fmtDt(b.createdAt)}</td><td>${b.sourceType==='deposit_match'?badge('Deposit Match'):b.sourceType==='free_hit'?badge('Free Hit'):b.sourceType==='money_back'?badge('Money Back'):badge('Bonus')}</td><td>${bkName(b.bookieId)}</td><td>${fmt$(b.bonusAmount)}</td><td>${b.fixedOdds||'-'}</td><td>${b.bsp||'-'}</td><td class="bl">${ev}</td><td>${badge(b.result)}</td><td class="${clr(p)}">${fmt$(p)}</td><td style="white-space:nowrap"><button class="btn btn-s btn-xs" onclick="editCompletedBonus('${b.id}')">Edit</button> <button class="btn btn-d btn-xs" onclick="deleteCompletedBonus('${b.id}')">Del</button></td></tr>`}).join('')}</tbody></table>`;
   const face=completed.reduce((s,b)=>s+b.bonusAmount,0);
   const pnl=completed.reduce((s,b)=>s+bonusPnl(b),0);
   const wins=completed.filter(b=>b.result==='Win'&&b.fixedOdds);
@@ -1828,7 +1835,7 @@ function inRange(dateStr){
 }
 
 // ── DATA TAB ─────────────────────────────────────────────────────────────────
-const _dSec={bonuses:true,promos:true,nonpromos:true,bookies:true,weekly:true};
+const _dSec={bonuses:true,promos:true,nonpromos:true,bookies:true,bybookie:true,weekly:true};
 function toggleDataSec(id){
   _dSec[id]=!_dSec[id];
   const body=document.getElementById('dsec-'+id);
@@ -1846,6 +1853,7 @@ function renderData(){
   renderBonusData(bonuses,cfg);
   renderPromoData(bets,bonuses,cfg);
   renderNonPromoData(bets,cfg);
+  renderBookieData(bets,cfg);
   renderWeeklyAvg(bets,bonuses,cfg);
 }
 
@@ -2125,6 +2133,38 @@ function renderNonPromoData(bets,cfg){
       <td class="${clr(totNetPct)}">${fmtP(totNetPct)}</td>
     </tr></tfoot>
   </table>`;
+}
+
+function renderBookieData(bets,cfg){
+  const allBk=ls(K.bookies,[]);
+  const el=document.getElementById('data-bybookie');
+  const statsEl=document.getElementById('data-bybookie-stats');
+  if(!el)return;
+  // Read directly from storage so date filter doesn't affect this section
+  const allBets=ls(K.bets,[]).filter(b=>!b.deleted);
+  const relevantBets=allBets.filter(b=>b.betCategory==='promo'||b.betCategory==='non-promo');
+  if(!relevantBets.length){if(statsEl)statsEl.innerHTML='';el.innerHTML='<div class="empty">No bets logged yet</div>';return}
+  const bookieIds=[...new Set(relevantBets.map(b=>b.bookieId))];
+  const rows=bookieIds.map(bkId=>{
+    const bk=allBk.find(x=>x.id===bkId);
+    const name=bk?(bk.alias||bk.name):'Unknown';
+    const promos=relevantBets.filter(b=>b.bookieId===bkId&&b.betCategory==='promo');
+    const nonpromos=relevantBets.filter(b=>b.bookieId===bkId&&b.betCategory==='non-promo');
+    const pc=promos.length;
+    const npc=nonpromos.length;
+    const ratio=pc>0?(npc/pc):null;
+    const ratioOk=ratio!==null&&ratio>=0.95;
+    const ratioStr=ratio===null?'-':(ratio*100).toFixed(0)+'%';
+    const ratioColor=ratio===null?'#64748b':ratioOk?'#22c55e':'#ef4444';
+    const npWithBsp=nonpromos.filter(b=>b.fixedOdds&&b.bsp&&b.result!=='Pending'&&b.result!=='Void');
+    const avgRatio=npWithBsp.length?npWithBsp.reduce((s,b)=>s+(b.fixedOdds/b.bsp),0)/npWithBsp.length:null;
+    const avgRatioStr=avgRatio!==null?(avgRatio*100).toFixed(1)+'%':'-';
+    const avgRatioColor=avgRatio===null?'#64748b':avgRatio>=0.95?'#22c55e':'#f59e0b';
+    return{name,pc,npc,ratioStr,ratioColor,avgRatioStr,avgRatioColor};
+  }).sort((a,b)=>b.pc-a.pc);
+  const behind=rows.filter(r=>r.ratioColor==='#ef4444');
+  if(statsEl)statsEl.innerHTML=behind.length?`<div style="font-size:11px;color:#ef4444;margin-bottom:6px">${behind.length} bookie${behind.length>1?'s':''} below 1:1 ratio: ${behind.map(r=>r.name).join(', ')}</div>`:'<div style="font-size:11px;color:#22c55e;margin-bottom:6px">All bookies at or above 1:1 non-promo ratio</div>';
+  el.innerHTML=`<table><thead><tr><th>Bookie</th><th>Promos</th><th>Non-Promos</th><th>Ratio</th><th>Avg Price vs BSP</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r.name}</td><td>${r.pc}</td><td>${r.npc}</td><td style="color:${r.ratioColor};font-weight:700">${r.ratioStr}</td><td style="color:${r.avgRatioColor}">${r.avgRatioStr}</td></tr>`).join('')}</tbody></table>`;
 }
 
 function filterBookieTable(q){
@@ -3252,9 +3292,9 @@ async function sendAgentMsg(){
     messages[messages.length-1].content += _agentLiveContext();
 
     // Build system: cached knowledge base + live student profile (not cached — updates regularly)
-    const systemBlocks=[{type:'text',text:AGENT_SYSTEM,cache_control:{type:'ephemeral',ttl:'1hr'}}];
+    const systemBlocks=[{type:'text',text:AGENT_SYSTEM,cache_control:{type:'ephemeral',ttl:'1h'}}];
     if(_studentProfile){
-      systemBlocks.push({type:'text',text:'\n\n[STUDENT COACHING PROFILE — COACHING NOTES FROM PREVIOUS SESSIONS]\n'+_studentProfile,cache_control:{type:'ephemeral',ttl:'1hr'}});
+      systemBlocks.push({type:'text',text:'\n\n[STUDENT COACHING PROFILE — COACHING NOTES FROM PREVIOUS SESSIONS]\n'+_studentProfile,cache_control:{type:'ephemeral',ttl:'1h'}});
     }
 
     const resp=await fetch('https://api.anthropic.com/v1/messages',{
