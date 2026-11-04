@@ -152,10 +152,11 @@ canvas{max-height:220px}
     <div class="mtitle" id="d-name"></div>
     <div class="msub" id="d-email"></div>
     <div class="cp-row">
-      <div style="display:flex;align-items:center;gap:8px">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
         <span class="cp-badge" id="d-cp">CP 1</span>
         <button class="btn btn-s btn-xs" onclick="adjCP(-1)">◀ Back</button>
         <button class="btn btn-p btn-xs" onclick="adjCP(1)">Forward ▶</button>
+        <button id="d-cp-done-btn" class="btn btn-xs btn-s" onclick="toggleCpDone()" style="border-color:#334155;color:var(--tx4)">✓ Done</button>
       </div>
       <div style="font-size:11px;color:var(--tx5)" id="d-lastseen"></div>
     </div>
@@ -171,6 +172,7 @@ canvas{max-height:220px}
       <div class="tab" onclick="switchTab('bypromo')">By Promo Type</div>
       <div class="tab" onclick="switchTab('bynp')">By NP Type</div>
       <div class="tab" onclick="switchTab('profile')">Profile</div>
+      <div class="tab" onclick="switchTab('data')">Data</div>
       <div class="tab" onclick="switchTab('debug')">Debug</div>
     </div>
 
@@ -195,7 +197,7 @@ canvas{max-height:220px}
       <div class="stitle">Promo Bets — All History</div>
       <div class="bet-count" id="promo-count"></div>
       <div style="overflow-x:auto"><table>
-        <thead><tr><th>Date</th><th>Bookie</th><th>Promo</th><th class="tnum">Stake</th><th class="tnum">Odds</th><th class="tnum">BSP</th><th class="tnum">EV%</th><th>Result</th><th class="tnum">P&L</th></tr></thead>
+        <thead><tr><th>Date</th><th>Bookie</th><th>Promo</th><th class="tnum">Stake</th><th class="tnum">Odds</th><th class="tnum">BSP</th><th class="tnum">EV%</th><th>Result</th><th class="tnum">P&L</th><th></th></tr></thead>
         <tbody id="d-promo-bets"></tbody>
       </table></div>
     </div>
@@ -204,7 +206,7 @@ canvas{max-height:220px}
       <div class="stitle">Non-Promo Bets — All History</div>
       <div class="bet-count" id="np-count"></div>
       <div style="overflow-x:auto"><table>
-        <thead><tr><th>Date</th><th>Bookie</th><th>Type</th><th class="tnum">Stake</th><th class="tnum">Odds</th><th class="tnum">BSP</th><th class="tnum">EV%</th><th>Result</th><th class="tnum">P&L</th></tr></thead>
+        <thead><tr><th>Date</th><th>Bookie</th><th>Type</th><th class="tnum">Stake</th><th class="tnum">Odds</th><th class="tnum">BSP</th><th class="tnum">EV%</th><th>Result</th><th class="tnum">P&L</th><th></th></tr></thead>
         <tbody id="d-np-bets"></tbody>
       </table></div>
     </div>
@@ -213,7 +215,7 @@ canvas{max-height:220px}
       <div class="stitle">Bonus History — All</div>
       <div class="bet-count" id="bonus-count"></div>
       <div style="overflow-x:auto"><table>
-        <thead><tr><th>Date</th><th>Bookie</th><th class="tnum">Face</th><th class="tnum">Lay Stake</th><th class="tnum">Lay Odds</th><th class="tnum">Fixed Odds</th><th>Result</th><th class="tnum">P&L</th></tr></thead>
+        <thead><tr><th>Date</th><th>Bookie</th><th class="tnum">Face</th><th class="tnum">Lay Stake</th><th class="tnum">Lay Odds</th><th class="tnum">Fixed Odds</th><th>Result</th><th class="tnum">P&L</th><th></th></tr></thead>
         <tbody id="d-bonus-table"></tbody>
       </table></div>
     </div>
@@ -242,6 +244,10 @@ canvas{max-height:220px}
         <thead><tr><th>Type</th><th class="tnum">Bets</th><th class="tnum">W/L</th><th class="tnum">Turnover</th><th class="tnum">Avg Odds</th><th class="tnum">Cash P&amp;L</th><th class="tnum">Total EV</th><th class="tnum">Avg EV%</th><th class="tnum">EV Coverage</th><th class="tnum">Net%</th></tr></thead>
         <tbody id="d-bynp"></tbody>
       </table></div>
+    </div>
+
+    <div class="tabpane" id="tab-data">
+      <div id="dt-content" style="padding:4px 0"></div>
     </div>
 
     <div class="tabpane" id="tab-profile">
@@ -475,7 +481,7 @@ function buildStudent(row,authEmail){
   const totalPnl=betP+bonP+adj+(settings.profitOffset||0);
 
   const nonVoid=bets.filter(b=>b.result!=='Void');
-  const totalEV=nonVoid.reduce((s,b)=>{const v=_betEV(b,promos,settings);return s+(v||0);},0);
+  let totalEV=nonVoid.reduce((s,b)=>{const v=_betEV(b,promos,settings);return s+(v||0);},0);
   const npBets=nonVoid.filter(b=>b.betCategory==='non-promo');
   const prBets=nonVoid.filter(b=>b.betCategory!=='non-promo');
   const npEV=npBets.reduce((s,b)=>{const v=_betEV(b,promos,settings);return s+(v||0);},0);
@@ -487,6 +493,9 @@ function buildStudent(row,authEmail){
   const bonPforExt=btoBase.reduce((s,b)=>s+_bonPnl(b),0);
   const extraction=bonFaceForExt>0?(bonPforExt/bonFaceForExt*100):null;
   const bonusFace=bonuses.reduce((a,b)=>a+(parseFloat(b.bonusAmount)||0),0);
+  // Deposit match bonuses add real EV not captured in bet EV above
+  const _dmExtR=(extraction!=null?extraction:80)/100;
+  totalEV+=bonuses.filter(b=>b.sourceType==='deposit_match').reduce((s,b)=>s+(parseFloat(b.bonusAmount)||0)*_dmExtR,0);
 
   const settled=nonVoid.filter(b=>b.result&&b.result!=='Pending');
   const pending=bets.filter(b=>b.result==='Pending');
@@ -589,27 +598,29 @@ function renderGrid(){
 }
 
 function switchTab(name){
-  const names=['overview','promo','np','bonuses','bookies','monthly','bypromo','bynp','profile','debug'];
+  const names=['overview','promo','np','bonuses','bookies','monthly','bypromo','bynp','profile','data','debug'];
   document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',names[i]===name));
   document.querySelectorAll('.tabpane').forEach(p=>p.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
+  if(name==='data')renderStudentDataTab();
 }
 
 function renderBetRows(bets,promos,bookies){
   const bkMap=Object.fromEntries(bookies.map(b=>[b.id,b.name||b.alias||'?']));
   const prMap=Object.fromEntries(promos.map(p=>[p.id,p.name||'Promo']));
   const sorted=[...bets].sort((a,b)=>new Date(b.date||b.createdAt||0)-new Date(a.date||a.createdAt||0));
-  if(!sorted.length)return'<tr><td colspan="9" class="empty">No bets</td></tr>';
+  if(!sorted.length)return'<tr><td colspan="10" class="empty">No bets</td></tr>';
   return sorted.map(b=>{
     const pnl=_betPnl(b);
     const evVal=_betEV(b,promos,null);
     const evPct=evVal!==null?(evVal/(b.stake||1)*100).toFixed(1)+'%':'—';
-    return`<tr>
+    return`<tr id="bet-row-${b.id}">
       <td>${b.date||'—'}</td><td>${bkMap[b.bookieId]||'?'}</td>
       <td>${b.betCategory==='non-promo'?b.nonPromoType||'NP':(prMap[b.promoId]||'Promo')}</td>
       <td class="tnum">$${(b.stake||0).toFixed(0)}</td><td class="tnum">${b.fixedOdds||'—'}</td><td class="tnum">${b.bsp||'—'}</td>
       <td class="tnum" style="color:var(--bl)">${evPct}</td><td>${b.result}</td>
       <td class="tnum" style="color:${fmtC(pnl)}">${pnl!==0?fmt$(pnl):'—'}</td>
+      <td><button class="btn btn-s btn-xs" onclick="startEditBet('${b.id}')">Edit</button></td>
     </tr>`;
   }).join('');
 }
@@ -621,6 +632,7 @@ function openDetail(idx){
   document.getElementById('d-email').textContent=(s.email?'Email: '+s.email:'ID: '+s.userId);
   document.getElementById('d-cp').textContent='CP '+s.checkpoint;
   document.getElementById('d-lastseen').textContent=s.updatedAt?'Last sync: '+new Date(s.updatedAt).toLocaleString('en-AU'):'';
+  _refreshCpDoneBtn(s);
 
   document.getElementById('d-stats').innerHTML=[
     {lbl:'Total P&L',val:fmt$(st.totalPnl),sub:'Cash+Bonus+Adj',c:fmtC(st.totalPnl)},
@@ -682,11 +694,12 @@ function openDetail(idx){
   document.getElementById('bonus-count').textContent=sortedBon.length+' total · '+sortedBon.filter(b=>b.result!=='Pending').length+' resolved · '+sortedBon.filter(b=>b.result==='Pending').length+' pending';
   document.getElementById('d-bonus-table').innerHTML=sortedBon.length?sortedBon.map(b=>{
     const pnl=_bonPnl(b);
-    return`<tr><td>${b.createdAt?b.createdAt.slice(0,10):'—'}</td><td>${bkMap[b.bookieId]||'?'}</td>
+    return`<tr id="bon-row-${b.id}"><td>${b.createdAt?b.createdAt.slice(0,10):'—'}</td><td>${bkMap[b.bookieId]||'?'}</td>
       <td class="tnum">$${(b.bonusAmount||0).toLocaleString('en-AU',{maximumFractionDigits:0})}</td>
       <td class="tnum">${b.layStake?'$'+b.layStake:'—'}</td><td class="tnum">${b.layOdds||'—'}</td><td class="tnum">${b.fixedOdds||'—'}</td>
-      <td>${b.result}</td><td class="tnum" style="color:${fmtC(pnl)}">${b.result!=='Pending'?fmt$(pnl):'—'}</td></tr>`;
-  }).join(''):'<tr><td colspan="8" class="empty">No bonuses</td></tr>';
+      <td>${b.result}</td><td class="tnum" style="color:${fmtC(pnl)}">${b.result!=='Pending'?fmt$(pnl):'—'}</td>
+      <td><button class="btn btn-s btn-xs" onclick="startEditBonus('${b.id}')">Edit</button></td></tr>`;
+  }).join(''):'<tr><td colspan="9" class="empty">No bonuses</td></tr>';
 
   document.getElementById('d-bookies').innerHTML=s.bookieBreakdown.length?s.bookieBreakdown.map(b=>{
     const tot=b.cashPnl+b.bonPnl;
@@ -847,6 +860,27 @@ function closeDetail(){
   if(_dChart){_dChart.destroy();_dChart=null;}
 }
 
+function _refreshCpDoneBtn(s){
+  const btn=document.getElementById('d-cp-done-btn');
+  if(!btn)return;
+  const done=s?.settings?.cpDone||false;
+  btn.textContent=done?'✓ Done (ON)':'✓ Done';
+  btn.style.borderColor=done?'#22c55e':'#334155';
+  btn.style.color=done?'#22c55e':'var(--tx4)';
+  btn.style.background=done?'#22c55e15':'transparent';
+}
+async function toggleCpDone(){
+  if(!_detail)return;
+  const s=_detail;
+  const newDone=!(s.settings?.cpDone||false);
+  const newData={...(s.data||{})};
+  newData.settings={...(newData.settings||{}),cpDone:newDone};
+  const{error}=await supa.from('user_data').update({data:newData,updated_at:new Date().toISOString()}).eq('user_id',s.userId);
+  if(error){toast('Error: '+error.message,'err');return;}
+  s.settings.cpDone=newDone;s.data.settings=newData.settings;
+  _refreshCpDoneBtn(s);
+  toast(newDone?s.displayName+' marked as Done — agent now in reference mode':'Done mode off','ok');
+}
 async function adjCP(delta){
   if(!_detail)return;
   const s=_detail,newCp=Math.max(1,(s.checkpoint||1)+delta);
@@ -860,6 +894,313 @@ async function adjCP(delta){
   toast((delta>0?'Moved to':'Moved back to')+' CP '+newCp,'ok');
   renderGrid();
 }
+
+// ── Edit Bet (coach) ─────────────────────────────────────────────────────────
+function startEditBet(betId){
+  if(!_detail)return;
+  const b=_detail.data.bets.find(x=>x.id===betId);
+  if(!b)return;
+  const row=document.getElementById('bet-row-'+betId);
+  if(!row)return;
+  const bkOpts=_detail.bookies.map(bk=>`<option value="${bk.id}"${bk.id===b.bookieId?' selected':''}>${bk.name||bk.alias||'?'}</option>`).join('');
+  const isNP=b.betCategory==='non-promo';
+  const typeCell=isNP
+    ?`<input id="ebt-type-${betId}" value="${b.nonPromoType||''}" placeholder="NP type" style="width:80px">`
+    :(()=>{const prOpts=_detail.promos.map(p=>`<option value="${p.id}"${p.id===b.promoId?' selected':''}>${p.name||'Promo'}</option>`).join('');return`<select id="ebt-type-${betId}">${prOpts}</select>`;})();
+  const resOpts=['Win','Loss','Void','Pending','Bonus'].map(r=>`<option${r===b.result?' selected':''}>${r}</option>`).join('');
+  row.outerHTML=`<tr id="bet-row-${betId}" style="background:var(--bdr2)">
+    <td><input id="ebt-date-${betId}" value="${b.date||''}" style="width:88px"></td>
+    <td><select id="ebt-bk-${betId}">${bkOpts}</select></td>
+    <td>${typeCell}</td>
+    <td><input id="ebt-stake-${betId}" type="number" step="0.01" value="${b.stake||''}" style="width:60px"></td>
+    <td><input id="ebt-odds-${betId}" type="number" step="0.01" value="${b.fixedOdds||''}" style="width:60px"></td>
+    <td><input id="ebt-bsp-${betId}" type="number" step="0.01" value="${b.bsp||''}" style="width:60px"></td>
+    <td style="color:var(--tx4);font-size:11px">—</td>
+    <td><select id="ebt-res-${betId}">${resOpts}</select></td>
+    <td></td>
+    <td style="white-space:nowrap">
+      <button class="btn btn-p btn-xs" onclick="saveEditBet('${betId}')">Save</button>
+      <button class="btn btn-s btn-xs" onclick="cancelEditBet('${betId}')" style="margin-left:4px">✕</button>
+    </td>
+  </tr>`;
+}
+function cancelEditBet(betId){
+  if(!_detail)return;
+  const b=_detail.data.bets.find(x=>x.id===betId);
+  reRenderBetTab(b&&b.betCategory==='non-promo'?'np':'promo');
+}
+function reRenderBetTab(tab){
+  if(!_detail)return;
+  const s=_detail;
+  if(tab==='promo'){
+    const promoBets=s.bets.filter(b=>b.betCategory!=='non-promo');
+    document.getElementById('d-promo-bets').innerHTML=renderBetRows(promoBets,s.promos,s.bookies);
+    document.getElementById('promo-count').textContent=promoBets.length+' total · '+promoBets.filter(b=>b.result&&b.result!=='Pending').length+' settled';
+  } else {
+    const npBets=s.bets.filter(b=>b.betCategory==='non-promo');
+    document.getElementById('d-np-bets').innerHTML=renderBetRows(npBets,s.promos,s.bookies);
+    document.getElementById('np-count').textContent=npBets.length+' total · '+npBets.filter(b=>b.result&&b.result!=='Pending').length+' settled';
+  }
+}
+async function saveEditBet(betId){
+  if(!_detail)return;
+  const bIdx=_detail.data.bets.findIndex(x=>x.id===betId);
+  if(bIdx===-1)return;
+  const b=_detail.data.bets[bIdx];
+  const isNP=b.betCategory==='non-promo';
+  const date=document.getElementById('ebt-date-'+betId)?.value||b.date;
+  const bookieId=document.getElementById('ebt-bk-'+betId)?.value||b.bookieId;
+  const typeEl=document.getElementById('ebt-type-'+betId);
+  const stakeRaw=document.getElementById('ebt-stake-'+betId)?.value;
+  const stake=stakeRaw!==''&&stakeRaw!=null?parseFloat(stakeRaw):b.stake;
+  const oddsRaw=document.getElementById('ebt-odds-'+betId)?.value;
+  const fixedOdds=oddsRaw!==''&&oddsRaw!=null?parseFloat(oddsRaw):null;
+  const bspRaw=document.getElementById('ebt-bsp-'+betId)?.value;
+  const bsp=bspRaw!==''&&bspRaw!=null?parseFloat(bspRaw):null;
+  const result=document.getElementById('ebt-res-'+betId)?.value||b.result;
+  if(isNP&&!bsp&&result&&result!=='Pending'&&result!=='Void'){
+    toast('BSP required before setting a result on non-promo bets','warn');return;
+  }
+  const updated={...b,date,bookieId,stake,fixedOdds,bsp,result,updatedAt:new Date().toISOString()};
+  if(isNP)updated.nonPromoType=typeEl?.value||b.nonPromoType;
+  else updated.promoId=typeEl?.value||b.promoId;
+  const newBets=[..._detail.data.bets];
+  newBets[bIdx]=updated;
+  const newData={..._detail.data,bets:newBets};
+  const{error}=await supa.from('user_data').update({data:newData,updated_at:new Date().toISOString()}).eq('user_id',_detail.userId);
+  if(error){toast('Error saving: '+error.message,'err');return;}
+  _detail.data.bets=newBets;
+  _detail.bets=newBets.filter(x=>!x.deleted);
+  reRenderBetTab(isNP?'np':'promo');
+  toast('Bet updated','ok');
+}
+
+// ── Data Tab ─────────────────────────────────────────────────────────────────
+const _dtSec={monthly:false,bonuses:true,bypromo:true,bynp:true,bookies:true,bybookie:true};
+function toggleDtSec(k){
+  _dtSec[k]=!_dtSec[k];
+  const chev=document.getElementById('dtchev-'+k);
+  const body=document.getElementById('dtsec-'+k);
+  if(chev)chev.textContent=_dtSec[k]?'▶':'▼';
+  if(body)body.style.display=_dtSec[k]?'none':'';
+}
+function renderStudentDataTab(){
+  if(!_detail)return;
+  const s=_detail;
+  const bk=s.bookies;
+  const bkMap=Object.fromEntries(bk.map(b=>[b.id,b.alias||b.name||'?']));
+
+  // Monthly
+  const monthHtml=s.monthly.length?`<div style="overflow-x:auto"><table>
+    <thead><tr><th>Month</th><th class="tnum">Bets</th><th class="tnum">Turnover</th><th class="tnum">Cash P&L</th><th class="tnum">Bonus P&L</th><th class="tnum">EV</th><th class="tnum">Cumulative</th></tr></thead>
+    <tbody>${s.monthly.map(m=>`<tr><td>${m.lbl}</td><td class="tnum">${m.bets}</td><td class="tnum">$${fmtK(m.turnover)}</td>
+    <td class="tnum" style="color:${fmtC(m.cashP)}">${fmt$(m.cashP)}</td>
+    <td class="tnum" style="color:${fmtC(m.bonP)}">${fmt$(m.bonP)}</td>
+    <td class="tnum" style="color:var(--bl)">${fmt$(m.ev)}</td>
+    <td class="tnum" style="color:${fmtC(m.cum)};font-weight:700">${fmt$(m.cum)}</td></tr>`).join('')}
+    </tbody></table></div>`:'<div class="empty">No monthly data yet</div>';
+
+  // Bonuses
+  const sortedBon=[...s.bonuses].sort((a,b2)=>new Date(b2.createdAt||0)-new Date(a.createdAt||0));
+  const bonHtml=sortedBon.length?`<div style="overflow-x:auto"><table>
+    <thead><tr><th>Date</th><th>Bookie</th><th class="tnum">Face</th><th class="tnum">Lay Stake</th><th class="tnum">Lay Odds</th><th class="tnum">Fixed Odds</th><th>Result</th><th class="tnum">P&L</th></tr></thead>
+    <tbody>${sortedBon.map(b2=>{const pnl=_bonPnl(b2);return`<tr><td>${b2.createdAt?b2.createdAt.slice(0,10):'—'}</td><td>${bkMap[b2.bookieId]||'?'}</td>
+    <td class="tnum">$${(b2.bonusAmount||0).toLocaleString('en-AU',{maximumFractionDigits:0})}</td>
+    <td class="tnum">${b2.layStake?'$'+b2.layStake:'—'}</td><td class="tnum">${b2.layOdds||'—'}</td><td class="tnum">${b2.fixedOdds||'—'}</td>
+    <td>${b2.result}</td><td class="tnum" style="color:${fmtC(pnl)}">${b2.result!=='Pending'?fmt$(pnl):'—'}</td></tr>`;}).join('')}
+    </tbody></table></div>`:'<div class="empty">No bonuses yet</div>';
+
+  // By Promo Type
+  const _allComp2=s.bonuses.filter(b2=>b2.result!=='Pending');
+  const gbFace=_allComp2.reduce((a,b2)=>a+(parseFloat(b2.bonusAmount)||0),0);
+  const gbP=_allComp2.reduce((a,b2)=>a+_bonPnl(b2),0);
+  const gExtR=gbFace>0?(gbP/gbFace*100):(s.settings?.extractionRate??83);
+  const promoRows2=s.promos.map(pr=>{
+    const pb=s.bets.filter(b2=>!b2.deleted&&b2.promoId===pr.id&&b2.result!=='Void');
+    if(!pb.length)return null;
+    const turnover=pb.reduce((a,b2)=>a+(b2.stake||0),0);
+    const avgOdds=pb.filter(b2=>b2.fixedOdds).reduce((a,b2)=>a+b2.fixedOdds,0)/(pb.filter(b2=>b2.fixedOdds).length||1);
+    const wins=pb.filter(b2=>b2.result==='Win').length;
+    const losses=pb.filter(b2=>b2.result==='Loss').length;
+    const triggers=pb.filter(b2=>b2.result==='Bonus');
+    const cashP=pb.reduce((a,b2)=>a+_betPnl(b2),0);
+    const bonFace=triggers.reduce((a,b2)=>a+(b2.stake||0),0);
+    const bonP=bonFace*(gExtR/100);
+    const total=cashP+bonP;
+    const netPct=turnover?total/turnover*100:0;
+    const expP=(pr.ev?pr.ev/100:0)*turnover;
+    return{name:pr.name,bets:pb.length,wins,losses,turnover,avgOdds,triggers:triggers.length,bonFace,cashP,bonP,total,netPct,expP};
+  }).filter(Boolean).sort((a,b2)=>b2.bets-a.bets);
+  const byPromoHtml=promoRows2.length?`<div style="overflow-x:auto"><table>
+    <thead><tr><th>Promo Type</th><th class="tnum">Bets</th><th class="tnum">W/L/B</th><th class="tnum">Turnover</th><th class="tnum">Avg Odds</th><th class="tnum">Bonus Face</th><th class="tnum">Cash P&L</th><th class="tnum">Bonus P&L</th><th class="tnum">Net%</th><th class="tnum">Profit</th></tr></thead>
+    <tbody>${promoRows2.map(r=>`<tr><td style="font-weight:600">${r.name}</td><td class="tnum">${r.bets}</td>
+    <td class="tnum"><span class="g">${r.wins}W</span> <span class="r">${r.losses}L</span> <span class="bl">${r.triggers}B</span></td>
+    <td class="tnum">$${fmtK(r.turnover)}</td><td class="tnum">${r.avgOdds?r.avgOdds.toFixed(2):'—'}</td>
+    <td class="tnum" style="color:var(--pu)">${r.bonFace?fmt$(r.bonFace):'—'}</td>
+    <td class="tnum" style="color:${fmtC(r.cashP)}">${fmt$(r.cashP)}</td>
+    <td class="tnum" style="color:${fmtC(r.bonP)}">${fmt$(r.bonP)}</td>
+    <td class="tnum" style="color:${fmtC(r.netPct)}">${fmtP(r.netPct)}</td>
+    <td class="tnum" style="color:${fmtC(r.total)};font-weight:700">${fmt$(r.total)}</td></tr>`).join('')}
+    </tbody></table></div>`:'<div class="empty">No promo bets yet</div>';
+
+  // By NP Type
+  const npBets2=s.bets.filter(b2=>b2.betCategory==='non-promo'&&b2.result!=='Void');
+  const npTypes=[...new Set(npBets2.map(b2=>b2.nonPromoType||'Other'))];
+  const npRows2=npTypes.map(type=>{
+    const tb=npBets2.filter(b2=>(b2.nonPromoType||'Other')===type);
+    const turnover=tb.reduce((a,b2)=>a+(b2.stake||0),0);
+    const wins=tb.filter(b2=>b2.result==='Win').length;
+    const losses=tb.filter(b2=>b2.result==='Loss').length;
+    const avgOdds=tb.filter(b2=>b2.fixedOdds).reduce((a,b2)=>a+b2.fixedOdds,0)/(tb.filter(b2=>b2.fixedOdds).length||1);
+    const cashP=tb.reduce((a,b2)=>a+_betPnl(b2),0);
+    const evBets=tb.filter(b2=>b2.fixedOdds&&b2.bsp);
+    const totalEV=evBets.reduce((a,b2)=>{const v=_betEV(b2,s.promos,s.settings);return a+(v||0);},0);
+    const avgEVPct=evBets.length?evBets.reduce((a,b2)=>{const v=_betEV(b2,s.promos,s.settings);return a+(v!==null?v/(b2.stake||1)*100:0);},0)/evBets.length:null;
+    const netPct=turnover?cashP/turnover*100:0;
+    return{type,bets:tb.length,wins,losses,turnover,avgOdds,cashP,totalEV,avgEVPct,evCoverage:evBets.length,netPct};
+  }).sort((a,b2)=>b2.bets-a.bets);
+  const byNpHtml=npRows2.length?`<div style="overflow-x:auto"><table>
+    <thead><tr><th>Type</th><th class="tnum">Bets</th><th class="tnum">W/L</th><th class="tnum">Turnover</th><th class="tnum">Avg Odds</th><th class="tnum">Cash P&L</th><th class="tnum">Total EV</th><th class="tnum">Avg EV%</th><th class="tnum">EV Coverage</th><th class="tnum">Net%</th></tr></thead>
+    <tbody>${npRows2.map(r=>`<tr><td style="font-weight:600">${r.type}</td><td class="tnum">${r.bets}</td>
+    <td class="tnum"><span class="g">${r.wins}W</span> / <span class="r">${r.losses}L</span></td>
+    <td class="tnum">$${fmtK(r.turnover)}</td><td class="tnum">${r.avgOdds?r.avgOdds.toFixed(2):'—'}</td>
+    <td class="tnum" style="color:${fmtC(r.cashP)}">${fmt$(r.cashP)}</td>
+    <td class="tnum" style="color:var(--am)">${r.totalEV?fmt$(r.totalEV):'—'}</td>
+    <td class="tnum" style="color:var(--am)">${r.avgEVPct!=null?fmtP(r.avgEVPct):'—'}</td>
+    <td class="tnum" style="color:var(--tx4)">${r.evCoverage}/${r.bets}</td>
+    <td class="tnum" style="color:${fmtC(r.netPct)}">${fmtP(r.netPct)}</td></tr>`).join('')}
+    </tbody></table></div>`:'<div class="empty">No non-promo bets yet</div>';
+
+  // By Bookie P&L
+  const bkPnlHtml=s.bookieBreakdown.length?`<table>
+    <thead><tr><th>Bookie</th><th class="tnum">Bets</th><th class="tnum">Turnover</th><th class="tnum">Cash P&L</th><th class="tnum">Bonus P&L</th><th class="tnum">Total</th><th>Status</th></tr></thead>
+    <tbody>${s.bookieBreakdown.map(b2=>{const tot=b2.cashPnl+b2.bonPnl;return`<tr><td>${b2.name}</td><td class="tnum">${b2.bets}</td><td class="tnum">$${fmtK(b2.turnover)}</td>
+    <td class="tnum" style="color:${fmtC(b2.cashPnl)}">${fmt$(b2.cashPnl)}</td>
+    <td class="tnum" style="color:${fmtC(b2.bonPnl)}">${fmt$(b2.bonPnl)}</td>
+    <td class="tnum" style="color:${fmtC(tot)};font-weight:700">${fmt$(tot)}</td>
+    <td><span style="color:${b2.active?'var(--g)':'var(--tx5)'}">●</span> ${b2.active?'Active':'Inactive'}</td></tr>`;}).join('')}
+    </tbody></table>`:'<div class="empty">No bookie data yet</div>';
+
+  // By Bookie promo/non-promo ratio
+  const allBets2=s.bets.filter(b2=>!b2.deleted);
+  const relBets2=allBets2.filter(b2=>b2.betCategory==='promo'||b2.betCategory==='non-promo');
+  let byBkHtml='<div class="empty">No bets yet</div>';
+  if(relBets2.length){
+    const bkIds=[...new Set(relBets2.map(b2=>b2.bookieId))];
+    const bkRatioRows=bkIds.map(bkId=>{
+      const bkObj=bk.find(x=>x.id===bkId);
+      const name=bkObj?(bkObj.alias||bkObj.name):'Unknown';
+      const promos2=relBets2.filter(b2=>b2.bookieId===bkId&&b2.betCategory==='promo');
+      const nonpromos2=relBets2.filter(b2=>b2.bookieId===bkId&&b2.betCategory==='non-promo');
+      const pc=promos2.length,npc=nonpromos2.length;
+      const ratio=pc>0?(npc/pc):null;
+      const ratioOk=ratio!==null&&ratio>=0.95;
+      const ratioStr=ratio===null?'-':(ratio*100).toFixed(0)+'%';
+      const ratioColor=ratio===null?'#64748b':ratioOk?'#22c55e':'#ef4444';
+      const npWithBsp2=nonpromos2.filter(b2=>b2.fixedOdds&&b2.bsp&&b2.result!=='Pending'&&b2.result!=='Void');
+      const avgRatio2=npWithBsp2.length?npWithBsp2.reduce((s2,b2)=>s2+(b2.fixedOdds/b2.bsp),0)/npWithBsp2.length:null;
+      const avgRatioStr2=avgRatio2!==null?(avgRatio2*100).toFixed(1)+'%':'-';
+      const avgRatioColor2=avgRatio2===null?'#64748b':avgRatio2>=0.95?'#22c55e':'#f59e0b';
+      return{name,pc,npc,ratioStr,ratioColor,avgRatioStr2,avgRatioColor2};
+    }).sort((a,b2)=>b2.pc-a.pc);
+    const behind=bkRatioRows.filter(r=>r.ratioColor==='#ef4444');
+    const statLine=behind.length
+      ?`<div style="font-size:11px;color:#ef4444;margin-bottom:8px">${behind.length} bookie${behind.length>1?'s':''} below 1:1 ratio: ${behind.map(r=>r.name).join(', ')}</div>`
+      :'<div style="font-size:11px;color:#22c55e;margin-bottom:8px">All bookies at or above 1:1 non-promo ratio ✓</div>';
+    byBkHtml=statLine+`<table>
+      <thead><tr><th>Bookie</th><th class="tnum">Promos</th><th class="tnum">Non-Promos</th><th class="tnum">Ratio</th><th class="tnum">Avg Price vs BSP</th></tr></thead>
+      <tbody>${bkRatioRows.map(r=>`<tr><td>${r.name}</td><td class="tnum">${r.pc}</td><td class="tnum">${r.npc}</td>
+      <td class="tnum" style="color:${r.ratioColor};font-weight:700">${r.ratioStr}</td>
+      <td class="tnum" style="color:${r.avgRatioColor2}">${r.avgRatioStr2}</td></tr>`).join('')}
+      </tbody></table>`;
+  }
+
+  const sec=(key,title,body)=>`<div style="border:1px solid var(--bdr);border-radius:8px;overflow:hidden;margin-bottom:12px">
+    <div style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;background:var(--surf);user-select:none" onclick="toggleDtSec('${key}')">
+      <span id="dtchev-${key}" style="font-size:10px;color:var(--tx4)">${_dtSec[key]?'▶':'▼'}</span>
+      <span style="font-weight:600;font-size:13px">${title}</span>
+    </div>
+    <div id="dtsec-${key}" style="display:${_dtSec[key]?'none':''};padding:12px 14px">${body}</div>
+  </div>`;
+
+  document.getElementById('dt-content').innerHTML=
+    sec('monthly','Monthly Breakdown',monthHtml)+
+    sec('bonuses','Bonus History',bonHtml)+
+    sec('bypromo','By Promo Type',byPromoHtml)+
+    sec('bynp','By Non-Promo Type',byNpHtml)+
+    sec('bookies','By Bookie P&L',bkPnlHtml)+
+    sec('bybookie','By Bookie Promo/Non-Promo Ratio',byBkHtml);
+}
+
+
+// ── Edit Bonus (coach) ───────────────────────────────────────────────────────
+function startEditBonus(bonId){
+  if(!_detail)return;
+  const b=_detail.data.bonuses.find(x=>x.id===bonId);
+  if(!b)return;
+  const row=document.getElementById('bon-row-'+bonId);
+  if(!row)return;
+  const bkOpts=_detail.bookies.map(bk=>`<option value="${bk.id}"${bk.id===b.bookieId?' selected':''}>${bk.alias||bk.name||'?'}</option>`).join('');
+  const resOpts=['Pending','Win','Loss','Cleared'].map(r=>`<option${r===b.result?' selected':''}>${r}</option>`).join('');
+  row.outerHTML=`<tr id="bon-row-${bonId}" style="background:var(--bdr2)">
+    <td><input id="ebn-date-${bonId}" value="${b.createdAt?b.createdAt.slice(0,10):''}" style="width:92px"></td>
+    <td><select id="ebn-bk-${bonId}">${bkOpts}</select></td>
+    <td><input id="ebn-face-${bonId}" type="number" step="0.01" value="${b.bonusAmount||''}" style="width:60px"></td>
+    <td><input id="ebn-lstake-${bonId}" type="number" step="0.01" value="${b.layStake||''}" placeholder="—" style="width:60px"></td>
+    <td><input id="ebn-lodds-${bonId}" type="number" step="0.01" value="${b.layOdds||''}" placeholder="—" style="width:55px"></td>
+    <td><input id="ebn-odds-${bonId}" type="number" step="0.01" value="${b.fixedOdds||''}" placeholder="—" style="width:55px"></td>
+    <td><select id="ebn-res-${bonId}">${resOpts}</select></td>
+    <td></td>
+    <td style="white-space:nowrap">
+      <button class="btn btn-p btn-xs" onclick="saveEditBonus('${bonId}')">Save</button>
+      <button class="btn btn-s btn-xs" onclick="reRenderBonusTab()" style="margin-left:4px">✕</button>
+    </td>
+  </tr>`;
+}
+function reRenderBonusTab(){
+  if(!_detail)return;
+  const s=_detail;
+  const bkMap=Object.fromEntries(s.bookies.map(bk=>[bk.id,bk.alias||bk.name||'?']));
+  const sortedBon=[...s.bonuses].sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
+  document.getElementById('bonus-count').textContent=s.bonuses.length+' total \xb7 '+s.bonuses.filter(b=>b.result!=='Pending').length+' resolved';
+  document.getElementById('d-bonus-table').innerHTML=sortedBon.length?sortedBon.map(b=>{
+    const pnl=_bonPnl(b);
+    return`<tr id="bon-row-${b.id}"><td>${b.createdAt?b.createdAt.slice(0,10):'—'}</td><td>${bkMap[b.bookieId]||'?'}</td>
+      <td class="tnum">$${(b.bonusAmount||0).toLocaleString('en-AU',{maximumFractionDigits:0})}</td>
+      <td class="tnum">${b.layStake?'$'+b.layStake:'—'}</td><td class="tnum">${b.layOdds||'—'}</td><td class="tnum">${b.fixedOdds||'—'}</td>
+      <td>${b.result}</td><td class="tnum" style="color:${fmtC(pnl)}">${b.result!=='Pending'?fmt$(pnl):'—'}</td>
+      <td><button class="btn btn-s btn-xs" onclick="startEditBonus('${b.id}')">Edit</button></td></tr>`;
+  }).join(''):'<tr><td colspan="9" class="empty">No bonuses</td></tr>';
+}
+async function saveEditBonus(bonId){
+  if(!_detail)return;
+  const bIdx=_detail.data.bonuses.findIndex(x=>x.id===bonId);
+  if(bIdx===-1)return;
+  const b=_detail.data.bonuses[bIdx];
+  const dateVal=document.getElementById('ebn-date-'+bonId)?.value||'';
+  const bookieId=document.getElementById('ebn-bk-'+bonId)?.value||b.bookieId;
+  const faceRaw=document.getElementById('ebn-face-'+bonId)?.value;
+  const bonusAmount=faceRaw!==''&&faceRaw!=null?parseFloat(faceRaw):b.bonusAmount;
+  const lsRaw=document.getElementById('ebn-lstake-'+bonId)?.value;
+  const layStake=lsRaw!==''&&lsRaw!=null?parseFloat(lsRaw):null;
+  const loRaw=document.getElementById('ebn-lodds-'+bonId)?.value;
+  const layOdds=loRaw!==''&&loRaw!=null?parseFloat(loRaw):null;
+  const oddsRaw=document.getElementById('ebn-odds-'+bonId)?.value;
+  const fixedOdds=oddsRaw!==''&&oddsRaw!=null?parseFloat(oddsRaw):null;
+  const result=document.getElementById('ebn-res-'+bonId)?.value||b.result;
+  const createdAt=dateVal?(dateVal+'T00:00:00.000Z'):b.createdAt;
+  const updated={...b,createdAt,bookieId,bonusAmount,layStake:layStake||null,layOdds:layOdds||null,fixedOdds:fixedOdds||null,result,updatedAt:new Date().toISOString()};
+  const newBonuses=[..._detail.data.bonuses];
+  newBonuses[bIdx]=updated;
+  const newData={..._detail.data,bonuses:newBonuses};
+  const{error}=await supa.from('user_data').update({data:newData,updated_at:new Date().toISOString()}).eq('user_id',_detail.userId);
+  if(error){toast('Error saving: '+error.message,'err');return;}
+  _detail.data.bonuses=newBonuses;
+  _detail.bonuses=newBonuses.filter(x=>x.result!=='split'&&!x.deleted);
+  reRenderBonusTab();
+  toast('Bonus updated','ok');
+}
+
 
 function setupRealtime(){
   if(_rtActive)return;_rtActive=true;
