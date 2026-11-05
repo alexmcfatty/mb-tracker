@@ -1680,7 +1680,7 @@ function updateBonusEV(id){
 function editCompletedBonus(id){
   if(!navigator.onLine){toast('No internet — cannot edit','warn');return;}
   const bonuses=ls(K.bonuses,[]);const b=bonuses.find(x=>x.id===id);if(!b)return;
-  b.result='Pending';b.fixedOdds=null;b.bsp=null;b.updatedAt=now();
+  b.result='Pending';b.fixedOdds=null;b.bsp=null;b.layStake=null;b.layOdds=null;b.updatedAt=now();
   ss(K.bonuses,bonuses);renderBonuses();renderDashboard();toast('Bonus reset to pending');
 }
 function deleteCompletedBonus(id){
@@ -2029,6 +2029,37 @@ function renderPromoData(bets,bonuses,cfg){
 
 function sum(rows,key){return rows.reduce((s,r)=>s+(r[key]||0),0)}
 
+function renderBookieData(bets,cfg){
+  const allBk=ls(K.bookies,[]);
+  const el=document.getElementById('data-bybookie');
+  const statsEl=document.getElementById('data-bybookie-stats');
+  if(!el)return;
+  const allBets=ls(K.bets,[]).filter(b=>!b.deleted);
+  const relevantBets=allBets.filter(b=>b.betCategory==='promo'||b.betCategory==='non-promo');
+  if(!relevantBets.length){if(statsEl)statsEl.innerHTML='';el.innerHTML='<div class="empty">No bets logged yet</div>';return}
+  const bookieIds=[...new Set(relevantBets.map(b=>b.bookieId))];
+  const rows=bookieIds.map(bkId=>{
+    const bk=allBk.find(x=>x.id===bkId);
+    const name=bk?(bk.alias||bk.name):'Unknown';
+    const promos=relevantBets.filter(b=>b.bookieId===bkId&&b.betCategory==='promo');
+    const nonpromos=relevantBets.filter(b=>b.bookieId===bkId&&b.betCategory==='non-promo');
+    const pc=promos.length;
+    const npc=nonpromos.length;
+    const ratio=pc>0?(npc/pc):null;
+    const ratioOk=ratio!==null&&ratio>=0.95;
+    const ratioStr=ratio===null?'-':(ratio*100).toFixed(0)+'%';
+    const ratioColor=ratio===null?'#64748b':ratioOk?'#22c55e':'#ef4444';
+    const npWithBsp=nonpromos.filter(b=>b.fixedOdds&&b.bsp&&b.result!=='Pending'&&b.result!=='Void');
+    const avgRatio=npWithBsp.length?npWithBsp.reduce((s,b)=>s+(b.fixedOdds/b.bsp),0)/npWithBsp.length:null;
+    const avgRatioStr=avgRatio!==null?(avgRatio*100).toFixed(1)+'%':'-';
+    const avgRatioColor=avgRatio===null?'#64748b':avgRatio>=0.95?'#22c55e':'#f59e0b';
+    return{name,pc,npc,ratioStr,ratioColor,avgRatioStr,avgRatioColor};
+  }).sort((a,b)=>b.pc-a.pc);
+  const behind=rows.filter(r=>r.ratioColor==='#ef4444');
+  if(statsEl)statsEl.innerHTML=behind.length?`<div style="font-size:11px;color:#ef4444;margin-bottom:6px">${behind.length} bookie${behind.length>1?'s':''} below 1:1 ratio: ${behind.map(r=>r.name).join(', ')}</div>`:'<div style="font-size:11px;color:#22c55e;margin-bottom:6px">All bookies at or above 1:1 non-promo ratio</div>';
+  el.innerHTML=`<table><thead><tr><th>Bookie</th><th>Promos</th><th>Non-Promos</th><th>Ratio</th><th>Avg Price vs BSP</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r.name}</td><td>${r.pc}</td><td>${r.npc}</td><td style="color:${r.ratioColor};font-weight:700">${r.ratioStr}</td><td style="color:${r.avgRatioColor}">${r.avgRatioStr}</td></tr>`).join('')}</tbody></table>`;
+}
+
 function renderWeeklyAvg(bets,bonuses,cfg){
   const el=document.getElementById('data-weekly');if(!el)return;
   const nonVoid=bets.filter(b=>b.result!=='Void');
@@ -2133,38 +2164,6 @@ function renderNonPromoData(bets,cfg){
       <td class="${clr(totNetPct)}">${fmtP(totNetPct)}</td>
     </tr></tfoot>
   </table>`;
-}
-
-function renderBookieData(bets,cfg){
-  const allBk=ls(K.bookies,[]);
-  const el=document.getElementById('data-bybookie');
-  const statsEl=document.getElementById('data-bybookie-stats');
-  if(!el)return;
-  // Read directly from storage so date filter doesn't affect this section
-  const allBets=ls(K.bets,[]).filter(b=>!b.deleted);
-  const relevantBets=allBets.filter(b=>b.betCategory==='promo'||b.betCategory==='non-promo');
-  if(!relevantBets.length){if(statsEl)statsEl.innerHTML='';el.innerHTML='<div class="empty">No bets logged yet</div>';return}
-  const bookieIds=[...new Set(relevantBets.map(b=>b.bookieId))];
-  const rows=bookieIds.map(bkId=>{
-    const bk=allBk.find(x=>x.id===bkId);
-    const name=bk?(bk.alias||bk.name):'Unknown';
-    const promos=relevantBets.filter(b=>b.bookieId===bkId&&b.betCategory==='promo');
-    const nonpromos=relevantBets.filter(b=>b.bookieId===bkId&&b.betCategory==='non-promo');
-    const pc=promos.length;
-    const npc=nonpromos.length;
-    const ratio=pc>0?(npc/pc):null;
-    const ratioOk=ratio!==null&&ratio>=0.95;
-    const ratioStr=ratio===null?'-':(ratio*100).toFixed(0)+'%';
-    const ratioColor=ratio===null?'#64748b':ratioOk?'#22c55e':'#ef4444';
-    const npWithBsp=nonpromos.filter(b=>b.fixedOdds&&b.bsp&&b.result!=='Pending'&&b.result!=='Void');
-    const avgRatio=npWithBsp.length?npWithBsp.reduce((s,b)=>s+(b.fixedOdds/b.bsp),0)/npWithBsp.length:null;
-    const avgRatioStr=avgRatio!==null?(avgRatio*100).toFixed(1)+'%':'-';
-    const avgRatioColor=avgRatio===null?'#64748b':avgRatio>=0.95?'#22c55e':'#f59e0b';
-    return{name,pc,npc,ratioStr,ratioColor,avgRatioStr,avgRatioColor};
-  }).sort((a,b)=>b.pc-a.pc);
-  const behind=rows.filter(r=>r.ratioColor==='#ef4444');
-  if(statsEl)statsEl.innerHTML=behind.length?`<div style="font-size:11px;color:#ef4444;margin-bottom:6px">${behind.length} bookie${behind.length>1?'s':''} below 1:1 ratio: ${behind.map(r=>r.name).join(', ')}</div>`:'<div style="font-size:11px;color:#22c55e;margin-bottom:6px">All bookies at or above 1:1 non-promo ratio</div>';
-  el.innerHTML=`<table><thead><tr><th>Bookie</th><th>Promos</th><th>Non-Promos</th><th>Ratio</th><th>Avg Price vs BSP</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r.name}</td><td>${r.pc}</td><td>${r.npc}</td><td style="color:${r.ratioColor};font-weight:700">${r.ratioStr}</td><td style="color:${r.avgRatioColor}">${r.avgRatioStr}</td></tr>`).join('')}</tbody></table>`;
 }
 
 function filterBookieTable(q){
@@ -2985,11 +2984,7 @@ if(_shareParam){
 }
 </script>
 <script>
-if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>{
-    navigator.serviceWorker.register('/sw.js').catch(()=>{});
-  });
-}
+// service worker removed
 </script>
 
 <script>
