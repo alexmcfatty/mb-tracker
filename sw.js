@@ -26,8 +26,9 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
-  // Always pass Supabase requests to network
+  // Always pass API requests directly to network — never cache these
   if (url.hostname.includes('supabase.co')) return;
+  if (url.hostname.includes('anthropic.com')) return;
 
   e.respondWith(
     caches.match(e.request).then(cached => {
