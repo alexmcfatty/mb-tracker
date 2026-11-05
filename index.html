@@ -3283,14 +3283,18 @@ async function sendAgentMsg(){
   if(el){el.appendChild(typing);el.scrollTop=el.scrollHeight;}
 
   try{
+    console.log('[agent] sendAgentMsg start, key length:', key?.length);
     const messages=_agentHistory.slice(-20).map(m=>({role:m.role,content:m.content}));
+    console.log('[agent] messages count:', messages.length);
     messages[messages.length-1].content += _agentLiveContext();
+    console.log('[agent] live context appended');
 
     // Build system: cached knowledge base + live student profile (not cached — updates regularly)
     const systemBlocks=[{type:'text',text:AGENT_SYSTEM,cache_control:{type:'ephemeral',ttl:'1h'}}];
     if(_studentProfile){
       systemBlocks.push({type:'text',text:'\n\n[STUDENT COACHING PROFILE — COACHING NOTES FROM PREVIOUS SESSIONS]\n'+_studentProfile,cache_control:{type:'ephemeral',ttl:'1h'}});
     }
+    console.log('[agent] about to fetch anthropic');
 
     const resp=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
@@ -3308,7 +3312,9 @@ async function sendAgentMsg(){
         messages
       })
     });
+    console.log('[agent] fetch done, status:', resp.status);
     const data=await resp.json();
+    console.log('[agent] response data:', JSON.stringify(data).slice(0,300));
     if(data.error)throw new Error(data.error.message);
     const reply=data.content?.[0]?.text||'Sorry, no response.';
     typing.remove();
@@ -3319,6 +3325,7 @@ async function sendAgentMsg(){
     if(_profileMsgCount%6===0) _updateStudentProfile(_agentApiKey);
 
   }catch(e){
+    console.log('[agent] caught error:', e.message, e.stack);
     typing.remove();
     appendAgentMsg('assistant','Error: '+e.message);
   }finally{
