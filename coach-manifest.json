@@ -2,6 +2,7 @@
   "name": "Coach Dashboard",
   "short_name": "Coach",
   "start_url": "/coach.html",
+  "scope": "/coach.html",
   "display": "standalone",
   "background_color": "#4b5563",
   "theme_color": "#4b5563",
