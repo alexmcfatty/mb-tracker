@@ -758,7 +758,7 @@ const DEF_BONUS_TYPES=['Horses','Dogs','Trots','Sports'];
 const DEF_BOOKIES=[];
 const DEF_PROMOS=[{id:uid(),name:'Money Back 2nd/3rd',ev:15},{id:uid(),name:'3 Leg 1 Fail',ev:30},{id:uid(),name:'Free Hit',ev:60},{id:uid(),name:'365 Megaboost',ev:20}];
 const DEF_NPT=['Horse','Dogs','Trots','Sports'].map(n=>({id:uid(),name:n}));
-const DEF_SETTINGS={extractionRate:83,triggerRate:23,promoEvPct:8,profitOffset:0,kellyBank:0,kellyFraction:4,cpDone:false,bonusTurnoverMethod:'nolay'};
+const DEF_SETTINGS={extractionRate:83,triggerRate:23,promoEvPct:8,profitOffset:0,kellyBank:0,kellyFraction:4,cpDone:false};
 
 // ── UTILS ─────────────────────────────────────────────────────────────────────
 function uid(){return Math.random().toString(36).slice(2,9)+Date.now().toString(36)}
@@ -2006,13 +2006,10 @@ function confirmCustomSplit(){
 }
 
 function getBonusTurnoverMethod(){
-  const s=ls(K.settings,DEF_SETTINGS);
-  return s.bonusTurnoverMethod||'nolay';
+  return localStorage.getItem('mb_bonus_method')||'nolay';
 }
 function setBonusTurnoverMethod(method){
-  const s=ls(K.settings,DEF_SETTINGS);
-  s.bonusTurnoverMethod=method;
-  ss(K.settings,s);
+  localStorage.setItem('mb_bonus_method',method);
   updateBonusMethodUI();
   renderBonuses();
 }
