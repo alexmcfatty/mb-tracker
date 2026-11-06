@@ -475,6 +475,18 @@ select option{background:var(--sel-opt)}
     </div>
   </div>
 
+  <div class="acc-card" id="acc-bonus-method">
+    <div class="acc-hdr" onclick="toggleAcc('bonus-method')"><span>Bonus Turnover Method</span><span class="acc-chev">▼</span></div>
+    <div class="acc-body" style="display:none">
+      <p style="font-size:12px;color:var(--tx5);margin-bottom:12px">Controls how pending bonuses look in the Bonuses tab.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+        <button id="btn-method-lay" class="btn btn-sm btn-s" style="min-width:130px;font-size:13px;padding:10px 18px" onclick="setBonusTurnoverMethod('lay')">🎯 Lay (Betfair)</button>
+        <button id="btn-method-nolay" class="btn btn-sm btn-s" style="min-width:130px;font-size:13px;padding:10px 18px" onclick="setBonusTurnoverMethod('nolay')">🏇 No Lay</button>
+      </div>
+      <div id="bonus-method-desc" style="font-size:12px;color:var(--tx5)"></div>
+    </div>
+  </div>
+
   <div class="acc-card" id="acc-bookies">
     <div class="acc-hdr" onclick="toggleAcc('bookies')"><span>Bookies</span><span class="acc-chev">▼</span></div>
     <div class="acc-body" style="display:none">
@@ -698,7 +710,7 @@ const DEF_BONUS_TYPES=['Horses','Dogs','Trots','Sports'];
 const DEF_BOOKIES=[];
 const DEF_PROMOS=[{id:uid(),name:'Money Back 2nd/3rd',ev:15},{id:uid(),name:'3 Leg 1 Fail',ev:30},{id:uid(),name:'Free Hit',ev:60},{id:uid(),name:'365 Megaboost',ev:20}];
 const DEF_NPT=['Horse','Dogs','Trots','Sports'].map(n=>({id:uid(),name:n}));
-const DEF_SETTINGS={extractionRate:83,triggerRate:23,promoEvPct:8,profitOffset:0,kellyBank:0,kellyFraction:4,cpDone:false};
+const DEF_SETTINGS={extractionRate:83,triggerRate:23,promoEvPct:8,profitOffset:0,kellyBank:0,kellyFraction:4,cpDone:false,bonusTurnoverMethod:'nolay'};
 
 // ── UTILS ─────────────────────────────────────────────────────────────────────
 function uid(){return Math.random().toString(36).slice(2,9)+Date.now().toString(36)}
@@ -1770,6 +1782,29 @@ function confirmCustomSplit(){
   ss(K.bonuses,bonuses);closeSplitModal();
   toast(`${fmt$(amt)} ready to place, ${fmt$(rem)} stays pending`,'info');
   renderBonuses();
+}
+
+function getBonusTurnoverMethod(){
+  const s=ls(K.settings,DEF_SETTINGS);
+  return s.bonusTurnoverMethod||'nolay';
+}
+function setBonusTurnoverMethod(method){
+  const s=ls(K.settings,DEF_SETTINGS);
+  s.bonusTurnoverMethod=method;
+  ss(K.settings,s);
+  updateBonusMethodUI();
+  renderBonuses();
+}
+function updateBonusMethodUI(){
+  const m=getBonusTurnoverMethod();
+  const btnLay=document.getElementById('btn-method-lay');
+  const btnNolay=document.getElementById('btn-method-nolay');
+  const desc=document.getElementById('bonus-method-desc');
+  if(btnLay){btnLay.classList.toggle('btn-p',m==='lay');btnLay.classList.toggle('btn-s',m!=='lay');}
+  if(btnNolay){btnNolay.classList.toggle('btn-p',m==='nolay');btnNolay.classList.toggle('btn-s',m!=='nolay');}
+  if(desc)desc.textContent=m==='lay'
+    ?'Lay mode: enter lay details on Betfair, then log Win/Loss.'
+    :'No Lay mode: log Win or Loss directly — no Betfair step needed.';
 }
 
 function confirmEqualSplit(){
