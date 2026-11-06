@@ -695,9 +695,9 @@ select option{background:var(--sel-opt)}
 // ── CONSTANTS ────────────────────────────────────────────────────────────────
 const K={bets:'mb_bets',bonuses:'mb_bonuses',bookies:'mb_bookies',promos:'mb_promos',npt:'mb_npt',adj:'mb_adj',settings:'mb_settings',btypes:'mb_btypes',balances:'mb_balances',txns:'mb_txns',bankAccounts:'mb_bank_accounts',bankTxns:'mb_bank_txns',bankBals:'mb_bank_bals',agentProfile:'mb_agent_profile'};
 const DEF_BONUS_TYPES=['Horses','Dogs','Trots','Sports'];
-const DEF_BOOKIES=[{n:'TAB',a:'TAB'},{n:'Sportsbet',a:'SB'},{n:'Bet365',a:'365'},{n:'Neds',a:'Neds'},{n:'Ladbrokes',a:'Lads'},{n:'Unibet',a:'UB'},{n:'BlueBet',a:'BB'},{n:'Pointsbet',a:'PB'}].map(b=>({id:uid(),name:b.n,alias:b.a,active:true}));
-const DEF_PROMOS=['2nd 3rd Back','2nd Back','Double Winnings','25% Bonus Boost','Dogs Boost','Horse Boost','Trots Boost','Sports Boost','3 Leg 1 Fail','Free Hit','2 Leg Free Hit','365 Megaboost'].map(n=>({id:uid(),name:n}));
-const DEF_NPT=['horses','trotters','dogs','rocketboost','HKR','Degen','H2H','Price Comparison','Bet365 multiboost','Pinnacle EV Multi','Pinnacle EV','Top 4 multi','Betfair EV','Tab -1','First team scorer','NZ Gallop','2 Way Dutch'].map(n=>({id:uid(),name:n}));
+const DEF_BOOKIES=[];
+const DEF_PROMOS=[{id:uid(),name:'Money Back 2nd/3rd',ev:15},{id:uid(),name:'3 Leg 1 Fail',ev:30},{id:uid(),name:'Free Hit',ev:60},{id:uid(),name:'365 Megaboost',ev:20}];
+const DEF_NPT=['Horse','Dogs','Trots','Sports'].map(n=>({id:uid(),name:n}));
 const DEF_SETTINGS={extractionRate:83,triggerRate:23,promoEvPct:8,profitOffset:0,kellyBank:0,kellyFraction:4,cpDone:false};
 
 // ── UTILS ─────────────────────────────────────────────────────────────────────
