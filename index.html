@@ -961,12 +961,12 @@ supa.auth.onAuthStateChange(async(event,session)=>{
   if(event==='USER_UPDATED'){
     document.getElementById('invite-modal').classList.remove('open');
     toast('Account activated — welcome!','ok');
-    await supaLoad();init();renderDashboard();setupRealtimeSync();
+    await supaLoad();if(!localStorage.getItem('mb_bonus_method')){const _bm=ls(K.settings,{}).bonusTurnoverMethod;if(_bm)localStorage.setItem('mb_bonus_method',_bm);}init();renderDashboard();setupRealtimeSync();
   }else if(event==='INITIAL_SESSION'&&_syncUser){
-    await supaLoad();init();renderDashboard();setupRealtimeSync();
+    await supaLoad();if(!localStorage.getItem('mb_bonus_method')){const _bm=ls(K.settings,{}).bonusTurnoverMethod;if(_bm)localStorage.setItem('mb_bonus_method',_bm);}init();renderDashboard();setupRealtimeSync();
   }else if(event==='SIGNED_IN'){
     toast('Syncing your data…','info');
-    await supaLoad();init();renderDashboard();
+    await supaLoad();if(!localStorage.getItem('mb_bonus_method')){const _bm=ls(K.settings,{}).bonusTurnoverMethod;if(_bm)localStorage.setItem('mb_bonus_method',_bm);}init();renderDashboard();
     toast('Data loaded','ok');
     setupRealtimeSync();
   }
@@ -2010,6 +2010,7 @@ function getBonusTurnoverMethod(){
 }
 function setBonusTurnoverMethod(method){
   localStorage.setItem('mb_bonus_method',method);
+  const s=ls(K.settings,DEF_SETTINGS);s.bonusTurnoverMethod=method;ss(K.settings,s);
   updateBonusMethodUI();
   renderBonuses();
 }
