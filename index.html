@@ -355,22 +355,6 @@ select option{background:var(--sel-opt)}
           </div>
         </div>
         <div id="cr-warning" style="display:none;font-size:11px;color:#92400e;margin-bottom:10px;padding:8px 10px;background:#fef3c7;border-radius:6px;border:1px solid #fcd34d"></div>
-        <div id="calc-log-form" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid #e2e8f0">
-          <div style="font-size:12px;font-weight:600;margin-bottom:8px;color:#475569">Log this lay bet</div>
-          <div class="form-grid" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr));margin-bottom:8px">
-            <div class="fg"><label class="lbl">Bookie</label><input type="text" id="calc-bookie" placeholder="Type bookie name…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" list="calc-bookie-list" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid #cbd5e1;border-radius:6px" onkeydown="calcFieldKey(event,'bookie')"><datalist id="calc-bookie-list"></datalist></div>
-            <div class="fg"><label class="lbl">Date</label><input type="date" id="calc-date" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid #cbd5e1;border-radius:6px" onkeydown="calcFieldKey(event,'date')"></div>
-            <div class="fg"><label class="lbl">Notes</label><input type="text" id="calc-notes" placeholder="Optional" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid #cbd5e1;border-radius:6px" onkeydown="calcFieldKey(event,'notes')"></div>
-          </div>
-          <div style="font-size:11px;color:#64748b;margin-bottom:8px">⚠️ Remember 10% Betfair commission is already factored into the locked return above.</div>
-          <div class="flex gap-2">
-            <button class="btn btn-p btn-sm" onclick="saveLogFromCalc()">Save Lay Bet</button>
-            <button class="btn btn-s btn-sm" onclick="document.getElementById('calc-log-form').style.display='none'">Cancel</button>
-          </div>
-        </div>
-        <div id="calc-log-btn-row" style="margin-top:8px">
-          <button class="btn btn-p btn-sm" onclick="openCalcLogForm()">Log Lay Bet</button>
-        </div>
       </div>
     </div>
     <div id="pending-list"></div>
@@ -1692,7 +1676,7 @@ function renderBonuses(){
 
   const hel=document.getElementById('bonus-history');
   if(!completed.length){hel.innerHTML='<div class="empty">No completed bonus bets yet</div>';document.getElementById('bonus-totals').innerHTML='';const adjDate=document.getElementById('adj-date');if(adjDate&&!adjDate.value)adjDate.value=today();renderAdjList();return}
-  hel.innerHTML=`<table><thead><tr><th>Date</th><th>Type</th><th>Bookie</th><th>Bonus $</th><th>Odds</th><th>BSP</th><th>EV%</th><th>Result</th><th>Profit</th><th></th></tr></thead><tbody>${completed.map(b=>{const p=bonusPnl(b);const ev=(b.fixedOdds&&b.bsp)?((b.fixedOdds-1)/b.bsp*100).toFixed(1)+'%':'-';return`<tr><td>${fmtDt(b.createdAt)}</td><td>${b.sourceType==='deposit_match'?badge('Deposit Match'):b.sourceType==='free_hit'?badge('Free Hit'):b.sourceType==='money_back'?badge('Money Back'):badge('Bonus')}</td><td>${bkName(b.bookieId)}</td><td>${fmt$(b.bonusAmount)}</td><td>${b.fixedOdds||'-'}</td><td>${b.bsp||(b.layOdds?'Lay '+b.layOdds:'-')}</td><td class="bl">${ev}</td><td>${badge(b.result)}</td><td class="${clr(p)}">${fmt$(p)}</td><td style="white-space:nowrap"><button class="btn btn-s btn-xs" onclick="editCompletedBonus('${b.id}')">Edit</button> <button class="btn btn-d btn-xs" onclick="deleteCompletedBonus('${b.id}')">Del</button></td></tr>`}).join('')}</tbody></table>`;
+  hel.innerHTML=`<table><thead><tr><th>Date</th><th>Type</th><th>Bookie</th><th>Bonus $</th><th>Odds</th><th>Lay odds</th><th>Lay stake</th><th>Liability</th><th>BSP</th><th>EV%</th><th>Result</th><th>Profit</th><th></th></tr></thead><tbody>${completed.map(b=>{const p=bonusPnl(b);const hasLay=b.layStake&&b.layOdds;const ev=(b.fixedOdds&&b.bsp)?((b.fixedOdds-1)/b.bsp*100).toFixed(1)+'%':'-';return`<tr><td>${fmtDt(b.createdAt)}</td><td>${b.sourceType==='deposit_match'?badge('Deposit Match'):b.sourceType==='free_hit'?badge('Free Hit'):b.sourceType==='money_back'?badge('Money Back'):badge('Bonus')}</td><td>${bkName(b.bookieId)}</td><td>${fmt$(b.bonusAmount)}</td><td>${b.fixedOdds||'-'}</td><td>${hasLay?b.layOdds:'-'}</td><td>${hasLay?fmt$(b.layStake):'-'}</td><td>${hasLay?fmt$(b.layStake*(b.layOdds-1)):'-'}</td><td>${b.bsp||'-'}</td><td class="bl">${ev}</td><td>${badge(b.result)}</td><td class="${clr(p)}">${fmt$(p)}</td><td style="white-space:nowrap"><button class="btn btn-s btn-xs" onclick="editCompletedBonus('${b.id}')">Edit</button> <button class="btn btn-d btn-xs" onclick="deleteCompletedBonus('${b.id}')">Del</button></td></tr>`}).join('')}</tbody></table>`;
   const face=completed.reduce((s,b)=>s+b.bonusAmount,0);
   const pnl=completed.reduce((s,b)=>s+bonusPnl(b),0);
   const wins=completed.filter(b=>b.result==='Win'&&b.fixedOdds);
@@ -1809,7 +1793,7 @@ function layFieldKey(e,id,field){
 }
 function calcFieldKey(e,field){
   if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();return;}
-  const order=['bonus','back','lay','balance','bookie','date','notes'];
+  const order=['bonus','back','lay','balance'];
   const idx=order.indexOf(field);
   const next=id=>document.getElementById('calc-'+id)?.focus();
   if((e.key==='ArrowRight'||e.key==='Enter')&&idx<order.length-1){e.preventDefault();next(order[idx+1]);}
@@ -1852,47 +1836,6 @@ function calcBonus(){
     warn.innerHTML=`Liability ${fmt$(liability)} exceeds Betfair balance ${fmt$(balance)}.<br>Biggest bonus that fits: <strong>${fmt$(maxBonus)}</strong>`;
   }else{warn.style.display='none';}
 }
-function openCalcLogForm(){
-  const form=document.getElementById('calc-log-form');
-  const sel=document.getElementById('calc-bookie');
-  const bookies=ls(K.bookies,[]);
-  document.getElementById('calc-bookie-list').innerHTML=bookies.map(bk=>`<option value="${bk.name}">`).join('');
-  if(!ls(K.bookies,[]).length){toast('Add a bookie in Settings first','warn');return;}
-  document.getElementById('calc-date').value=today();
-  document.getElementById('calc-log-btn-row').style.display='none';
-  form.style.display='block';
-}
-function saveLogFromCalc(){
-  const bonus=parseFloat(document.getElementById('calc-bonus').value);
-  const back=parseFloat(document.getElementById('calc-back').value);
-  const lay=parseFloat(document.getElementById('calc-lay').value);
-  const bkN=document.getElementById('calc-bookie').value.trim();const bookieId=(ls(K.bookies,[]).find(b=>(b.alias||b.name).toLowerCase()===bkN.toLowerCase())||{}).id;
-  const date=document.getElementById('calc-date').value;
-  const notes=document.getElementById('calc-notes').value.trim();
-  const comm=0.10;
-  if(!bonus||!back||!lay||!bookieId||!bkN){toast('Fill in all calculator fields first','warn');return;}
-  const layStake=Math.round(bonus*(back-1)/(lay-comm)*100)/100;
-  const bonuses=ls(K.bonuses,[]);
-  bonuses.push({id:uid(),bookieId,bonusAmount:bonus,result:'Pending',createdAt:date?new Date(date).toISOString():new Date().toISOString(),notes,layStake,layOdds:lay,backOdds:back});
-  ss(K.bonuses,bonuses);scheduleSync();
-  // deduct liability from saved Betfair balance
-  const liability=Math.round(layStake*(lay-1)*100)/100;
-  const s2=ls(K.settings,DEF_SETTINGS);
-  if(s2.calcBfBalance!=null){s2.calcBfBalance=Math.round((s2.calcBfBalance-liability)*100)/100;ss(K.settings,s2);}
-  document.getElementById('calc-log-form').style.display='none';
-  document.getElementById('calc-log-btn-row').style.display='block';
-  document.getElementById('calc-bonus').value='';
-  document.getElementById('calc-back').value='';
-  document.getElementById('calc-lay').value='';
-  // update balance field to reflect new balance
-  const balInput=document.getElementById('calc-balance');
-  if(balInput&&s2.calcBfBalance!=null)balInput.value=s2.calcBfBalance;else if(balInput)balInput.value='';
-  document.getElementById('calc-results').style.display='none';
-  document.getElementById('calc-notes').value='';
-  renderBonuses();renderDashboard();
-  toast(`Lay logged — ${fmt$(layStake)} @ ${lay} | Betfair balance: ${fmt$(s2.calcBfBalance??0)}`,'info');
-}
-
 function deleteBonus(id,amount){
   if(!navigator.onLine){toast('No internet — cannot delete','warn');return;}
   const bsp=parseFloat(prompt(`Enter BSP to calculate EV loss (bonus: ${fmt$(amount)})\nLeave blank to just delete with no EV impact:`));
