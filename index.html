@@ -845,7 +845,7 @@ function updateKellyDisplay(){
   el.innerHTML='Kelly stake: <strong>'+fmt$(k)+'</strong>';el.style.display='block';
 }
 function betType(b){if(b.betCategory==='non-promo')return b.nonPromoType||'Non-Promo';return prName(b.promoId)}
-function bonusPnl(b){if(b.result==='Win'&&b.fixedOdds)return(b.fixedOdds-1)*b.bonusAmount;return 0}
+function bonusPnl(b){if((b.result==='Win'||b.result==='Loss')&&b.layStake&&b.layOdds){const bo=b.backOdds||b.fixedOdds||0;return b.result==='Win'?(bo?(bo-1)*b.bonusAmount:0)-b.layStake*(b.layOdds-1):b.layStake*0.90}if(b.result==='Win'&&b.fixedOdds)return(b.fixedOdds-1)*b.bonusAmount;return 0}
 // active bonuses = not split
 function activeBonuses(){return ls(K.bonuses,[]).filter(b=>b.result!=='split'&&!b.deleted)}
 
@@ -1692,7 +1692,7 @@ function renderBonuses(){
 
   const hel=document.getElementById('bonus-history');
   if(!completed.length){hel.innerHTML='<div class="empty">No completed bonus bets yet</div>';document.getElementById('bonus-totals').innerHTML='';const adjDate=document.getElementById('adj-date');if(adjDate&&!adjDate.value)adjDate.value=today();renderAdjList();return}
-  hel.innerHTML=`<table><thead><tr><th>Date</th><th>Type</th><th>Bookie</th><th>Bonus $</th><th>Odds</th><th>BSP</th><th>EV%</th><th>Result</th><th>Profit</th><th></th></tr></thead><tbody>${completed.map(b=>{const p=bonusPnl(b);const ev=(b.fixedOdds&&b.bsp)?((b.fixedOdds-1)/b.bsp*100).toFixed(1)+'%':'-';return`<tr><td>${fmtDt(b.createdAt)}</td><td>${b.sourceType==='deposit_match'?badge('Deposit Match'):b.sourceType==='free_hit'?badge('Free Hit'):b.sourceType==='money_back'?badge('Money Back'):badge('Bonus')}</td><td>${bkName(b.bookieId)}</td><td>${fmt$(b.bonusAmount)}</td><td>${b.fixedOdds||'-'}</td><td>${b.bsp||'-'}</td><td class="bl">${ev}</td><td>${badge(b.result)}</td><td class="${clr(p)}">${fmt$(p)}</td><td style="white-space:nowrap"><button class="btn btn-s btn-xs" onclick="editCompletedBonus('${b.id}')">Edit</button> <button class="btn btn-d btn-xs" onclick="deleteCompletedBonus('${b.id}')">Del</button></td></tr>`}).join('')}</tbody></table>`;
+  hel.innerHTML=`<table><thead><tr><th>Date</th><th>Type</th><th>Bookie</th><th>Bonus $</th><th>Odds</th><th>BSP</th><th>EV%</th><th>Result</th><th>Profit</th><th></th></tr></thead><tbody>${completed.map(b=>{const p=bonusPnl(b);const ev=(b.fixedOdds&&b.bsp)?((b.fixedOdds-1)/b.bsp*100).toFixed(1)+'%':'-';return`<tr><td>${fmtDt(b.createdAt)}</td><td>${b.sourceType==='deposit_match'?badge('Deposit Match'):b.sourceType==='free_hit'?badge('Free Hit'):b.sourceType==='money_back'?badge('Money Back'):badge('Bonus')}</td><td>${bkName(b.bookieId)}</td><td>${fmt$(b.bonusAmount)}</td><td>${b.fixedOdds||'-'}</td><td>${b.bsp||(b.layOdds?'Lay '+b.layOdds:'-')}</td><td class="bl">${ev}</td><td>${badge(b.result)}</td><td class="${clr(p)}">${fmt$(p)}</td><td style="white-space:nowrap"><button class="btn btn-s btn-xs" onclick="editCompletedBonus('${b.id}')">Edit</button> <button class="btn btn-d btn-xs" onclick="deleteCompletedBonus('${b.id}')">Del</button></td></tr>`}).join('')}</tbody></table>`;
   const face=completed.reduce((s,b)=>s+b.bonusAmount,0);
   const pnl=completed.reduce((s,b)=>s+bonusPnl(b),0);
   const wins=completed.filter(b=>b.result==='Win'&&b.fixedOdds);
@@ -1737,8 +1737,8 @@ function renderPcardActions(b,btOpts){
   } else {
     return `<div class="pinputs">
       <select style="width:82px;padding:4px 6px;font-size:11px" onchange="saveBonusType('${bid}',this.value)">${btOpts}</select>
-      <input class="inp-sm" type="number" id="pb-odds-${bid}" placeholder="Odds" step="0.01" min="1.01" onkeydown="bonusFieldKey(event,'${bid}','odds')" oninput="updateBonusEV('${bid}')">
-      <input class="inp-sm" type="number" id="pb-bsp-${bid}" placeholder="BSP" step="0.01" onkeydown="bonusFieldKey(event,'${bid}','bsp')" oninput="updateBonusEV('${bid}')">
+      <input class="inp-sm" type="number" id="pb-odds-${bid}" placeholder="Odds" step="0.01" min="1.01" value="${b.fixedOdds||''}" onkeydown="bonusFieldKey(event,'${bid}','odds')" oninput="updateBonusEV('${bid}')">
+      <input class="inp-sm" type="number" id="pb-bsp-${bid}" placeholder="BSP" step="0.01" value="${b.bsp||''}" onkeydown="bonusFieldKey(event,'${bid}','bsp')" oninput="updateBonusEV('${bid}')">
       <span id="pb-ev-${bid}" style="font-size:11px;color:#22c55e;font-weight:700;align-self:center"></span>
       <button id="pb-win-${bid}" class="btn btn-s btn-sm" onclick="resolveBonus('${bid}','Win')" onkeydown="if(event.key==='ArrowLeft'){event.preventDefault();document.getElementById('pb-bsp-${bid}')?.focus()}else if(event.key==='ArrowRight'){event.preventDefault();document.getElementById('pb-loss-${bid}')?.focus()}">Win</button>
       <button id="pb-loss-${bid}" class="btn btn-d btn-sm" onclick="resolveBonus('${bid}','Loss')" onkeydown="if(event.key==='ArrowLeft'){event.preventDefault();document.getElementById('pb-win-${bid}')?.focus()}">Loss</button>
@@ -1780,6 +1780,7 @@ function resolveLayBonus(id,result){
     if(backOdds)b.backOdds=backOdds;
     if(layOdds)b.layOdds=layOdds;
     if(layStake)b.layStake=layStake;
+    if(backOdds)b.fixedOdds=backOdds;
     b.result=result;b.updatedAt=now();
     ss(K.bonuses,bonuses);
     toast(result==='Win'?'Win logged':'Loss logged');
@@ -1929,7 +1930,7 @@ function updateBonusEV(id){
 function editCompletedBonus(id){
   if(!navigator.onLine){toast('No internet — cannot edit','warn');return;}
   const bonuses=ls(K.bonuses,[]);const b=bonuses.find(x=>x.id===id);if(!b)return;
-  b.result='Pending';b.fixedOdds=null;b.bsp=null;b.layStake=null;b.layOdds=null;b.updatedAt=now();
+  b.result='Pending';b.updatedAt=now();
   ss(K.bonuses,bonuses);renderBonuses();renderDashboard();toast('Bonus reset to pending');
 }
 function deleteCompletedBonus(id){
