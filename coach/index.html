@@ -879,11 +879,10 @@ async function toggleCpDone(){
   if(!_detail)return;
   const s=_detail;
   const newDone=!(s.settings?.cpDone||false);
-  const newData={...(s.data||{})};
-  newData.settings={...(newData.settings||{}),cpDone:newDone};
-  const{error}=await supa.from('user_data').update({data:newData,updated_at:new Date().toISOString()}).eq('user_id',s.userId);
+  // Server-side change of ONLY settings.cpDone, so the rest of the student's data can never be overwritten
+  const{error}=await supa.rpc('coach_set_student_settings',{target:s.userId,new_cp_done:newDone});
   if(error){toast('Error: '+error.message,'err');return;}
-  s.settings.cpDone=newDone;s.data.settings=newData.settings;
+  s.settings.cpDone=newDone;s.data.settings={...(s.data.settings||{}),cpDone:newDone};
   _refreshCpDoneBtn(s);
   toast(newDone?s.displayName+' marked as Done — agent now in reference mode':'Done mode off','ok');
 }
@@ -891,11 +890,10 @@ async function adjCP(delta){
   if(!_detail)return;
   const s=_detail,newCp=Math.max(1,(s.checkpoint||1)+delta);
   if(newCp===s.checkpoint)return;
-  const newData={...(s.data||{})};
-  newData.settings={...(newData.settings||{}),checkpoint:newCp};
-  const{error}=await supa.from('user_data').update({data:newData,updated_at:new Date().toISOString()}).eq('user_id',s.userId);
+  // Server-side change of ONLY settings.checkpoint, so the rest of the student's data can never be overwritten
+  const{error}=await supa.rpc('coach_set_student_settings',{target:s.userId,new_checkpoint:newCp});
   if(error){toast('Error: '+error.message,'err');return;}
-  s.checkpoint=newCp;s.settings.checkpoint=newCp;s.data.settings=newData.settings;
+  s.checkpoint=newCp;s.settings.checkpoint=newCp;s.data.settings={...(s.data.settings||{}),checkpoint:newCp};
   document.getElementById('d-cp').textContent='CP '+newCp;
   toast((delta>0?'Moved to':'Moved back to')+' CP '+newCp,'ok');
   renderGrid();
