@@ -1647,6 +1647,7 @@ function addDepositMatch(){
 
 function renderBonuses(){
   updateBonusMethodUI();
+  refreshCalcBalanceField();
   const bonuses=activeBonuses();
   const _bq=(document.getElementById('bonus-search')?.value||'').trim().toLowerCase();
   const pending=bonuses.filter(b=>b.result==='Pending'&&(!_bq||[bkName(b.bookieId),(b.bonusType||''),(b.notes||'')].join(' ').toLowerCase().includes(_bq)));
@@ -1706,9 +1707,9 @@ function renderPcardActions(b,btOpts){
     return `<div class="pinputs" style="flex-direction:column;gap:6px">
       ${liabDisplay}
       <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-        <input class="inp-sm" type="number" id="lf-bodds-${bid}" placeholder="Back odds" step="0.01" min="1.01" style="width:90px" value="${b.backOdds||''}" oninput="calcInlineLay('${bid}')" onkeydown="layFieldKey(event,'${bid}','bodds')">
-        <input class="inp-sm" type="number" id="lf-lodds-${bid}" placeholder="Lay odds" step="0.01" min="1.01" style="width:90px" value="${b.layOdds||''}" oninput="calcInlineLay('${bid}')" onkeydown="layFieldKey(event,'${bid}','lodds')">
-        <input class="inp-sm" type="number" id="lf-lstake-${bid}" placeholder="Lay stake" step="0.01" min="0.01" style="width:90px" value="${b.layStake||''}" data-manual="${b.layStake?'1':''}" oninput="this.dataset.manual='1';calcInlineLay('${bid}')" onkeydown="layFieldKey(event,'${bid}','lstake')">
+        <input class="inp-sm" type="number" id="lf-bodds-${bid}" placeholder="Back odds" step="0.01" min="1.01" style="width:90px" value="${b.backOdds||''}" oninput="calcInlineLay('${bid}')" onchange="saveLayDetails('${bid}')" onkeydown="layFieldKey(event,'${bid}','bodds')">
+        <input class="inp-sm" type="number" id="lf-lodds-${bid}" placeholder="Lay odds" step="0.01" min="1.01" style="width:90px" value="${b.layOdds||''}" oninput="calcInlineLay('${bid}')" onchange="saveLayDetails('${bid}')" onkeydown="layFieldKey(event,'${bid}','lodds')">
+        <input class="inp-sm" type="number" id="lf-lstake-${bid}" placeholder="Lay stake" step="0.01" min="0.01" style="width:90px" value="${b.layStake||''}" data-manual="${b.layStake?'1':''}" oninput="this.dataset.manual='1';calcInlineLay('${bid}')" onchange="saveLayDetails('${bid}')" onkeydown="layFieldKey(event,'${bid}','lstake')">
         <span id="lf-out-${bid}" style="font-size:11px;color:#22c55e;font-weight:700;align-self:center"></span>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
@@ -1757,6 +1758,7 @@ function resolveLayBonus(id,result){
   const layOdds=parseFloat(document.getElementById('lf-lodds-'+id)?.value)||0;
   const layStake=parseFloat(document.getElementById('lf-lstake-'+id)?.value)||0;
   if(!layOdds){toast('Enter lay odds first','warn');return}
+  if(!backOdds){toast('Enter back odds first','warn');return}
   const convPct=backOdds?(backOdds-1)*0.90/(layOdds-0.10)*100:0;
   if(backOdds&&convPct<70){if(!confirm('Conversion is below 70% — log anyway?'))return}
   const bonuses=ls(K.bonuses,[]);const b=bonuses.find(x=>x.id===id);
@@ -1766,6 +1768,13 @@ function resolveLayBonus(id,result){
     if(layStake)b.layStake=layStake;
     if(backOdds)b.fixedOdds=backOdds;
     b.result=result;b.updatedAt=now();
+    // Settle the Betfair balance: a Win means the lay lost, so the liability stays gone.
+    // A Loss means the lay won, so the liability comes back plus 90% of the lay stake.
+    const _st=ls(K.settings,DEF_SETTINGS);
+    if(_st.calcBfBalance!=null&&b.layStake>0&&b.layOdds>1){
+      const adj=result==='Win'?-Math.round(b.layStake*(b.layOdds-1)*100)/100:Math.round(b.layStake*0.90*100)/100;
+      _st.calcBfBalance=Math.round((_st.calcBfBalance+adj)*100)/100;b.bfAdj=adj;ss(K.settings,_st);
+    }
     ss(K.bonuses,bonuses);
     toast(result==='Win'?'Win logged':'Loss logged');
     renderBonuses();
@@ -1780,9 +1789,33 @@ function resolveNoLay(id,result){
 }
 
 // ── BONUS BET CALCULATOR ─────────────────────────────────────────────────────
+// Betfair balance: the saved number is the settled balance. Liability on lays that are
+// still pending is held back, so the calculator shows what is actually available to lay with.
+function bfReserved(){
+  return Math.round(activeBonuses().filter(b=>b.result==='Pending'&&b.layStake>0&&b.layOdds>1)
+    .reduce((t,b)=>t+b.layStake*(b.layOdds-1),0)*100)/100;
+}
+function bfAvailable(){
+  const st=ls(K.settings,DEF_SETTINGS).calcBfBalance;
+  return st==null?null:Math.round((st-bfReserved())*100)/100;
+}
+function refreshCalcBalanceField(){
+  const el=document.getElementById('calc-balance');
+  if(!el||document.activeElement===el)return;
+  const a=bfAvailable();
+  if(a!=null){el.value=a;if(typeof calcBonus==='function')calcBonus();}
+}
 function saveCalcBfBalance(){
   const v=parseFloat(document.getElementById('calc-balance')?.value);
-  if(!isNaN(v)&&v>=0){const s=ls(K.settings,DEF_SETTINGS);s.calcBfBalance=v;ss(K.settings,s);}
+  if(!isNaN(v)&&v>=0){const s=ls(K.settings,DEF_SETTINGS);s.calcBfBalance=Math.round((v+bfReserved())*100)/100;ss(K.settings,s);}
+}
+// Save the lay boxes on a pending card as soon as they are filled in, so the liability is held back
+function saveLayDetails(id){
+  const bonuses=ls(K.bonuses,[]);const b=bonuses.find(x=>x.id===id);if(!b||b.result!=='Pending')return;
+  const g=k=>parseFloat(document.getElementById('lf-'+k+'-'+id)?.value)||null;
+  const bo=g('bodds'),lo=g('lodds'),ls_=g('lstake');
+  b.backOdds=bo;b.layOdds=(lo&&lo>1)?lo:null;b.layStake=(b.layOdds&&ls_>0)?ls_:null;b.updatedAt=now();
+  ss(K.bonuses,bonuses);refreshCalcBalanceField();
 }
 function layFieldKey(e,id,field){
   if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();return;}
@@ -1874,6 +1907,7 @@ function editCompletedBonus(id){
   if(!navigator.onLine){toast('No internet — cannot edit','warn');return;}
   const bonuses=ls(K.bonuses,[]);const b=bonuses.find(x=>x.id===id);if(!b)return;
   b.result='Pending';b.updatedAt=now();
+  if(b.bfAdj){const _st=ls(K.settings,DEF_SETTINGS);if(_st.calcBfBalance!=null){_st.calcBfBalance=Math.round((_st.calcBfBalance-b.bfAdj)*100)/100;ss(K.settings,_st);}b.bfAdj=null;}
   ss(K.bonuses,bonuses);renderBonuses();renderDashboard();toast('Bonus reset to pending');
 }
 function deleteCompletedBonus(id){
@@ -1945,6 +1979,8 @@ function updateEqualPreview(){
 
 function closeSplitModal(){document.getElementById('split-modal').classList.remove('open');splitTarget=null}
 
+// A split bonus keeps its parent's type (deposit match etc.) so it still counts in EV and the deposit match totals
+function splitSource(b){return ['deposit_match','free_hit','money_back'].includes(b.sourceType)?b.sourceType:'split'}
 function confirmCustomSplit(){
   if(!splitTarget)return;
   const bonuses=ls(K.bonuses,[]);
@@ -1955,10 +1991,10 @@ function confirmCustomSplit(){
   if(!amt||amt<=0||amt>=b.bonusAmount){toast('Enter a valid amount less than total','warn');return}
   b.result='split';
   // The amount being used now
-  bonuses.push({id:uid(),parentBetId:b.parentBetId,bookieId:b.bookieId,bonusAmount:amt,fixedOdds:null,bsp:null,result:'Pending',sourceType:'split',createdAt:new Date().toISOString()});
+  bonuses.push({id:uid(),parentBetId:b.parentBetId,bookieId:b.bookieId,bonusAmount:amt,fixedOdds:null,bsp:null,result:'Pending',sourceType:splitSource(b),bonusType:b.bonusType,createdAt:new Date().toISOString()});
   // The remainder stays pending
   if(rem>0){
-    bonuses.push({id:uid(),parentBetId:b.parentBetId,bookieId:b.bookieId,bonusAmount:rem,fixedOdds:null,bsp:null,result:'Pending',sourceType:'split',createdAt:new Date().toISOString()});
+    bonuses.push({id:uid(),parentBetId:b.parentBetId,bookieId:b.bookieId,bonusAmount:rem,fixedOdds:null,bsp:null,result:'Pending',sourceType:splitSource(b),bonusType:b.bonusType,createdAt:new Date().toISOString()});
   }
   ss(K.bonuses,bonuses);closeSplitModal();
   toast(`${fmt$(amt)} ready to place, ${fmt$(rem)} stays pending`,'info');
@@ -1993,7 +2029,7 @@ function updateBonusMethodUI(){
       if(balInput&&!balInput.value){
         const s=ls(K.settings,DEF_SETTINGS);
         const saved=s.calcBfBalance;
-        if(saved!=null){balInput.value=saved;}
+        if(saved!=null){balInput.value=Math.round((saved-bfReserved())*100)/100;}
         else{const bfData=getBetfairBalance();if(bfData&&bfData.balance)balInput.value=bfData.balance;}
       }
     }
@@ -2010,7 +2046,7 @@ function confirmEqualSplit(){
   b.result='split';
   const each=parseFloat((b.bonusAmount/n).toFixed(2));
   for(let i=0;i<n;i++){
-    bonuses.push({id:uid(),parentBetId:b.parentBetId,bookieId:b.bookieId,bonusAmount:each,fixedOdds:null,bsp:null,result:'Pending',sourceType:'split',createdAt:new Date().toISOString()});
+    bonuses.push({id:uid(),parentBetId:b.parentBetId,bookieId:b.bookieId,bonusAmount:each,fixedOdds:null,bsp:null,result:'Pending',sourceType:splitSource(b),bonusType:b.bonusType,createdAt:new Date().toISOString()});
   }
   ss(K.bonuses,bonuses);closeSplitModal();toast(`Split into ${n} × ${fmt$(each)}`,'info');renderBonuses();
 }
