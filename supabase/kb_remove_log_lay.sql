@@ -1,0 +1,9 @@
+-- Removes the "Log Lay Bet" instructions from the coach KB (the button no longer exists).
+-- Each statement only touches text that matches exactly; run in the Supabase SQL editor.
+update public.coach_kb set content = replace(content, $q$When it passes, don't log anything yet: you log it after the bets are on (see Step 3).$q$, $q$When it passes, don't type anything into the tracker yet. The bonus is already sitting in the Bonuses tab as a pending card, and you fill it in after the race.$q$), updated_at = now() where id = 'core';
+
+update public.coach_kb set content = replace(content, $q$- Only once the bonus bet has DEFINITELY been accepted at the bookie and the lay is matched (or you have pressed Take SP), go back to the calculator, update the odds or lay price if they changed, then tap "Log Lay Bet". Never log before the bet is accepted: prices can move, and you may need Take SP.$q$, $q$- Nothing gets logged at this point. Only place the lay once the bonus bet has DEFINITELY been accepted at the bookie, and if the lay isn't matched, press Take SP. Prices can move, so the numbers you enter in the tracker come from the settled Betfair bet, not the calculator.$q$), updated_at = now() where id = 'core';
+
+update public.coach_kb set content = replace(content, $q$Once the bonus bet is accepted and the lay is on, tap "Log Lay Bet".$q$, $q$Nothing to log at this point: the deposit match bonus is already a pending card in the Bonuses tab.$q$), updated_at = now() where id = 'core';
+
+update public.coach_kb set content = replace(content, $q$- Log the lay: once the bonus bet is accepted and the lay is on, tap Log Lay Bet, pick the bookie, confirm the date, save.$q$, $q$- The bonus is already a pending card. After the race, fill in its back odds, lay odds and lay stake from the settled Betfair bet, then press Win or Loss.$q$), updated_at = now() where id = 'core';
