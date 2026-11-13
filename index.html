@@ -893,13 +893,13 @@ async function supaLoad(){
       const merged=remote.map(r=>{
         const lv=local.find(l=>l.id===r.id);
         if(!lv)return r;
-        if(lv.updatedAt&&r.updatedAt&&new Date(lv.updatedAt)>new Date(r.updatedAt))return lv;
+        if(lv.updatedAt&&(!r.updatedAt||new Date(lv.updatedAt)>new Date(r.updatedAt)))return lv;
         return r;
       });
       const remoteIds=new Set(remote.map(x=>x.id));
       const localOnly=local.filter(x=>x.id&&!remoteIds.has(x.id)&&!x.deleted);
       if(localOnly.length)didMerge=true;
-      const localWon=remote.some(r=>{const lv=local.find(l=>l.id===r.id);return lv&&lv.updatedAt&&r.updatedAt&&new Date(lv.updatedAt)>new Date(r.updatedAt);});
+      const localWon=remote.some(r=>{const lv=local.find(l=>l.id===r.id);return lv&&lv.updatedAt&&(!r.updatedAt||new Date(lv.updatedAt)>new Date(r.updatedAt));});
       if(localWon)didMerge=true;
       localStorage.setItem(storageKey,JSON.stringify([...merged,...localOnly]));
     }else{
