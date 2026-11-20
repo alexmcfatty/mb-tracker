@@ -55,6 +55,7 @@ function welcomeHtml(name: string, email: string, password: string) {
 <p style="margin:0 0 24px"><a href="https://matchedbtracker.com" style="background:#0E9F8E;color:#ffffff;text-decoration:none;padding:14px 26px;border-radius:8px;font-weight:bold;display:inline-block">Open the tracker</a></p>
 <h2 style="font-size:18px;margin:0 0 10px">Your first steps</h2>
 <ol style="padding-left:22px;margin:0 0 24px">
+<li style="margin-bottom:12px"><b>Fill out your onboarding form as soon as you can.</b> <a href="https://docs.google.com/forms/d/e/1FAIpQLSckWUEbhKP9lFOHeMySxESzSlczACvr2z0-gHqWihEpyyPveQ/viewform" style="color:#0A7F71">Open the onboarding form</a>. It only takes a few minutes and we need it before your onboarding call.</li>
 <li style="margin-bottom:12px"><b>Save it as an app on your phone.</b><br><span style="color:#4A5A75">iPhone: open the site in Safari, tap Share, then Add to Home Screen.<br>Android: open it in Chrome, tap the menu, then Install app or Add to home screen.<br>Laptop: in Chrome, click the install icon at the right of the address bar.</span></li>
 <li style="margin-bottom:12px"><b>Sign in</b> with the email and password above.</li>
 <li style="margin-bottom:12px"><b>Watch this video first:</b> <a href="https://www.youtube.com/watch?v=Ly0eq77XRkA" style="color:#0A7F71">How to Use the Tracker</a>. It's also in the Learn tab of the app.</li>
@@ -83,18 +84,20 @@ Keep this to yourself and don't share your login with anyone.
 
 Your first steps:
 
-1. Save it as an app on your phone.
+1. Fill out your onboarding form as soon as you can. It only takes a few minutes and we need it before your onboarding call.
+   https://docs.google.com/forms/d/e/1FAIpQLSckWUEbhKP9lFOHeMySxESzSlczACvr2z0-gHqWihEpyyPveQ/viewform
+2. Save it as an app on your phone.
    iPhone: open matchedbtracker.com in Safari, tap Share, then Add to Home Screen.
    Android: open it in Chrome, tap the menu, then Install app or Add to home screen.
    Laptop: in Chrome, click the install icon at the right of the address bar.
-2. Sign in with the email and password above.
-3. Watch this video first: How to Use the Tracker
+3. Sign in with the email and password above.
+4. Watch this video first: How to Use the Tracker
    https://www.youtube.com/watch?v=Ly0eq77XRkA
    It's also in the Learn tab of the app.
-4. Download Telegram: https://telegram.org/apps
+5. Download Telegram: https://telegram.org/apps
    We'll add you to the group on your onboarding call.
-5. Say hi to the AI coach in the app. It will help you work out your bankroll and your unit size.
-6. Your first checkpoint (CP1): open TAB, Bet365 and Neds, and set up Betfair with about $300 to $500 in it. Don't sign up to any other bookies yet. They unlock at later checkpoints.
+6. Say hi to the AI coach in the app. It will help you work out your bankroll and your unit size.
+7. Your first checkpoint (CP1): open TAB, Bet365 and Neds, and set up Betfair with about $300 to $500 in it. Don't sign up to any other bookies yet. They unlock at later checkpoints.
 
 Good to know:
 - Matched betting isn't fully risk-free and results build over time. Only use money you can afford to lose.
